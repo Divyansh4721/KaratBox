@@ -1,0 +1,257 @@
+#home-container {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    z-index: 0;
+    font-size: 20px;
+
+    #heading {
+        color: var(--buttonColor);
+        font-size: inherit;
+        margin: 10px;
+        width: 80%;
+        text-align: center;
+        font-weight: bold;
+    }
+
+    input {
+        font-size: inherit;
+        margin: 10px;
+        padding-left: 10px;
+        width: 80%;
+        height: 50px;
+        border-radius: 10px;
+        outline: 0;
+        color: var(--inputColor);
+        border: 1px solid var(--borderColor);
+        color: var(--inputColor);
+        background-color: var(--inputBgColor);
+    }
+
+    input:disabled,
+    input:read-only {
+        color: var(--inputColorDisabled);
+        background-color: var(--inputBgColorDisabled);
+    }
+
+    input::placeholder {
+        color: var(--inputColorPlaceHolder);
+    }
+
+    input:hover {
+        color: var(--inputColor);
+        background-color: var(--inputBgColorHover);
+    }
+
+    select {
+        font-size: inherit;
+        margin: 10px;
+        padding-left: 10px;
+        width: 80%;
+        height: 50px;
+        border: 1px solid var(--borderColor);
+        color: var(--inputColor);
+        background-color: var(--inputBgColor);
+        border-radius: 10px;
+        outline: 0;
+    }
+
+    select:hover {
+        background-color: var(--inputBgColorHover);
+    }
+
+    button {
+        font-size: inherit;
+        margin: 10px;
+        width: 80%;
+        height: 50px !important;
+        border: 0;
+        background-color: var(--themeColor);
+        color: var(--buttonColor);
+        border-radius: 10px;
+        outline: 0;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    button:hover {
+        background-color: var(--themeColorHover);
+    }
+
+    label {
+        font-size: inherit;
+        margin: 10px;
+        width: 80%;
+        height: 50px;
+        border: 0;
+        background-color: var(--themeColor);
+        color: var(--buttonColor);
+        border-radius: 10px;
+        outline: 0;
+        cursor: pointer;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    label:hover {
+        background-color: var(--themeColorHover);
+    }
+
+    #section1 {
+        position: absolute;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        height: 100%;
+        width: 30%;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        img {
+            height: 100px;
+            width: 100px;
+            object-fit: cover;
+            object-position: center;
+            margin: 10px;
+        }
+
+        #imageBox {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+
+            #windowCapture {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                width: 100%;
+            }
+        }
+
+        table {
+            width: 90%;
+
+            td {
+                width: 20%;
+                text-align: center;
+                font-size: 40px;
+                color: var(--buttonColor);
+            }
+        }
+    }
+
+    #section2 {
+        position: absolute;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        height: 100%;
+        width: 40%;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        left: 50%;
+        transform: translateX(-50%);
+
+        table {
+            width: 90%;
+
+            td {
+                color: var(--buttonColor);
+                width: 20%;
+                text-align: center;
+                font-size: 15px;
+                overflow: hidden;
+            }
+        }
+    }
+
+    #section3 {
+        position: absolute;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        height: 100%;
+        width: 30%;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        right: 0;
+
+        #section3-temp,
+        #stoneRow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        table {
+            width: 90%;
+            margin-bottom: 15px;
+
+            td {
+                color: var(--buttonColor);
+                width: 20%;
+                text-align: center;
+                font-size: 15px;
+            }
+        }
+    }
+}
+
+@media (max-width: 640px) {
+    #home-container {
+        height: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        form {
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #section1,
+        #section2,
+        #section3 {
+            position: relative;
+            width: 100%;
+            min-height: 30vh;
+            border-radius: 10px;
+            box-shadow: 0 0 5px var(--boxShadowColor);
+            margin-top: 50px;
+            padding-bottom: 20px;
+        }
+
+        #section2,
+        #section3 {
+            table {
+                td {
+                    font-size: 10px;
+
+                    input {
+                        margin: auto;
+                        width: calc(100% - 15px);
+                    }
+
+                    select {
+                        margin: auto;
+                        width: calc(100%);
+                    }
+                }
+            }
+        }
+
+        #section2 {
+            margin-bottom: 50px;
+        }
+    }
+}

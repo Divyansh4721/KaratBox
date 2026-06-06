@@ -1,0 +1,17 @@
+<link rel="stylesheet" href="<%= assetPath('css/home.css') %>">
+<div id="home-container">
+    <br>
+    <form action="/backup" method="post">
+        <button type="submit">Backup</button>
+    </form>
+    <br>
+    <form action="/import" method="post">
+        <button type="submit" onclick="return (alert(event))">Import</button>
+    </form>
+    <br>
+    <form action="/clearSite" method="get">
+        <button type="submit">Clear Site</button>
+    </form>
+    <br>
+    <br>
+</div>

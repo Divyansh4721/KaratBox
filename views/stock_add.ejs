@@ -1,0 +1,231 @@
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<div class="min-h-full bg-[#1a1f25] p-4">
+    <div class="max-w-8xl mx-auto">
+        <div class="bg-[#272c35] rounded-2xl shadow-xl shadow-[#708090]/20 overflow-hidden border border-[#000000]">
+            <form action="/stock_add_form" method="post" enctype="multipart/form-data" class="p-4">
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                    <!-- Image Section -->
+                    <div class="xl:col-span-1">
+                        <div class="bg-[#1a1f25] rounded-xl p-6 border border-[#000000]">
+                            <h2 class="text-xl font-semibold text-[#dfe1e4] mb-6 flex items-center">
+                                <i class="fas fa-camera mr-2 text-[#01e8ee]"></i>
+                                Product Images
+                            </h2>
+                            <div id="windowCapture" class="mb-6">
+                                <canvas id="canvas" width="400" height="400" class="hidden"></canvas>
+                                <div class="space-y-4">
+                                    <select id="cameraSelect"
+                                        class="w-full px-4 py-3 border border-[#000000] rounded-lg bg-[#dfe1e4] text-[#000000] placeholder-[#989797] focus:ring-2 focus:ring-[#01e8ee] focus:border-transparent hover:bg-[#c9cacc]">
+                                    </select>
+                                    <div class="relative w-full aspect-square max-w-sm mx-auto">
+                                        <video id="video"
+                                            class="w-full h-full object-cover rounded-lg border-2 border-[#000000]"
+                                            autoplay muted playsinline webkit-playsinline></video>
+                                        <div
+                                            class="absolute inset-0 border-2 border-[#01e8ee] rounded-lg pointer-events-none">
+                                        </div>
+                                    </div>
+                                    <button type="button" id="capture"
+                                        class="w-full theme-color theme-color-hover text-white font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center">
+                                        <i class="fas fa-camera mr-2"></i>
+                                        Capture Image
+                                    </button>
+                                </div>
+                            </div>
+                            <input id="stockImage" type="file" name="stockImage" multiple required class="hidden">
+                            <input id="imageButton" type="file" onchange="AddImage()" accept="image/*" class="hidden">
+                            <label id="imageLabel" for="imageButton"
+                                class="block w-full theme-color theme-color-hover text-white font-semibold py-3 px-4 rounded-lg transition-all cursor-pointer text-center">
+                                <i class="fas fa-plus mr-2"></i>
+                                Add Image
+                            </label>
+                            <div id="imagePreviews" class="mt-6">
+                                <div class="space-y-2">
+                                    <div id="tbody"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Main Form Section -->
+                    <div class="xl:col-span-2">
+                        <div class="bg-[#1a1f25] rounded-xl p-6 border border-[#000000]">
+                            <h2 class="text-xl font-semibold text-[#dfe1e4] mb-6 flex items-center">
+                                <i class="fas fa-clipboard-list mr-2 text-[#01e8ee]"></i>
+                                Stock Details
+                            </h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-[#dfe1e4]">
+                                        SKU <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text" id="index" name="index" placeholder="Index Number..."
+                                        value="<%= index %>" readonly required
+                                        class="w-full px-4 py-3 border border-[#000000] rounded-lg bg-[#efefef4d] text-[#dfe1e4] placeholder-[#989797] focus:ring-2 focus:ring-[#01e8ee] focus:border-transparent">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-[#dfe1e4]">
+                                        Tag Number <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text" id="tag" name="tag" placeholder="Tag Number..." readonly required
+                                        class="w-full px-4 py-3 border border-[#000000] rounded-lg bg-[#efefef4d] text-[#dfe1e4] placeholder-[#989797] focus:ring-2 focus:ring-[#01e8ee] focus:border-transparent">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-[#dfe1e4]">
+                                        Prefix <span class="text-red-500">*</span>
+                                    </label>
+                                    <select id="prefix" name="prefix" onchange="makeTag()" required
+                                        class="w-full px-4 py-3 border border-[#000000] rounded-lg bg-[#dfe1e4] text-[#000000] focus:ring-2 focus:ring-[#01e8ee] focus:border-transparent hover:bg-[#c9cacc]">
+                                        <% for(let i of prefixTable){ %>
+                                            <option value="<%= i.id %>">
+                                                <%= i.name ? i.name : "Select Prefix..." %>
+                                            </option>
+                                            <% } %>
+                                    </select>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-[#dfe1e4]">
+                                        Stone Wt <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="number" step="0.001" placeholder="Stone Wt..." id="stoneWt"
+                                        name="stoneWt" readonly required
+                                        class="w-full px-4 py-3 border border-[#000000] rounded-lg bg-[#efefef4d] text-[#dfe1e4] placeholder-[#989797] focus:ring-2 focus:ring-[#01e8ee] focus:border-transparent">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-[#dfe1e4]">
+                                        Ornament <span class="text-red-500">*</span>
+                                    </label>
+                                    <select id="ornament" name="ornament" onchange="makeTag()" required
+                                        class="w-full px-4 py-3 border border-[#000000] rounded-lg bg-[#dfe1e4] text-[#000000] focus:ring-2 focus:ring-[#01e8ee] focus:border-transparent hover:bg-[#c9cacc]">
+                                        <option value="">Select Ornament...</option>
+                                        <% for(let i of ornamentTable){ %>
+                                            <option value="<%= i.id %>">
+                                                <%= i.name %>
+                                            </option>
+                                            <% } %>
+                                    </select>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-[#dfe1e4]">
+                                        Net Wt <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="number" step="0.001" placeholder="Net Wt..." id="netWt" name="netWt"
+                                        readonly required
+                                        class="w-full px-4 py-3 border border-[#000000] rounded-lg bg-[#efefef4d] text-[#dfe1e4] placeholder-[#989797] focus:ring-2 focus:ring-[#01e8ee] focus:border-transparent">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-[#dfe1e4]">
+                                        Gross Wt <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="number" step="0.001" placeholder="Gross Wt..." id="grossWt"
+                                        name="grossWt" onchange="calculateWeight()" required
+                                        class="w-full px-4 py-3 border border-[#000000] rounded-lg bg-[#dfe1e4] text-[#000000] placeholder-[#989797] focus:ring-2 focus:ring-[#01e8ee] focus:border-transparent hover:bg-[#c9cacc]">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-[#dfe1e4]">
+                                        Stock Type <span class="text-red-500">*</span>
+                                    </label>
+                                    <select id="stockType" name="stockType" required
+                                        class="w-full px-4 py-3 border border-[#000000] rounded-lg bg-[#dfe1e4] text-[#000000] focus:ring-2 focus:ring-[#01e8ee] focus:border-transparent hover:bg-[#c9cacc]">
+                                        <option value="">Select Stock Type...</option>
+                                        <% for(let i of stockTypeTable){ %>
+                                            <option value="<%= i.id %>">
+                                                <%= i.name %>
+                                            </option>
+                                            <% } %>
+                                    </select>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-[#dfe1e4]">
+                                        Purity <span class="text-red-500">*</span>
+                                    </label>
+                                    <select id="purity" name="purity" required
+                                        class="w-full px-4 py-3 border border-[#000000] rounded-lg bg-[#dfe1e4] text-[#000000] focus:ring-2 focus:ring-[#01e8ee] focus:border-transparent hover:bg-[#c9cacc]">
+                                        <option value="">Select Purity...</option>
+                                        <% for(let i of purityTable){ %>
+                                            <option value="<%= i.id %>">
+                                                <%= i.name + " | " + i.wholesaleMultiplier + " | " + i.retailMultiplier
+                                                    + " | " + i.wastage %>
+                                            </option>
+                                            <% } %>
+                                    </select>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-[#dfe1e4]">
+                                        Kaarigar
+                                    </label>
+                                    <select id="kaarigar" name="kaarigar"
+                                        class="w-full px-4 py-3 border border-[#000000] rounded-lg bg-[#dfe1e4] text-[#000000] focus:ring-2 focus:ring-[#01e8ee] focus:border-transparent hover:bg-[#c9cacc]">
+                                        <option value="">Select Kaarigar...</option>
+                                        <% for(let i of kaarigarTable){ %>
+                                            <option value="<%= i.id %>">
+                                                <%= i.name %>
+                                            </option>
+                                            <% } %>
+                                    </select>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-[#dfe1e4]">
+                                        HUID
+                                    </label>
+                                    <input type="text" id="huid" name="huid" placeholder="HUID..."
+                                        class="w-full px-4 py-3 border border-[#000000] rounded-lg bg-[#dfe1e4] text-[#000000] placeholder-[#989797] focus:ring-2 focus:ring-[#01e8ee] focus:border-transparent hover:bg-[#c9cacc]">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-[#dfe1e4]">
+                                        Is KDM
+                                    </label>
+                                    <div class="flex items-center pt-3">
+                                        <input type="checkbox" id="isKDM" name="isKDM"
+                                            class="w-5 h-5 text-[#01e8ee] border-[#000000] rounded focus:ring-[#01e8ee]">
+                                        <label for="isKDM" class="ml-2 text-sm text-[#dfe1e4]">KDM Gold</label>
+                                    </div>
+                                </div>
+                                <div class="space-y-2 md:col-span-2">
+                                    <label class="block text-sm font-medium text-[#dfe1e4]">
+                                        Remark
+                                    </label>
+                                    <input type="text" id="remark" name="remark" placeholder="Remark..."
+                                        autocomplete="off"
+                                        class="w-full px-4 py-3 border border-[#000000] rounded-lg bg-[#dfe1e4] text-[#000000] placeholder-[#989797] focus:ring-2 focus:ring-[#01e8ee] focus:border-transparent hover:bg-[#c9cacc]">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Stone Section -->
+                        <div class="mt-8">
+                            <div class="bg-[#1a1f25] rounded-xl p-6 border border-[#000000]">
+                                <div class="flex items-center justify-between mb-6">
+                                    <h2 class="text-xl font-semibold text-[#dfe1e4] flex items-center">
+                                        <i class="fas fa-diamond mr-2 text-[#01e8ee]"></i>
+                                        Stone Details
+                                    </h2>
+                                    <button type="button" id="AddRowButton" onclick="AddRow()"
+                                        class="theme-color theme-color-hover text-white font-semibold py-2 px-4 rounded-lg transition-all flex items-center">
+                                        <i class="fas fa-plus mr-2"></i>
+                                        Add Stone
+                                    </button>
+                                </div>
+                                <div id="stoneRow" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Submit Button -->
+                <div class="mt-8 text-center">
+                    <button type="submit"
+                        class="theme-color theme-color-hover text-white font-bold py-4 px-12 rounded-xl transition-all transform hover:scale-105 shadow-lg shadow-[#708090]/20">
+                        <i class="fas fa-save mr-2"></i>
+                        Submit Stock
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    let stock = [];
+    let stoneDealerTable = JSON.parse((`<%= JSON.stringify(stoneDealerTable,null,2) %>`).replaceAll('&#34;', '"'));
+    let stoneTypeTable = JSON.parse((`<%= JSON.stringify(stoneTypeTable,null,2) %>`).replaceAll('&#34;', '"'));
+    let indexTable = JSON.parse((`<%= JSON.stringify(indexTable,null,2) %>`).replaceAll('&#34;', '"'));
+</script>
+<script src="<%= assetPath('js/stock.js') %>"></script>

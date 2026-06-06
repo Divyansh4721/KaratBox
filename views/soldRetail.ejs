@@ -1,0 +1,39 @@
+<link rel="stylesheet" href="<%= assetPath('css/home.css') %>">
+<style>
+    @media (max-width: 640px) {
+        #home-container table {
+            font-size: 8px;
+        }
+    }
+</style>
+<div id="home-container">
+    <br>
+    <a href="/addCustomer">
+        <button type="submit">Add Customer</button>
+    </a>
+    <form action="/soldRetailForm" method="post">
+        <br>
+        <input type="text" id="customerinput" placeholder="Search Customer ...." autocomplete="off">
+        <br>
+        <select id="customeroptions" name="customer">
+            <option value="">Select Customer ....</option>
+            <% for(let i of customerTable){ %>
+            <option value="<%= i._id %>"><%= i.searchStr %></option>
+            <% } %>
+        </select>
+        <br>
+        <input type="number" name="amount" placeholder="Sold Price ....">
+        <br>
+        <input type="text" value="₹ <%= new Intl.NumberFormat('en-IN').format(tTotalPrice.toFixed(0)) %> /-" readonly>
+        <br>
+        <%- include('layoutStockTableLink',{stockTable:stockTable}); %>
+        <br>
+        <button type="submit" onclick="return (alert(event) && alert(event))">Sold</button>
+    </form>
+    <br>
+    <br>
+</div>
+<script>
+    let customerTable = JSON.parse((`<%= JSON.stringify(customerTable,null,2) %>`).replaceAll('&#34;', '"'));
+</script>
+<script src="<%= assetPath('js/customerSearch.js') %>"></script>

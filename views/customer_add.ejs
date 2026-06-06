@@ -1,0 +1,44 @@
+<link rel="stylesheet" href="<%= assetPath('css/customer_add.css') %>">
+<div id="home-container">
+    <form action="/addCustomerForm" method="post">
+        <span id="heading">Name<span style="color: red;"> *</span></span>
+        <input type="text" name="name" placeholder="Enter Customer Name ...." required>
+        <span id="heading">Address<span style="color: red;"> *</span></span>
+        <input type="text" name="address" placeholder="Enter Customer Address ...." required>
+        <span id="heading">Phone Number<span style="color: red;"> *</span></span>
+        <table id="phNum" border="1" cellspacing="0">
+            <tr>
+                <td colspan="2">
+                    <button type="button" onclick="AddRowPH()">Add Row</button>
+                </td>
+            </tr>
+            <tr id="phNum0">
+                <td>
+                    <input type="number" name="phNum[]" min="1111111111" max="9999999999"
+                        placeholder="Enter Phone Number ...." required>
+                </td>
+                <td>
+                    <button type="button" class="fas fa-trash" onclick="DeleteRow('phNum', 0)"></button>
+                </td>
+            </tr>
+        </table>
+        <span id="heading">Care Of</span>
+        <table id="CO" border="1" cellspacing="0">
+            <tr>
+                <td colspan="2">
+                    <button type="button" onclick="AddRowCO()">Add Row</button>
+                </td>
+            </tr>
+        </table>
+        <span id="heading">Important Dates</span>
+        <table id="impDates" border="1" cellspacing="0">
+            <tr>
+                <td colspan="3">
+                    <button type="button" onclick="AddRowDate()">Add Row</button>
+                </td>
+            </tr>
+        </table>
+        <button type="submit">Add Customer</button>
+    </form>
+</div>
+<script src="<%= assetPath('js/customer_add.js') %>"></script>

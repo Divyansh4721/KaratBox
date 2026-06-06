@@ -1,0 +1,42 @@
+<link rel="stylesheet" href="<%= assetPath('css/home.css') %>">
+<div id="home-container">
+    <br>
+    <a href="/Kaarigar">
+        <button type="submit">Kaarigar</button>
+    </a>
+    <br>
+    <a href="/Ornament">
+        <button type="submit">Ornament</button>
+    </a>
+    <br>
+    <a href="/Prefix">
+        <button type="submit">Prefix</button>
+    </a>
+    <br>
+    <a href="/Purity">
+        <button type="submit">Purity</button>
+    </a>
+    <br>
+    <a href="/StockType">
+        <button type="submit">StockType</button>
+    </a>
+    <br>
+    <a href="/StoneDealer">
+        <button type="submit">StoneDealer</button>
+    </a>
+    <br>
+    <a href="/StoneType">
+        <button type="submit">StoneType</button>
+    </a>
+    <br>
+    <form action="/tagNameForm" method="post">
+        <br>
+        <span id="heading">Tag Name</span>
+        <br>
+        <input type="text" name="TagName" value="<%= TagName.value %>" placeholder="Tag Name ...." required>
+        <br>
+        <button type="submit">Update</button>
+    </form>
+    <br>
+    <br>
+</div>

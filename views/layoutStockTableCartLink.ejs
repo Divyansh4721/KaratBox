@@ -1,0 +1,43 @@
+<table border="1" cellspacing="0">
+    <tr class="bold backgroundDark">
+        <td>S. No</td>
+        <td>SKU</td>
+        <td>Tag No</td>
+        <td>Purity</td>
+        <td>Gross Wt</td>
+        <td>Net Wt</td>
+        <td>Stone Wt<br>(In gms)</td>
+        <td>Stone Wt<br>(In ct)</td>
+        <td>Stock<br>Type</td>
+        <td>Cart</td>
+        <td>Link</td>
+    </tr>
+    <% for(let i = 0; i < stockTable.length; i++){ %>
+    <tr>
+        <td><%= (i+1) %></td>
+        <td><%= stockTable[i].index %></td>
+        <td><%= stockTable[i].prefix.name+" "+stockTable[i].ornament.name+(stockTable[i].tag ? ("-" + stockTable[i].tag) : "") %></td>
+        <td><%= stockTable[i].purity.name %></td>
+        <td><%= stockTable[i].grossWt.toFixed(3) %></td>
+        <td><%= stockTable[i].netWt.toFixed(3) %></td>
+        <td><%= stockTable[i].stoneWt.toFixed(3) %></td>
+        <td><%= (stockTable[i].stoneWt * 5).toFixed(3) %></td>
+        <td><%= stockTable[i].stockType.name %></td>
+        <td><a class="fa-solid fa-cart-plus" style="text-decoration: none; cursor: pointer; color: inherit;" onclick="AddToCart('<%= stockTable[i].id %>')"></a></td>
+        <td><a class="fa-solid fa-link" style="text-decoration: none; color: inherit;" href='/stock/<%= stockTable[i].id %>'></a></td>
+    </tr>
+    <% } %>
+    <tr class="bold backgroundDark">
+        <td><%= stockTable.length %></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td><%= (stockTable.reduce((total, item) => total + (item.grossWt * 1), 0)).toFixed(3) %></td>
+        <td><%= (stockTable.reduce((total, item) => total + (item.netWt * 1), 0)).toFixed(3) %></td>
+        <td><%= (stockTable.reduce((total, item) => total + (item.stoneWt * 1), 0)).toFixed(3) %></td>
+        <td><%= (stockTable.reduce((total, item) => total + (item.stoneWt * 5), 0)).toFixed(3) %></td>
+        <td></td>
+        <td></td>
+        <td></td>
+    </tr>
+</table>

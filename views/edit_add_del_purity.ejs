@@ -1,0 +1,53 @@
+<link rel="stylesheet" href="<%= assetPath('css/home.css') %>">
+<div id="home-container">
+    <br>
+    <form action="/add<%= name %>" method="post">
+        <input type="text" name="name" placeholder="Enter <%= name %> Name ...." required>
+        <br>
+        <input type="number" name="wholesaleMultiplier" step="0.01" placeholder="Enter WholeSale Multiplier Value ...." required>
+        <br>
+        <input type="number" name="retailMultiplier" step="0.01" placeholder="Enter Retail Multiplier Value ...." required>
+        <br>
+        <input type="number" name="wastage" step="0.01" placeholder="Enter Wastage Value ...." required>
+        <br>
+        <button type="submit">Add <%= name %></button>
+    </form>
+    <br>
+    <br>
+    <br>
+    <form action="/edit<%= name %>" method="post">
+        <select name="oldname" required>
+            <option value="">Select <%= name %></option>
+            <% for(let i of options){ %>
+            <option value="<%= i.id %>"><%= i.name %></option>
+            <% } %>
+        </select>
+        <br>
+        <input type="text" name="newname" placeholder="Enter <%= name %> Name ...." required>
+        <br>
+        <input type="number" name="wholesaleMultiplier" step="0.01" placeholder="Enter WholeSale Multiplier Value ...." required>
+        <br>
+        <input type="number" name="retailMultiplier" step="0.01" placeholder="Enter Retail Multiplier Value ...." required>
+        <br>
+        <input type="number" name="wastage" step="0.01" placeholder="Enter Wastage Value ...." required>
+        <br>
+        <button type="submit" onclick="return (alert(event))">Edit <%= name %></button>
+    </form>
+    <br>
+    <br>
+    <br>
+    <form action="/del<%= name %>" method="post">
+        <select name="name" required>
+            <option value="">Select <%= name %></option>
+            <% for(let i of options){ %>
+            <option value="<%= i.id %>"><%= i.name %></option>
+            <% } %>
+        </select>
+        <br>
+        <button type="submit" onclick="return (alert(event) && alert(event) && alert(event))">
+            Delete <%= name %>
+        </button>
+    </form>
+    <br>
+    <br>
+</div>

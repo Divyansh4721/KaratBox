@@ -1,0 +1,16 @@
+<link rel="stylesheet" href="<%= assetPath('css/home.css') %>">
+<div id="home-container">
+    <form action="/bill" method="get">
+        <br>
+        <select id="id" name="id" required>
+            <option value="">Select Bill ...</option>
+            <% for(let i of billTable){ %>
+            <option value="<%= i.id %>">
+                <%= (i.customer ? (i.customer.name + " | ") : "") + (i.amount ? (i.amount + " | ") : "") + i.cart.length + " | [ " + new Date(i.createdAt).toLocaleDateString('en-GB') + " ]" %>
+            </option>
+            <% } %>
+        </select>
+        <br>
+        <button type="submit">Submit</button>
+    </form>
+</div>

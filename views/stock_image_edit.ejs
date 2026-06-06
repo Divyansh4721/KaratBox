@@ -1,0 +1,248 @@
+<link rel="stylesheet" href="<%= assetPath('css/stock.css') %>">
+<style>
+    #home-container #section3,
+    #home-container #section2 {
+        display: none;
+    }
+</style>
+<div id="home-container">
+    <form action="/stock_image_edit_form" method="post" enctype="multipart/form-data">
+        <div id="section1">
+            <div id="imageBox">
+                <div id="windowCapture">
+                    <canvas id="canvas" width="400" height="400" style="display:none;"></canvas>
+                    <select id="cameraSelect"></select>
+                    <video id="video" width="200" height="200" style="object-fit: cover;" autoplay></video>
+                    <button type="button" id="capture">Capture Image</button>
+                </div>
+                <input id="stockImage" type="file" name="stockImage" multiple required hidden>
+                <label id="imageLabel" for="imageButton">Add Image</label>
+                <input id="imageButton" type="file" onchange="AddImage()" accept="image/*" hidden>
+                <table id="imagePreviews" border="1" cellspacing="0">
+                    <tbody></tbody>
+                </table>
+                <br>
+                <button type="submit">Submit</button>
+            </div>
+        </div>
+        <div id="section3">
+            <div id="section3-temp">
+                <button type="button" id="AddRowButton" onclick="AddRow()" readonly>Add Stone</button>
+            </div>
+            <div id="stoneRow">
+                <% for (let j=0; j<stock.stoneTable.length; j++) { %>
+                <table border="1" cellspacing="0" id="<%= 'TableRow' + j %>"
+                    onchange="ConvertWeightToCT('<%= j %>');calculateWeight();">
+                    <tbody>
+                        <tr>
+                            <td>Stone Type<span style="color: red;"> *</span></td>
+                            <td>
+                                <select name="stoneType[]" class="stoneTabletoneType" readonly required>
+                                    <option value="">Select Stone Type ...</option>
+                                    <% for (let i of stoneTypeTable) { %>
+                                    <option value="<%= i._id %>"
+                                        <%= i._id.toString()===stock.stoneTable[j].type.toString()?"selected":"" %>>
+                                        <%= i.name %>
+                                    </option>
+                                    <% } %>
+                                </select>
+                            </td>
+                            <td>
+                                <button type="button" onclick="DeleteRow('<%= `TableRow`+ j %>');"
+                                    readonly>Delete</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Stone Dealer</td>
+                            <td>
+                                <select name="stoneDealer[]" class="stoneTableStoneDealer" readonly>
+                                    <option value="">Select Stone Dealer ...</option>
+                                    <% for (let i of stoneDealerTable) { %>
+                                    <option value="<%= i._id %>"
+                                        <%= stock.stoneTable[j].dealerName && i._id.toString()===stock.stoneTable[j].dealerName.toString()?"selected":"" %>>
+                                        <%= i.name %>
+                                    </option>
+                                    <% } %>
+                                </select>
+                            </td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Stone Weight<span style="color: red;"> *</span></td>
+                            <td>
+                                <input type="number" step="0.001" placeholder="Weight ..." class="dummyStoneTableWeight"
+                                    value="<%= stock.stoneTable[j].ctWeight %>" readonly required>
+                                <input type="number" step="0.001" name="stoneWeight[]" class="stoneTableWeight"
+                                    value="<%= stock.stoneTable[j].ctWeight %>" readonly required hidden>
+                            </td>
+                            <td>
+                                <select class="selectWeight" readonly>
+                                    <option value="1">in Gram</option>
+                                    <option value="2" selected>in Carat</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Purchase Rate</td>
+                            <td>
+                                <input type="number" placeholder="Purchase Rate ..." class="dummyStoneTablePurchaseRate"
+                                    value="<%= stock.stoneTable[j].purchaseRate %>" readonly>
+                                <input type="number" name="purchaseRate[]" class="stoneTablePurchaseRate"
+                                    value="<%= stock.stoneTable[j].purchaseRate %>" readonly hidden>
+                            </td>
+                            <td>
+                                <select class="selectPurchaseRate" readonly>
+                                    <option value="1">per Gram</option>
+                                    <option value="2" selected>per Carat</option>
+                                    <option value="3">Whole Price</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Sell Rate<span style="color: red;"> *</span></td>
+                            <td>
+                                <input type="number" placeholder="Sell Rate ..." class="dummyStoneTableSellRate"
+                                    value="<%= stock.stoneTable[j].sellRate %>" readonly required>
+                                <input type="number" name="sellRate[]" class="stoneTableSellRate"
+                                    value="<%= stock.stoneTable[j].sellRate %>" readonly required hidden>
+                            </td>
+                            <td>
+                                <select class="selectSellRate" readonly>
+                                    <option value="1">per Gram</option>
+                                    <option value="2" selected>per Carat</option>
+                                    <option value="3">Whole Price</option>
+                                </select>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <% } %>
+            </div>
+        </div>
+        <div id="section2">
+            <span id="heading">Add Stock</span>
+            <br>
+            <table border="1" cellspacing="0">
+                <tr>
+                    <td>SKU<span style="color: red;"> *</span></td>
+                    <td>
+                        <input type="text" id="index" name="index" placeholder="Index Number ..."
+                            value="<%= stock.index %>" readonly required>
+                    </td>
+                    <td>Tag Number<span style="color: red;"> *</span></td>
+                    <td>
+                        <input type="text" id="tag" name="tag" placeholder="Tag Number ..." value="<%= stock.tag %>"
+                            readonly required>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Prefix<span style="color: red;"> *</span></td>
+                    <td>
+                        <select id="prefix" name="prefix" onchange="makeTag()" readonly required>
+                            <% for(let i of prefixTable){ %>
+                            <option value="<%= i.id %>" <%= i.id==stock.prefix?"selected":"" %>>
+                                <%= i.name ? i.name : "Select Prefix ..." %></option>
+                            <% } %>
+                        </select>
+                    </td>
+                    <td>Stone Wt<span style="color: red;"> *</span></td>
+                    <td>
+                        <input type="number" step="0.001" placeholder="Stone Wt ..." id="stoneWt" name="stoneWt"
+                            value="<%= stock.stoneWt %>" readonly required>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Ornament<span style="color: red;"> *</span></td>
+                    <td>
+                        <select id="ornament" name="ornament" onchange="makeTag()" readonly required>
+                            <option value="">Select Ornament ...</option>
+                            <% for(let i of ornamentTable){ %>
+                            <option value="<%= i.id %>" <%= i.id==stock.ornament?"selected":"" %>>
+                                <%= i.name %></option>
+                            <% } %>
+                        </select>
+                    </td>
+                    <td>Net Wt<span style="color: red;"> *</span></td>
+                    <td>
+                        <input type="number" step="0.001" placeholder="Net Wt ..." id="netWt" name="netWt" readonly
+                            value="<%= stock.netWt %>" required>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Gross Wt<span style="color: red;"> *</span></td>
+                    <td>
+                        <input type="number" step="0.001" placeholder="Gross Wt ..." id="grossWt" name="grossWt"
+                            value="<%= stock.grossWt %>" onchange="calculateWeight()" readonly required>
+                    </td>
+                    <td>Stock Type<span style="color: red;"> *</span></td>
+                    <td>
+                        <select id="stockType" name="stockType" readonly required>
+                            <option value="">Select Stock Type ...</option>
+                            <% for(let i of stockTypeTable){ %>
+                            <option value="<%= i.id %>" <%= i.id==stock.stockType?"selected":"" %>>
+                                <%= i.name %>
+                            </option>
+                            <% } %>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Purity<span style="color: red;"> *</span></td>
+                    <td>
+                        <select id="purity" name="purity" readonly required>
+                            <option value="">Select Purity ...</option>
+                            <% for(let i of purityTable){ %>
+                            <option value="<%= i.id %>" <%= i.id==stock.purity?"selected":"" %>>
+                                <%= i.name + " | "+ i.wholesaleMultiplier + " | "+ i.retailMultiplier + " | "+ i.wastage %>
+                            </option>
+                            <% } %>
+                        </select>
+                    </td>
+                    <td>Kaarigar</td>
+                    <td>
+                        <select id="kaarigar" name="kaarigar" readonly>
+                            <option value="">Select Kaarigar ...</option>
+                            <% for(let i of kaarigarTable){ %>
+                            <option value="<%= i.id %>" <%= i.id==stock.kaarigar?"selected":"" %>>
+                                <%= i.name %>
+                            </option>
+                            <% } %>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>HUID</td>
+                    <td>
+                        <input type="text" id="huid" name="huid" placeholder="HUID ..." value="<%= stock.HUID %>"
+                            readonly>
+                    </td>
+                    <td>Is KDM</td>
+                    <td>
+                        <input type="checkbox" id="isKDM" name="isKDM" <%= stock.isKDM?"checked":"" %> readonly>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Remark</td>
+                    <td colspan="3">
+                        <input type="text" id="remark" name="remark" value="<%= stock.remark %>"
+                            placeholder="Remark ..." readonly>
+                    </td>
+                </tr>
+            </table>
+            <br>
+            <br>
+        </div>
+    </form>
+</div>
+<script>
+    let stock = [];
+    let stoneDealerTable = JSON.parse((`<%= JSON.stringify(stoneDealerTable,null,2) %>`).replaceAll('&#34;', '"'));
+    let stoneTypeTable = JSON.parse((`<%= JSON.stringify(stoneTypeTable,null,2) %>`).replaceAll('&#34;', '"'));
+    let indexTable = JSON.parse((`<%= JSON.stringify(indexTable,null,2) %>`).replaceAll('&#34;', '"'));
+</script>
+<script src="<%= assetPath('js/stock.js') %>"></script>
+<% for (let i=0; i<stock.stockImage.length; i++) { %>
+<script>
+    AddEditImage('/uploads/<%= stock.stockImage[i].fileName %>');
+</script>
+<% } %>

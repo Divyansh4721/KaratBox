@@ -1,0 +1,117 @@
+<link rel="stylesheet" href="<%= assetPath('css/home.css') %>">
+<style>
+    #home-container {
+        display: block !important;
+    }
+
+    @media (max-width: 640px) {
+        #home-container table {
+            font-size: 10px;
+            padding: 2px;
+        }
+    }
+</style>
+<div id="home-container">
+    <br>
+    <form>
+        <button type="button" onclick="SortByImpDate()">Upcoming Events</button>
+    </form>
+    <br>
+    <table id="table" border="1" cellspacing="0">
+        <tr>
+            <td>S.No</td>
+            <td>Customer Name</td>
+            <td>Customer Address</td>
+            <td>Added By</td>
+            <td>Phone Number</td>
+            <td>Date Added</td>
+            <td>Imp Dates</td>
+            <td>Imp Dates</td>
+        </tr>
+        <% for(let i=0;i<customerTable.length;i++){ %>
+        <tr>
+            <td><%= customerTable.length-i %></td>
+            <td><%= customerTable[i].name %></td>
+            <td><%= customerTable[i].address %></td>
+            <td><%= customerTable[i].user.name %></td>
+            <td><%= customerTable[i].phNum[0] %></td>
+            <td><%= convertDate(customerTable[i].createdAt) %></td>
+            <td><%= customerTable[i].impDates[0]?customerTable[i].impDates[0].remark:"" %></td>
+            <td><%= customerTable[i].impDates[0]?convertDate(customerTable[i].impDates[0].date):"" %></td>
+        </tr>
+        <% } %>
+    </table>
+</div>
+<script>
+    let customerTable = JSON.parse((`<%= JSON.stringify(customerTable,null,2) %>`).replaceAll('&#34;', '"'));
+</script>
+<script>
+    function SortByImpDate() {
+        customerTable.sort((a, b) => {
+            let dateA = a.impDates[0] ? new Date(a.impDates[0].date) : null;
+            let dateB = b.impDates[0] ? new Date(b.impDates[0].date) : null;
+            if (dateA) {
+                dateA.setFullYear(new Date().getFullYear());
+                if (dateA - new Date() < 0)
+                    dateA.setFullYear(new Date().getFullYear() + 1);
+            }
+            if (dateB) {
+                dateB.setFullYear(new Date().getFullYear());
+                if (dateB - new Date() < 0)
+                    dateB.setFullYear(new Date().getFullYear() + 1);
+            }
+            if (!dateA && !dateB) return 0;
+            if (!dateA) return 1;
+            if (!dateB) return -1;
+            return dateA - dateB;
+        });
+        buildTable();
+    }
+
+    function buildTable() {
+        let data = `
+        <tr>
+            <td>S.No</td>
+            <td>Customer Name</td>
+            <td>Customer Address</td>
+            <td>Added By</td>
+            <td>Phone Number</td>
+            <td>Date Added</td>
+            <td>Imp Dates</td>
+            <td>Imp Dates</td>
+        </tr>
+        `;
+        for (let i = 0; i < customerTable.length; i++) {
+            data += `<tr>
+                <td>${customerTable.length-i}</td>
+                <td>${customerTable[i].name}</td>
+                <td>${customerTable[i].address}</td>
+                <td>${customerTable[i].user.name}</td>
+                <td>${customerTable[i].phNum[0]}</td>
+                <td>${convertTime(customerTable[i].createdAt)}</td>
+                <td>${customerTable[i].impDates[0]?customerTable[i].impDates[0].remark:""}</td>
+                <td>${customerTable[i].impDates[0]?convertDate(customerTable[i].impDates[0].date):""}</td>
+            </tr>
+            `;
+        }
+        table.innerHTML = data;
+    }
+
+    function convertTime(date) {
+        if (date === null || date === undefined)
+            return "";
+        let today = new Date(date);
+        let time = today.toString().slice(0, 21).split("").reverse().join("")
+            .slice(0, 5).split("").reverse().join("");
+        let month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'July', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return today.getDate() + ' ' + month[today.getMonth()] + ' ' + today.getFullYear() + ' ' + ' at ' + time;
+    }
+
+    function convertDate(date) {
+        if (date === null || date === undefined)
+            return "";
+        let today = new Date(date);
+        let month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'July', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return today.getDate() + ' ' + month[today.getMonth()] + ' ' + today.getFullYear();
+    }
+</script>

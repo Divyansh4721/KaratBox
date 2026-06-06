@@ -1,0 +1,119 @@
+<link rel="stylesheet" href="<%= assetPath('css/home.css') %>">
+<style>
+    @media (max-width: 640px) {
+        #home-container table {
+            font-size: 8px;
+        }
+
+        #home-container table th,
+        #home-container table td {
+            padding: 2px;
+        }
+    }
+</style>
+<div id="home-container">
+    <br>
+    <a href="/addCustomer">
+        <button type="submit">Add Customer</button>
+    </a>
+    <form action="/soldWholesaleForm" method="post">
+        <br>
+        <input type="text" id="customerinput" placeholder="Search Customer ...." autocomplete="off">
+        <br>
+        <select id="customeroptions" name="customer" required>
+            <option value="">Select Customer ....</option>
+            <% for(let i of customerTable){ %>
+            <option value="<%= i._id %>"><%= i.searchStr %></option>
+            <% } %>
+        </select>
+        <br>
+        <span id="heading">Total Charged Wt</span>
+        <input id="inputTotalWt" name="totalWt" step="0.001" type="number" readonly required>
+        <br>
+        <span id="heading">Gold Rate</span>
+        <input id="inputGoldRate" name="goldRate" step="1" value="<%= goldPrice %>" onchange="calculateTotal();"
+            type="number" required>
+        <br>
+        <span id="heading">Total Cash</span>
+        <input id="inputTotalCash" name="totalCash" step="1" type="number" readonly required>
+        <br>
+        <button type="submit" onclick="return (alert(event) && alert(event))">Sold</button>
+        <br>
+        <input type="text" name="stoneTable" hidden>
+    </form>
+    <table border="1" cellspacing="0">
+        <tr class="bold backgroundDark">
+            <td>S. No</td>
+            <td>Tag No</td>
+            <td>Purity</td>
+            <td>Net Wt</td>
+            <td>Wastage</td>
+            <td>Total Fine Wt</td>
+            <td>Labour</td>
+            <td>Total</td>
+        </tr>
+        <% for(let i = 0; i < stockTable.length; i++){ %>
+        <tr id="eachLine" class="eachLineStock">
+            <td><%= (i+1) %></td>
+            <td>
+                <%= stockTable[i].prefix.name + " " + stockTable[i].ornament.name + (stockTable[i].tag ? ("-" + stockTable[i].tag) : "") %>
+            </td>
+            <td><%= stockTable[i].purity.name + " | " + stockTable[i].purity.wholesaleMultiplier %></td>
+            <td><%= (stockTable[i].netWt * 1).toFixed(3) %> gm</td>
+            <td>
+                <input type="number" id="netWt" value="<%= stockTable[i].netWt %>" hidden>
+                <input type="number" id="wholesaleMultiplier" value="<%= stockTable[i].purity.wholesaleMultiplier %>" hidden>
+                <input type="number" name="tounch" placeholder="Tounch ..." id="inputTounch"
+                    onchange="calculateTotal();">
+            </td>
+            <td id="totalFine"></td>
+            <td>
+                <input type="number" name="labour" placeholder="Labour ..." id="inputLabour"
+                    onchange="calculateTotal();">
+            </td>
+            <td id="total"></td>
+        </tr>
+        <% for(let j = 0; j < stockTable[i].stoneTable.length; j++){ %>
+        <tr id="eachLine" class="eachLineStone">
+            <td></td>
+            <td><%= (stockTable[i].stoneTable[j].ctWeight*1).toFixed(3) %> ct</td>
+            <td><%= (stockTable[i].stoneTable[j].gmWeight*1).toFixed(3) %> gm</td>
+            <td><%= stockTable[i].stoneTable[j].type.name %></td>
+            <td>
+                <input type="number" id="weight" value="<%= (stockTable[i].stoneTable[j].ctWeight*1).toFixed(3) %>"
+                    hidden>
+                <input type="number" name="rate" placeholder="Rate ..." id="rate"
+                    value="<%= stockTable[i].stoneTable[j].sellRate %>" onchange="calculateTotal();">
+            </td>
+            <td></td>
+            <td>
+                <select id="rateType" onchange="calculateTotal();">
+                    <option value="1">per Gram</option>
+                    <option value="2" selected>per Carat</option>
+                    <option value="3">Whole Price</option>
+                </select>
+            </td>
+            <td id="totalLinePrice"></td>
+        </tr>
+        <% } %>
+        <% } %>
+        <tr class="bold backgroundDark">
+            <td><%= stockTable.length %></td>
+            <td><%= (stockTable.reduce((total, item) => total + (item.stoneWt * 5), 0)).toFixed(3) %> ct</td>
+            <td><%= (stockTable.reduce((total, item) => total + (item.stoneWt * 1), 0)).toFixed(3) %> gm</td>
+            <td id="totalNetWt"></td>
+            <td></td>
+            <td id="totalChargedWt"></td>
+            <td></td>
+            <td id="totalRate"></td>
+        </tr>
+    </table>
+    <br>
+    <br>
+</div>
+<script>
+    let stockTable = JSON.parse((`<%= JSON.stringify(stockTable,null,2) %>`).replaceAll('&#34;', '"'));
+    let customerTable = JSON.parse((`<%= JSON.stringify(customerTable,null,2) %>`).replaceAll('&#34;', '"'));
+</script>
+<script src="<%= assetPath('js/customerSearch.js') %>"></script>
+<script src="<%= assetPath('js/soldWholesale.js') %>"></script>

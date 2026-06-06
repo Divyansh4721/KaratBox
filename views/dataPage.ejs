@@ -1,0 +1,40 @@
+<link rel="stylesheet" href="<%= assetPath('css/home.css') %>">
+<div id="home-container">
+    <br>
+    <a href="/dailySheet">
+        <button type="submit">Daily Sheet</button>
+    </a>
+    <br>
+    <br>
+    <form action="/backDateSheet" method="post">
+        <input type="date" name="date"
+            value="<%= new Date(new Date().getTime() + 19800000 - 86400000).toISOString().substring(0,10); %>"
+            max="<%= new Date(new Date().getTime() + 19800000 - 86400000).toISOString().substring(0,10); %>">
+        <br>
+        <button type="submit">Back Date Lists</button>
+    </form>
+    <br>
+    <br>
+    <form action="/customSheetPage" method="post">
+        <input type="date" name="date"
+            value="<%= new Date(new Date().getTime() + 19800000).toISOString().substring(0,10); %>"
+            max="<%= new Date(new Date().getTime() + 19800000).toISOString().substring(0,10); %>">
+        <br>
+        <button type="submit">Custom Lists</button>
+    </form>
+    <br>
+    <br>
+    <a href="/allStock">
+        <button type="submit">All Stock</button>
+    </a>
+    <br>
+    <a href="/allInStock">
+        <button type="submit">In Stock</button>
+    </a>
+    <br>
+    <a href="/allOutStock">
+        <button type="submit">Out Stock</button>
+    </a>
+    <br>
+    <br>
+</div>

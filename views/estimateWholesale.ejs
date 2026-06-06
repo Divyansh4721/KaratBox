@@ -1,0 +1,64 @@
+<link rel="stylesheet" href="<%= assetPath('css/estimateWholesale.css') %>">
+<div id="home-container">
+    <div id="outerbox">
+        <form id="itemform" onsubmit="itemForm(event)">
+            <select id="prefix">
+                <% for(let i of prefixTable){ %>
+                <option value="<%= i.name %>"><%= i.name ? i.name : "Select Prefix ..." %></option>
+                <% } %>
+            </select>
+            <select id="ornament" required>
+                <option value="">Select Ornament ...</option>
+                <% for(let i of ornamentTable){ %>
+                <option value="<%= i.name %>"><%= i.name %></option>
+                <% } %>
+            </select>
+            <select id="purity" required>
+                <option value="">Select Purity ...</option>
+                <% for(let i of purityTable){ %>
+                <option value="<%= i.name + '$'+ i.wholesaleMultiplier + '$'+ i.retailMultiplier + '$'+ i.wastage %>">
+                    <%= i.name + " | "+ i.wholesaleMultiplier + " | "+ i.retailMultiplier + " | "+ i.wastage %>
+                </option>
+                <% } %>
+            </select>
+            <input type="number" id="grossweight" placeholder="Gross Weight" step="0.001" required>
+            <input type="number" id="netweight" placeholder="Net Weight" step="0.001" required>
+            <input type="number" id="wastage" placeholder="Wastage" value="" step="0.001" required>
+            <input type="number" id="labour" placeholder="Labour" value="" step="0.001" required>
+            <button type="submit">Submit</button>
+        </form>
+        <form id="stoneform" onsubmit="stoneForm(event)">
+            <select id="stonetype" required>
+                <option value="">Select Stone Type ...</option>
+                <% for(let i of stoneTypeTable){ %>
+                <option value="<%= i.name %>"><%= i.name %></option>
+                <% } %>
+            </select>
+            <input type="number" id="stoneweight" placeholder="Stone Weight" step="0.001">
+            <input type="number" id="stonerate" placeholder="Stone Rate" step="0.01">
+            <button type="submit">Submit</button>
+            <input type="number" id="goldrate" onchange="goldRateUpdate()" placeholder="Gold Rate" step="0.01"
+                min="1000" max="11000">
+            <input type="number" id="goldratepurity" onchange="goldRateUpdate()" value="100"
+                placeholder="Select Gold Rate Purity" step="0.001">
+        </form>
+    </div>
+    <br>
+    <form id="editorForm" onsubmit="submitEditor(event)">
+        <table id="editor" border="1" cellspacing="0"></table>
+        <button type="submit">Update</button>
+    </form>
+    <table id="table" cellspacing="0"></table>
+
+    <button onclick="printTable()">Print Table</button>
+</div>
+<script>
+    let stockTable = JSON.parse((`<%= JSON.stringify(stockTable,null,2) %>`).replaceAll('&#34;', '"'));
+    let ornamentTable = JSON.parse((`<%= JSON.stringify(ornamentTable,null,2) %>`).replaceAll('&#34;', '"'));
+    let prefixTable = JSON.parse((`<%= JSON.stringify(prefixTable,null,2) %>`).replaceAll('&#34;', '"'));
+    let purityTable = JSON.parse((`<%= JSON.stringify(purityTable,null,2) %>`).replaceAll('&#34;', '"'));
+    let stoneTypeTable = JSON.parse((`<%= JSON.stringify(stoneTypeTable,null,2) %>`).replaceAll('&#34;', '"'));
+    let billTable = JSON.parse((`<%= JSON.stringify(billTable,null,2) %>`).replaceAll('&#34;', '"'));
+    let goldPrice = '<%= goldPrice %>' * 1;
+</script>
+<script src="<%= assetPath('js/estimateWholesale.js') %>"></script>

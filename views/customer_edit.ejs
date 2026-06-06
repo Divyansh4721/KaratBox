@@ -1,0 +1,73 @@
+<link rel="stylesheet" href="<%= assetPath('css/customer_add.css') %>">
+<div id="home-container">
+    <form action="/editCustomerForm" method="post">
+        <input type="text" name="id" value="<%= customer.id %>" required hidden>
+        <span id="heading">Name<span style="color: red;"> *</span></span>
+        <input type="text" name="name" value="<%= customer.name %>" placeholder="Enter Customer Name ...." required>
+        <span id="heading">Address<span style="color: red;"> *</span></span>
+        <input type="text" name="address" value="<%= customer.address %>" placeholder="Enter Customer Address ...."
+            required>
+        <span id="heading">Phone Number<span style="color: red;"> *</span></span>
+        <table id="phNum" border="1" cellspacing="0">
+            <tr>
+                <td colspan="2">
+                    <button type="button" onclick="AddRowPH()">Add Row</button>
+                </td>
+            </tr>
+            <% for(let i of customer.phNum){ %>
+            <tr id="phNum0">
+                <td>
+                    <input type="number" name="phNum[]" min="1111111111" max="9999999999" value="<%= i %>"
+                        placeholder="Enter Phone Number ...." required>
+                </td>
+                <td>
+                    <button type="button" class="fas fa-trash" onclick="DeleteRow('phNum', 0)"></button>
+                </td>
+            </tr>
+            <% } %>
+        </table>
+        <span id="heading">Care Of</span>
+        <table id="CO" border="1" cellspacing="0">
+            <tr>
+                <td colspan="2">
+                    <button type="button" onclick="AddRowCO()">Add Row</button>
+                </td>
+            </tr>
+            <% for(let i of customer.CO){ %>
+            <tr id="CO0">
+                <td>
+                    <input type="text" name="CO[]" value="<%= i %>" placeholder="Enter Care Of ...." required>
+                </td>
+                <td>
+                    <button type="button" class="fas fa-trash" onclick="DeleteRow('CO', 0)"></button>
+                </td>
+            </tr>
+            <% } %>
+        </table>
+        <span id="heading">Important Dates</span>
+        <table id="impDates" border="1" cellspacing="0">
+            <tr>
+                <td colspan="3">
+                    <button type="button" onclick="AddRowDate()">Add Row</button>
+                </td>
+            </tr>
+            <% for(let i of customer.impDates){ %>
+            <tr id="impDates0">
+                <td>
+                    <input type="date" name="impDates[]"
+                        value="<%= new Date(new Date(i.date).getTime() + 19800000).toISOString().substring(0,10); %>"
+                        placeholder="Enter Phone Number ...." required>
+                </td>
+                <td>
+                    <input type="text" name="remark[]" value="<%= i.remark %>" placeholder="Enter Remark ...." required>
+                </td>
+                <td>
+                    <button type="button" class="fas fa-trash" onclick="DeleteRow('impDates', 0)"></button>
+                </td>
+            </tr>
+            <% } %>
+        </table>
+        <button type="submit">Edit Customer</button>
+    </form>
+</div>
+<script src="<%= assetPath('js/customer_add.js') %>"></script>

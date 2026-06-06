@@ -1,0 +1,133 @@
+<link rel="stylesheet" href="<%= assetPath('css/home.css') %>">
+<style>
+    input[type=radio] {
+        width: 20px !important;
+    }
+
+    #home-container form,
+    #home-container table {
+        width: 90%;
+    }
+
+    @media (max-width: 640px) {
+
+        #home-container table input,
+        #home-container table select {
+            width: 150px;
+            padding: 5px;
+            font-size: 10px;
+        }
+    }
+</style>
+<div id="home-container">
+    <br>
+    <form action="/environment_form" method="post">
+        <table border="1" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th colspan="2">Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% for (let i = 0; i < variables.length; i++) { %>
+                    <tr>
+                        <td><%= variables[i].nickname %></td>
+                        <td colspan="2">
+                            <input name="<%= variables[i].name %>" type="text" value="<%= variables[i].value %>" required <%= variables[i].disabled?"readonly":"" %>>
+                        </td>
+                    </tr>
+                <% } %>
+                <tr>
+                    <th>Days</th>
+                    <th>ON</th>
+                    <th>OFF</th>
+                </tr>
+                <tr>
+                    <td>Sunday</td>
+                    <td>
+                        <input type="radio" name="daysAllowed[0]" value="on" required
+                            <%= daysAllowed[0] ? "checked" : "" %>>
+                    </td>
+                    <td>
+                        <input type="radio" name="daysAllowed[0]" value="off" required
+                            <%= daysAllowed[0] ? "" : "checked" %>>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Monday</td>
+                    <td>
+                        <input type="radio" name="daysAllowed[1]" value="on" required
+                            <%= daysAllowed[1] ? "checked" : "" %>>
+                    </td>
+                    <td>
+                        <input type="radio" name="daysAllowed[1]" value="off" required
+                            <%= daysAllowed[1] ? "" : "checked" %>>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Tuesday</td>
+                    <td>
+                        <input type="radio" name="daysAllowed[2]" value="on" required
+                            <%= daysAllowed[2] ? "checked" : "" %>>
+                    </td>
+                    <td>
+                        <input type="radio" name="daysAllowed[2]" value="off" required
+                            <%= daysAllowed[2] ? "" : "checked" %>>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Wednesday</td>
+                    <td>
+                        <input type="radio" name="daysAllowed[3]" value="on" required
+                            <%= daysAllowed[3] ? "checked" : "" %>>
+                    </td>
+                    <td>
+                        <input type="radio" name="daysAllowed[3]" value="off" required
+                            <%= daysAllowed[3] ? "" : "checked" %>>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Thursday</td>
+                    <td>
+                        <input type="radio" name="daysAllowed[4]" value="on" required
+                            <%= daysAllowed[4] ? "checked" : "" %>>
+                    </td>
+                    <td>
+                        <input type="radio" name="daysAllowed[4]" value="off" required
+                            <%= daysAllowed[4] ? "" : "checked" %>>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Friday</td>
+                    <td>
+                        <input type="radio" name="daysAllowed[5]" value="on" required
+                            <%= daysAllowed[5] ? "checked" : "" %>>
+                    </td>
+                    <td>
+                        <input type="radio" name="daysAllowed[5]" value="off" required
+                            <%= daysAllowed[5] ? "" : "checked" %>>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Saturday</td>
+                    <td>
+                        <input type="radio" name="daysAllowed[6]" value="on" required
+                            <%= daysAllowed[6] ? "checked" : "" %>>
+                    </td>
+                    <td>
+                        <input type="radio" name="daysAllowed[6]" value="off" required
+                            <%= daysAllowed[6] ? "" : "checked" %>>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="3">
+                        <button type="submit">Submit</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </form>
+    <br>
+    <br>
+</div>

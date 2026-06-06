@@ -1,0 +1,49 @@
+<link rel="stylesheet" href="<%= assetPath('css/home.css') %>">
+<div id="home-container">
+    <br>
+    <a href="/permission_user_create">
+        <button type="submit">Create New User</button>
+    </a>
+    <br>
+    <a href="/session">
+        <button type="submit">Session</button>
+    </a>
+    <br>
+    <a href="/environment">
+        <button type="submit">Settings</button>
+    </a>
+    <br>
+    <div id="heading">List of Users</div>
+    <br>
+    <table cellspacing="0">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Permission</th>
+                <th>Edit</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% for(let user of userlist){ %>
+            <tr>
+                <td>
+                    <%= user.name %>
+                </td>
+                <td>
+                    <a href="/permission_user_tempPerm/<%= user._id %>">
+                        <button type="submit" class="fas fa-lock"
+                            style='width: fit-content;background-image: none;background-color: <%= user.adminPermissionPerm?"blue":user.adminPermissionTemp ? "green" : "red" %>;'></button>
+                    </a>
+                </td>
+                <td>
+                    <a href="/permission_user/<%= user._id %>">
+                        <button type="submit" class="fas fa-pen" style="width: fit-content;"></button>
+                    </a>
+                </td>
+            </tr>
+            <% } %>
+        </tbody>
+    </table>
+    <br>
+    <br>
+</div>

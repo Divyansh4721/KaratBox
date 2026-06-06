@@ -1,0 +1,1 @@
+dir -Recurse -Include *.js,*.ejs,*.scss | Where-Object { $_.FullName -notmatch '\\node_modules\\' } | Get-Content | Measure-Object -Line

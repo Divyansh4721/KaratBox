@@ -1,0 +1,227 @@
+#home-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    color: var(--buttonColor);
+
+    #topContainer,
+    #middleContainer,
+    #bottomContainer {
+        position: relative;
+        background-color: var(--bg2Color);
+        width: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border-radius: 10px;
+    }
+
+    @media (max-width: 640px) {
+
+        #topContainer,
+        #middleContainer,
+        #bottomContainer {
+            width: 90%;
+        }
+    }
+
+    #topContainer {
+        font-size: 15px;
+
+        a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 300px;
+            text-decoration: none;
+
+            button {
+                padding: 14px 16px;
+                border: 0;
+                background-color: var(--themeColor);
+                color: var(--buttonColor);
+                border-radius: 10px;
+                outline: 0;
+                cursor: pointer;
+                font-size: 20px;
+                font-weight: bold;
+
+                &:hover {
+                    background-color: var(--themeColorHover);
+                }
+            }
+        }
+
+        @media (max-width: 640px) {
+            a {
+                width: 80%;
+            }
+        }
+
+        #heading {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+
+        table {
+            width: 90%;
+
+            td {
+                width: 50%;
+                text-align: center;
+            }
+        }
+    }
+
+    #middleContainer {
+        form {
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+        }
+
+        input {
+            width: 20%;
+            padding: 10px 16px;
+            font-size: 12px;
+            color: var(--inputColor);
+            border: 1px solid var(--borderColor);
+            background-color: var(--inputBgColor);
+            border-radius: 10px;
+            outline: 0;
+
+            &::placeholder {
+                color: var(--inputColorPlaceHolder);
+            }
+
+            &:disabled,
+            &:read-only {
+                color: var(--inputColorDisabled);
+                background-color: var(--inputBgColorDisabled);
+            }
+
+            &:hover {
+                background-color: var(--inputBgColorHover);
+            }
+        }
+
+        select {
+            width: 20%;
+            padding: 10px 16px;
+            font-size: 12px;
+            color: var(--inputColor);
+            border: 1px solid var(--borderColor);
+            background-color: var(--inputBgColor);
+            border-radius: 10px;
+            outline: 0;
+
+            &:hover {
+                background-color: var(--inputBgColorHover);
+            }
+        }
+
+        button {
+            width: 20%;
+            padding: 10px 16px;
+            border: 0;
+            background-color: var(--themeColor);
+            color: var(--buttonColor);
+            border-radius: 10px;
+            outline: 0;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+
+            &:hover {
+                background-color: var(--themeColorHover);
+            }
+        }
+
+        @media (max-width: 640px) {
+            form {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            input,
+            select,
+            button {
+                width: 70%;
+            }
+        }
+    }
+
+    #bottomContainer {
+        .entries {
+            background-color: #353b47;
+            width: 90%;
+            display: flex;
+            padding: 10px;
+
+            #leftContainer {
+                width: 70%;
+            }
+
+            #rightContainer {
+                width: 30%;
+                display: flex;
+                justify-content: space-around;
+                align-items: center;
+
+                a {
+                    text-decoration: none;
+
+                    button {
+                        background-color: inherit;
+                        border: 0;
+                        color: var(--buttonColor);
+                        font-size: 20px;
+                    }
+                }
+            }
+        }
+
+        #button {
+            padding: 14px 16px;
+            border: 0;
+            background-color: var(--themeColor);
+            color: var(--buttonColor);
+            border-radius: 10px;
+            outline: 0;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+
+            &:hover {
+                background-color: var(--themeColorHover);
+            }
+        }
+
+        #leftEntry {
+            text-align: left;
+
+            #color {
+                color: red;
+            }
+        }
+
+        #middleEntry {
+            text-align: center;
+
+            #color {
+                color: yellow;
+            }
+        }
+
+        #rightEntry {
+            text-align: right;
+
+            #color {
+                color: green;
+            }
+        }
+    }
+}
