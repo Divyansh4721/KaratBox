@@ -1,13 +1,13 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
+const MongoStore = require("connect-mongo").default;
 const passport = require('passport');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const env = require('./config/environment');
 const app = express();
-const PORT = 8001;
+const PORT = 8002;
 const DATABASE_URL = `mongodb://localhost/${env.db}`;
 require('./config/passport_google_oauth2_strategy');
 require('./config/view-helper')(app);
