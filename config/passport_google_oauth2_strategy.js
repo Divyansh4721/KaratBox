@@ -26,12 +26,12 @@ passport.UpdateStrategy = async function () {
       {
         clientID: google_clientID,
         clientSecret: google_clientSecret,
-        callbackURL: google_callbackURL,
+        callbackURL: google_callbackURL
       },
       async function (accessToken, refreshToken, profile, done) {
         try {
           let user = await User.findOne({
-            email: profile.emails[0].value,
+            email: profile.emails[0].value
           });
           if (user) {
             // checking if user already signed in somewhere else
@@ -49,8 +49,8 @@ passport.UpdateStrategy = async function () {
           console.log("Error in Google Authentication!", err);
           return done(null, false);
         }
-      },
-    ),
+      }
+    )
   );
 };
 // seriallizing the user which things to be kept in the cookie
@@ -78,7 +78,7 @@ passport.checkAuthentication = async function (req, res, next) {
       // checking if user is an admin
       let user = await User.findById(req.user.id);
       let permission = await Permission.findOne({
-        listname: "admin",
+        listname: "admin"
       });
       if (devPermission) {
         if (req.isAuthenticated()) {
@@ -88,15 +88,15 @@ passport.checkAuthentication = async function (req, res, next) {
           } else {
             // If normal user
             let startHour = await Env_Variable.findOne({
-              name: "startHour",
+              name: "startHour"
             });
             startHour = startHour.value;
             let endHour = await Env_Variable.findOne({
-              name: "endHour",
+              name: "endHour"
             });
             endHour = endHour.value;
             let daysBool = await Env_Variable.findOne({
-              name: "daysAllowed",
+              name: "daysAllowed"
             });
             // let days = "Sun Mon Tue Wed Thr Fri Sat";
             daysBool = daysBool.value;

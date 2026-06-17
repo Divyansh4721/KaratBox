@@ -1,23 +1,25 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 const IndexSchema = new mongoose.Schema({
-    name: {
-        type: String,
-    },
-    index: {
-        type: Number,
-    },
-    prefix: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Prefix',
-    },
-    ornament: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Ornament',
-    },
-    available: [{
-        type: Number,
-        required: true,
-    }]
+  name: {
+    type: String
+  },
+  index: {
+    type: Number
+  },
+  prefix: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Prefix"
+  },
+  ornament: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Ornament"
+  },
+  available: [
+    {
+      type: Number,
+      required: true
+    }
+  ]
 });
-const Index = mongoose.model('Index', IndexSchema);
+const Index = mongoose.model("Index", IndexSchema);
 module.exports = Index;

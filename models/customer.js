@@ -1,66 +1,81 @@
-const mongoose = require('mongoose');
-const CustomerSchema = new mongoose.Schema({
+const mongoose = require("mongoose");
+const CustomerSchema = new mongoose.Schema(
+  {
     searchStr: {
-        type: String,
+      type: String
     },
     name: {
-        type: String,
-        required: true,
+      type: String,
+      required: true
     },
-    phNum: [{
+    phNum: [
+      {
         type: Number,
-        required: true,
-    }],
+        required: true
+      }
+    ],
     address: {
-        type: String,
-        required: true,
+      type: String,
+      required: true
     },
-    CO: [{
+    CO: [
+      {
         type: String,
-        required: true,
-    }],
-    impDates: [{
+        required: true
+      }
+    ],
+    impDates: [
+      {
         date: {
-            type: Date,
-            required: true,
+          type: Date,
+          required: true
         },
         remark: {
-            type: String,
-            required: true,
-        },
-    }],
+          type: String,
+          required: true
+        }
+      }
+    ],
     user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
     },
-    bills: [{
+    bills: [
+      {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Bill',
-        required: true,
-    }],
-    approvals: [{
+        ref: "Bill",
+        required: true
+      }
+    ],
+    approvals: [
+      {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Approval',
-        required: true,
-    }],
-    payments: [{
+        ref: "Approval",
+        required: true
+      }
+    ],
+    payments: [
+      {
         amount: {
-            type: Number,
+          type: Number
         },
         gold: {
-            type: Number,
+          type: Number
         },
         date: {
-            type: Date,
-            required: true,
+          type: Date,
+          required: true
         },
         remark: {
-            type: String,
-        },
-    }]
-}, {
+          type: String
+        }
+      }
+    ]
+  },
+  {
     timestamps: true
-});
-const Customer = mongoose.model('Customer', CustomerSchema);
+  }
+);
+const Customer = mongoose.model("Customer", CustomerSchema);
 module.exports = Customer;

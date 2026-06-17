@@ -57,7 +57,7 @@ module.exports = {
           blush: "#f9f9f9",
           almond: "#f4f4f4",
           accent: "#d4af37",
-          gold: "#735c00",
+          gold: "#735c00"
         },
         dark: {
           surface: "#111111",
@@ -66,21 +66,39 @@ module.exports = {
           text: "#f5f3f3",
           brand: "#d4af37",
           "brand-hover": "#e9c349",
-          "on-brand": "#1b1c1c",
-        },
+          "on-brand": "#1b1c1c"
+        }
       },
       fontFamily: {
         serif: ["Montserrat", "sans-serif"],
-        sans: ["Montserrat", "sans-serif"],
+        sans: ["Montserrat", "sans-serif"]
       },
       fontSize: {
-        "display-lg": ["48px", { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700" }],
-        "display-lg-mobile": ["32px", { lineHeight: "1.2", letterSpacing: "-0.01em", fontWeight: "700" }],
+        "display-lg": [
+          "48px",
+          { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700" }
+        ],
+        "display-lg-mobile": [
+          "32px",
+          { lineHeight: "1.2", letterSpacing: "-0.01em", fontWeight: "700" }
+        ],
         "headline-xl": ["40px", { lineHeight: "1.2", fontWeight: "600" }],
-        "headline-md": ["24px", { lineHeight: "1.3", letterSpacing: "-0.01em", fontWeight: "600" }],
-        "body-lg": ["18px", { lineHeight: "1.6", letterSpacing: "0", fontWeight: "400" }],
-        "body-md": ["16px", { lineHeight: "1.5", letterSpacing: "0", fontWeight: "400" }],
-        "label-sm": ["12px", { lineHeight: "1", letterSpacing: "0.05em", fontWeight: "600" }],
+        "headline-md": [
+          "24px",
+          { lineHeight: "1.3", letterSpacing: "-0.01em", fontWeight: "600" }
+        ],
+        "body-lg": [
+          "18px",
+          { lineHeight: "1.6", letterSpacing: "0", fontWeight: "400" }
+        ],
+        "body-md": [
+          "16px",
+          { lineHeight: "1.5", letterSpacing: "0", fontWeight: "400" }
+        ],
+        "label-sm": [
+          "12px",
+          { lineHeight: "1", letterSpacing: "0.05em", fontWeight: "600" }
+        ]
       },
       borderRadius: {
         sm: "0.25rem",
@@ -88,7 +106,7 @@ module.exports = {
         md: "0.75rem",
         lg: "1rem",
         xl: "1.5rem",
-        full: "9999px",
+        full: "9999px"
       },
       spacing: {
         unit: "8px",
@@ -98,19 +116,20 @@ module.exports = {
         "section-padding": "120px",
         "stack-sm": "8px",
         "stack-md": "16px",
-        "stack-lg": "32px",
+        "stack-lg": "32px"
       },
       maxWidth: {
-        "container-max": "1280px",
+        "container-max": "1280px"
       },
       boxShadow: {
-        whisper: "0 20px 40px -10px rgba(0, 0, 0, 0.04), 0 10px 20px -5px rgba(0, 0, 0, 0.04)",
+        whisper:
+          "0 20px 40px -10px rgba(0, 0, 0, 0.04), 0 10px 20px -5px rgba(0, 0, 0, 0.04)",
         card: "0 4px 24px -4px rgba(0, 0, 0, 0.06)",
-        "card-hover": "0 20px 40px -12px rgba(0, 0, 0, 0.12)",
+        "card-hover": "0 20px 40px -12px rgba(0, 0, 0, 0.12)"
       },
       transitionDuration: {
-        card: "300ms",
-      },
-    },
-  },
+        card: "300ms"
+      }
+    }
+  }
 };

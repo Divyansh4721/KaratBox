@@ -1,165 +1,180 @@
-const mongoose = require('mongoose');
-const StockSchema = new mongoose.Schema({
+const mongoose = require("mongoose");
+const StockSchema = new mongoose.Schema(
+  {
     index: {
-        type: Number,
-        required: true,
+      type: Number,
+      required: true
     },
     SKU: {
-        type: Number,
+      type: Number
     },
     tag: {
-        type: Number,
+      type: Number
     },
     prefix: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Prefix',
-        required: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Prefix",
+      required: true
     },
     ornament: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Ornament',
-        required: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Ornament",
+      required: true
     },
     grossWt: {
-        type: Number,
-        required: true,
+      type: Number,
+      required: true
     },
     netWt: {
-        type: Number,
-        required: true,
+      type: Number,
+      required: true
     },
     stoneWt: {
-        type: Number,
-        required: true,
+      type: Number,
+      required: true
     },
     costPurity: {
-        type: Number,
+      type: Number
     },
     purity: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Purity',
-        required: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Purity",
+      required: true
     },
     kaarigar: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Kaarigar',
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Kaarigar"
     },
     stockType: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'StockType',
-        required: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "StockType",
+      required: true
     },
     isKDM: {
-        type: Boolean,
-        required: true,
+      type: Boolean,
+      required: true
     },
     goldPrice: {
-        type: Number,
+      type: Number
     },
     costPrice: {
-        type: Number,
+      type: Number
     },
     sellingPrice: {
-        type: Number,
+      type: Number
     },
     HUID: {
-        type: String,
+      type: String
     },
     remark: {
-        type: String,
+      type: String
     },
     isInStock: {
-        type: Boolean,
-        required: true,
+      type: Boolean,
+      required: true
     },
     bill: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Bill',
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Bill"
     },
     createdBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
     },
     createdDate: {
-        type: Date,
-        required: true,
+      type: Date,
+      required: true
     },
     deletedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
     },
     deletedDate: {
-        type: Date,
+      type: Date
     },
-    stoneTable: [{
+    stoneTable: [
+      {
         type: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'StoneType',
-            required: true,
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "StoneType",
+          required: true
         },
         ctWeight: {
-            type: Number,
-            required: true,
+          type: Number,
+          required: true
         },
         gmWeight: {
-            type: Number,
-            required: true,
+          type: Number,
+          required: true
         },
         purchaseRate: {
-            type: Number,
+          type: Number
         },
         sellRate: {
-            type: Number,
+          type: Number
         },
         dealerName: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'StoneDealer',
-        },
-    }],
-    approveTable: [{
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "StoneDealer"
+        }
+      }
+    ],
+    approveTable: [
+      {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Approval',
-        required: true,
-    }],
-    updatedTable: [{
+        ref: "Approval",
+        required: true
+      }
+    ],
+    updatedTable: [
+      {
         user: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-            required: true,
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true
         },
         date: {
-            type: Date,
-            default: Date.now,
+          type: Date,
+          default: Date.now
         },
         remark: {
-            type: String,
+          type: String
         }
-    }],
-    stockImage: [{
+      }
+    ],
+    stockImage: [
+      {
         fileName: {
-            type: String,
-            required: true,
-        },
-    }],
-}, {
+          type: String,
+          required: true
+        }
+      }
+    ]
+  },
+  {
     timestamps: true
-});
-const env = require('../config/environment');
-const multer = require('multer');
-const path = require('path');
+  }
+);
+const env = require("../config/environment");
+const multer = require("multer");
+const path = require("path");
 const STOCK_PATH = path.join(env.assetPath);
 StockSchema.statics.uploadedAvatar = multer({
-    storage: multer.memoryStorage(),
-    fileFilter: (req, file, cb) => {
-        if (file.mimetype == "image/png" || file.mimetype == "image/jpg" || file.mimetype == "image/jpeg") {
-            cb(null, true);
-        } else {
-            cb(null, false);
-            return cb(new Error('Only .png, .jpg and .jpeg format allowed!'));
-        }
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    if (
+      file.mimetype == "image/png" ||
+      file.mimetype == "image/jpg" ||
+      file.mimetype == "image/jpeg"
+    ) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+      return cb(new Error("Only .png, .jpg and .jpeg format allowed!"));
     }
-}).array('stockImage', 10);
+  }
+}).array("stockImage", 10);
 StockSchema.statics.stockPath = STOCK_PATH;
-const Stock = mongoose.model('Stock', StockSchema);
+const Stock = mongoose.model("Stock", StockSchema);
 module.exports = Stock;
