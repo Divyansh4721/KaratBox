@@ -16,7 +16,7 @@ module.exports.homePage = async function (req, res) {
       name: "goldPrice"
     });
     return res.render("_home", {
-      title: (await common_function.AppName()) + " | Home",
+      title: "Home",
       goldPrice
     });
   } catch (err) {
@@ -59,7 +59,7 @@ module.exports.cartPage = async function (req, res) {
       await common_function.calculatePrice(stockTable[i]);
     }
     return res.render("cart", {
-      title: (await common_function.AppName()) + " | Cart",
+      title: "Cart",
       stockTable
     });
   } catch (err) {
@@ -164,7 +164,7 @@ module.exports.estimateRetailPage = async function (req, res) {
       name: "goldPrice"
     });
     return res.render("estimateRetail", {
-      title: (await common_function.AppName()) + " | Estimate Retail",
+      title: "Estimate Retail",
       stockTable,
       ornamentTable,
       prefixTable,
@@ -209,7 +209,7 @@ module.exports.estimateWholesalePage = async function (req, res) {
       name: "goldPrice"
     });
     return res.render("estimateWholesale", {
-      title: (await common_function.AppName()) + " | Estimate Wholesale",
+      title: "Estimate Wholesale",
       stockTable,
       ornamentTable,
       billTable: [],
@@ -255,7 +255,7 @@ module.exports.estimateWholesaleBillPage = async function (req, res) {
       name: "goldPrice"
     });
     return res.render("estimateWholesale", {
-      title: (await common_function.AppName()) + " | Estimate Wholesale",
+      title: "Estimate Wholesale",
       stockTable,
       ornamentTable,
       billTable: bill.stoneTable,
@@ -304,7 +304,7 @@ module.exports.soldRetailPage = async function (req, res) {
       tTotalPrice += stockTable[i].sellingPrice;
     }
     return res.render("soldRetail", {
-      title: (await common_function.AppName()) + " | Sell Retail",
+      title: "Sell Retail",
       stockTable,
       customerTable,
       tTotalPrice
@@ -417,7 +417,7 @@ module.exports.soldWholesalePage = async function (req, res) {
       name: "goldPrice"
     });
     return res.render("soldWholesale", {
-      title: (await common_function.AppName()) + " | Sell Wholesale",
+      title: "Sell Wholesale",
       stockTable,
       customerTable,
       goldPrice: goldPrice.value
@@ -500,7 +500,7 @@ module.exports.billPage = async function (req, res) {
         createdAt: -1
       });
     return res.render("billForm", {
-      title: (await common_function.AppName()) + " | View Bill",
+      title: "View Bill",
       billTable
     });
   } catch (err) {
@@ -525,7 +525,7 @@ module.exports.billView = async function (req, res) {
         tag: 1
       });
     return res.render("bill", {
-      title: (await common_function.AppName()) + " | Bill",
+      title: "Bill",
       bill,
       stockTable,
       convertDate: common_function.convertDate
@@ -571,7 +571,7 @@ module.exports.approvalAddPage = async function (req, res) {
       totalCash += i.sellingPrice;
     }
     return res.render("approval_add", {
-      title: (await common_function.AppName()) + " | Add Approval",
+      title: "Add Approval",
       stockTable,
       customerTable,
       totalCash
@@ -628,7 +628,7 @@ module.exports.approvalViewPage = async function (req, res) {
         approvedDate: -1
       });
     return res.render("approval_view", {
-      title: (await common_function.AppName()) + " | Approval List",
+      title: "Approval List",
       approvalTable
     });
   } catch (err) {
@@ -655,7 +655,7 @@ module.exports.approvalRecvPage = async function (req, res) {
         tag: 1
       });
     return res.render("approval_recv", {
-      title: (await common_function.AppName()) + " | View Approval",
+      title: "View Approval",
       approval,
       stockTable
     });

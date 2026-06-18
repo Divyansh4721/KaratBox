@@ -15,7 +15,7 @@ module.exports.listMasterPage = async function (req, res) {
       name: "TagName"
     });
     return res.render("_list_master", {
-      title: (await common_function.AppName()) + " | List Master",
+      title: "List Master",
       TagName
     });
   } catch (err) {
@@ -51,7 +51,7 @@ module.exports.kaarigarPage = async function (req, res) {
       kaarigar[i].name += " (" + stock.length + ")";
     }
     return res.render("edit_add_del_layout", {
-      title: (await common_function.AppName()) + " | Kaarigar",
+      title: "Kaarigar",
       name: "Kaarigar",
       options: kaarigar
     });
@@ -115,7 +115,7 @@ module.exports.ornamentPage = async function (req, res) {
       ornament[i].name += " (" + stock.length + ")";
     }
     return res.render("edit_add_del_layout", {
-      title: (await common_function.AppName()) + " | Ornament",
+      title: "Ornament",
       name: "Ornament",
       options: ornament
     });
@@ -190,7 +190,7 @@ module.exports.prefixPage = async function (req, res) {
       prefix[i].name += " (" + stock.length + ")";
     }
     return res.render("edit_add_del_layout", {
-      title: (await common_function.AppName()) + " | Prefix",
+      title: "Prefix",
       name: "Prefix",
       options: prefix
     });
@@ -273,7 +273,7 @@ module.exports.purityPage = async function (req, res) {
       purity[i].name += " (" + stock.length + ")";
     }
     return res.render("edit_add_del_purity", {
-      title: (await common_function.AppName()) + " | Purity",
+      title: "Purity",
       name: "Purity",
       options: purity
     });
@@ -343,7 +343,7 @@ module.exports.stockTypePage = async function (req, res) {
       stockType[i].name += " (" + stock.length + ")";
     }
     return res.render("edit_add_del_layout", {
-      title: (await common_function.AppName()) + " | StockType",
+      title: "StockType",
       name: "StockType",
       options: stockType
     });
@@ -407,7 +407,7 @@ module.exports.stoneDealerPage = async function (req, res) {
       stoneDealer[i].name += " (" + stock.length + ")";
     }
     return res.render("edit_add_del_layout", {
-      title: (await common_function.AppName()) + " | StoneDealer",
+      title: "StoneDealer",
       name: "StoneDealer",
       options: stoneDealer
     });
@@ -471,7 +471,7 @@ module.exports.stoneTypePage = async function (req, res) {
       stoneType[i].name += " (" + stock.length + ")";
     }
     return res.render("edit_add_del_layout", {
-      title: (await common_function.AppName()) + " | StoneType",
+      title: "StoneType",
       name: "StoneType",
       options: stoneType
     });

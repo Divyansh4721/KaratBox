@@ -36,7 +36,7 @@ module.exports.stockAddPage = async function (req, res) {
       name: "index"
     });
     return res.render("stock_add", {
-      title: (await common_function.AppName()) + " | Add Stock",
+      title: "Add Stock",
       index: envVar.index * 1 + 1,
       indexTable,
       kaarigarTable,
@@ -231,7 +231,7 @@ module.exports.stockViewPage = async function (req, res) {
       });
     await common_function.calculatePrice(stock);
     return res.render("stock_view", {
-      title: (await common_function.AppName()) + " | View Stock",
+      title: "View Stock",
       stock,
       convertDate: common_function.convertDate
     });
@@ -272,7 +272,7 @@ module.exports.stockEditPage = async function (req, res) {
       name: "index"
     });
     return res.render("stock_edit", {
-      title: (await common_function.AppName()) + " | Edit Stock",
+      title: "Edit Stock",
       stock,
       indexTable,
       kaarigarTable,
@@ -652,7 +652,7 @@ module.exports.stockImageEditPage = async function (req, res) {
       name: "index"
     });
     return res.render("stock_image_edit", {
-      title: (await common_function.AppName()) + " | Edit Image Stock",
+      title: "Edit Image Stock",
       stock,
       indexTable,
       kaarigarTable,
@@ -765,7 +765,7 @@ module.exports.editMultipleStock = async function (req, res) {
       name: 1
     });
     return res.render("stock_edit_multiple", {
-      title: (await common_function.AppName()) + " | Edit Multiple",
+      title: "Edit Multiple",
       stockTable,
       stockTypeTable,
       kaarigarTable
@@ -846,7 +846,7 @@ module.exports.printTag = async function (req, res) {
     });
     return res.render("tags", {
       layout: false,
-      title: (await common_function.AppName()) + " | Tags",
+      title: "Tags",
       stockTable,
       tag_name: tag_name.value
     });
@@ -898,7 +898,7 @@ module.exports.printMultipleTags = async function (req, res) {
     });
     return res.render("tags", {
       layout: false,
-      title: (await common_function.AppName()) + " | Multiple Tags",
+      title: "Multiple Tags",
       stockTable,
       tag_name: tag_name.value
     });

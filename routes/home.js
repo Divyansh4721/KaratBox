@@ -88,7 +88,7 @@ router.get(
 );
 
 router.get(
-  "/category",
+  "/inventory",
   passport.checkAuthentication,
   common_function.checkPermission("stockView"),
   stockViewController.categoryPage

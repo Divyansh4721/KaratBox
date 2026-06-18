@@ -7,7 +7,8 @@ module.exports.signin = async function (req, res) {
   }
   passportController.UpdateStrategy();
   return res.render("_user_signin", {
-    title: (await common_function.AppName()) + " | Sign In"
+    title: "Sign In",
+    layout: false
   });
 };
 module.exports.checkuser = function (req, res) {

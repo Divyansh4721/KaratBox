@@ -7,22 +7,21 @@ const DailyUpdateList = require("../models/DailyUpdateList");
 const Stock = require("../models/stock");
 const StockType = require("../models/list_stocktype");
 const common_function = require("../controllers/common_function");
+async function getCategoryFilters() {
+  const [ornamentTable, prefixTable, stockTypeTable] = await Promise.all([
+    Ornament.find().sort({ name: 1 }),
+    Prefix.find().sort({ name: 1 }),
+    StockType.find().sort({ name: 1 })
+  ]);
+  return { ornamentTable, prefixTable, stockTypeTable };
+}
 module.exports.categoryPage = async function (req, res) {
   try {
-    let ornamentTable = await Ornament.find().sort({
-      name: 1
-    });
-    let prefixTable = await Prefix.find().sort({
-      name: 1
-    });
-    let stockTypeTable = await StockType.find().sort({
-      name: 1
-    });
-    return res.render("category", {
-      title: (await common_function.AppName()) + " | Category",
-      prefixTable,
-      ornamentTable,
-      stockTypeTable
+    const filters = await getCategoryFilters();
+    return res.render("inventory", {
+      title: "Inventory",
+      query: {},
+      ...filters
     });
   } catch (err) {
     console.log("Error in Category List Page!", err);
@@ -61,9 +60,12 @@ module.exports.categoryForm = async function (req, res) {
       for (let i = 0; i < stockTable.length; i++) {
         await common_function.calculatePrice(stockTable[i]);
       }
-      return res.render("categoryView", {
-        title: (await common_function.AppName()) + " | Stock List",
-        stockTable
+      const filters = await getCategoryFilters();
+      return res.render("inventory", {
+        title: "Stock List",
+        stockTable,
+        query: req.query,
+        ...filters
       });
     } else if (!req.query.ornament) {
       let stockTable = await Stock.find({
@@ -72,9 +74,12 @@ module.exports.categoryForm = async function (req, res) {
       for (let i = 0; i < stockTable.length; i++) {
         await common_function.calculatePrice(stockTable[i]);
       }
-      return res.render("categoryView", {
-        title: (await common_function.AppName()) + " | Stock List",
-        stockTable
+      const filters = await getCategoryFilters();
+      return res.render("inventory", {
+        title: "Stock List",
+        stockTable,
+        query: req.query,
+        ...filters
       });
     } else {
       let stockTable = await Stock.find({
@@ -84,9 +89,12 @@ module.exports.categoryForm = async function (req, res) {
       for (let i = 0; i < stockTable.length; i++) {
         await common_function.calculatePrice(stockTable[i]);
       }
-      return res.render("categoryView", {
-        title: (await common_function.AppName()) + " | Stock List",
-        stockTable
+      const filters = await getCategoryFilters();
+      return res.render("inventory", {
+        title: "Stock List",
+        stockTable,
+        query: req.query,
+        ...filters
       });
     }
   } catch (err) {
@@ -98,7 +106,7 @@ module.exports.categoryForm = async function (req, res) {
 module.exports.dataPage = async function (req, res) {
   try {
     return res.render("dataPage", {
-      title: (await common_function.AppName()) + " | Data"
+      title: "Data"
     });
   } catch (err) {
     console.log("Error in Category List Page!", err);
@@ -419,7 +427,7 @@ module.exports.dailySheetPage = async function (req, res) {
       lists[7]
     );
     return res.render("stockChangeList", {
-      title: (await common_function.AppName()) + " | Updates List",
+      title: "Updates List",
       date: new Date().toDateString(),
       fullList: tables[0],
       shortFullList: tables[1],
@@ -483,7 +491,7 @@ module.exports.customSheetPage = async function (req, res) {
       checkList.push(item.name);
     }
     return res.render("stockChangeListCustom", {
-      title: (await common_function.AppName()) + " | Updates List",
+      title: "Updates List",
       date: new Date(req.body.date).toDateString(),
       fullList: tables[0],
       checkList
@@ -520,7 +528,7 @@ module.exports.backDateSheetPage = async function (req, res) {
       lists.closing
     );
     return res.render("stockChangeList", {
-      title: (await common_function.AppName()) + " | Updates List",
+      title: "Updates List",
       date: new Date(req.body.date).toDateString(),
       fullList: tables[0],
       shortFullList: tables[1],
@@ -568,7 +576,7 @@ module.exports.allStockPage = async function (req, res) {
       await common_function.calculatePrice(stockTable[i]);
     }
     return res.render("stockTable", {
-      title: (await common_function.AppName()) + " | All Stock",
+      title: "All Stock",
       stockTable
     });
   } catch (err) {
@@ -610,7 +618,7 @@ module.exports.allInStockPage = async function (req, res) {
       await common_function.calculatePrice(stockTable[i]);
     }
     return res.render("stockTable", {
-      title: (await common_function.AppName()) + " | All In Stock",
+      title: "All In Stock",
       stockTable
     });
   } catch (err) {
@@ -652,7 +660,7 @@ module.exports.allOutStockPage = async function (req, res) {
       await common_function.calculatePrice(stockTable[i]);
     }
     return res.render("stockTable", {
-      title: (await common_function.AppName()) + " | All Out Stock",
+      title: "All Out Stock",
       stockTable
     });
   } catch (err) {

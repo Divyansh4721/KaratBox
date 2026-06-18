@@ -9,7 +9,7 @@ const db = mongoose.connection;
 module.exports.DeveloperConsole = async function (req, res) {
   try {
     return res.render("admin_developerConsole", {
-      title: (await common_function.AppName()) + " | Developer Console"
+      title: "Developer Console"
     });
   } catch (err) {
     console.log("Error in Developer Console Page!", err);
@@ -59,7 +59,7 @@ module.exports.environment = async function (req, res) {
       1
     );
     return res.render("admin_environment", {
-      title: (await common_function.AppName()) + " | Environment Page",
+      title: "Environment Page",
       variables,
       daysAllowed
     });
@@ -134,7 +134,7 @@ module.exports.sessionPage = async function (req, res) {
       );
     }
     return res.render("admin_session", {
-      title: (await common_function.AppName()) + " | Session Page",
+      title: "Session Page",
       sessionlist: newSession
     });
   } catch (err) {
@@ -166,7 +166,7 @@ module.exports.permissionPage = async function (req, res) {
     let user = await User.find({});
     user.sort(common_function.sortByProperty("name", 1));
     return res.render("admin_permission", {
-      title: (await common_function.AppName()) + " | Permission",
+      title: "Permission",
       userlist: user
     });
   } catch (err) {
@@ -185,7 +185,7 @@ module.exports.permissionPage_UserButton = async function (req, res) {
     }
     permission.sort(common_function.sortByProperty("nickname", 1));
     return res.render("admin_permission_user", {
-      title: (await common_function.AppName()) + " | User Permission",
+      title: "User Permission",
       userlist: user,
       permissionlist: permission
     });
@@ -210,7 +210,7 @@ module.exports.permissionPage_TempPermission = async function (req, res) {
 module.exports.permissionPage_UserCreatePage = async function (req, res) {
   try {
     return res.render("admin_new_user", {
-      title: (await common_function.AppName()) + " | Create User"
+      title: "Create User"
     });
   } catch (err) {
     console.log("Error in User Create Page!", err);

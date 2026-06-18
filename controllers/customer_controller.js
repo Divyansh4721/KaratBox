@@ -89,7 +89,7 @@ module.exports.CustomerPage = async function (req, res) {
     }
     entries.sort((a, b) => a.date - b.date);
     return res.render("customer_view", {
-      title: (await common_function.AppName()) + " | Customer",
+      title: "Customer",
       customer,
       entries,
       cashBalance,
@@ -118,7 +118,7 @@ module.exports.CustomerPageForm = async function (req, res) {
         customerTable[i].CO.join(" ");
     }
     return res.render("customer_form", {
-      title: (await common_function.AppName()) + " | Customer",
+      title: "Customer",
       customerTable
     });
   } catch (err) {
@@ -135,7 +135,7 @@ module.exports.CustomerPageTable = async function (req, res) {
         createdAt: -1
       });
     return res.render("customer_table", {
-      title: (await common_function.AppName()) + " | Customer",
+      title: "Customer",
       customerTable,
       convertDate: common_function.convertDate
     });
@@ -166,7 +166,7 @@ async function checkPhoneNumber(InputPhoneList, InputID) {
 module.exports.addCustomerPage = async function (req, res) {
   try {
     return res.render("customer_add", {
-      title: (await common_function.AppName()) + " | Customer"
+      title: "Customer"
     });
   } catch (err) {
     console.log("Error in Customer Add Page!", err);
@@ -219,7 +219,7 @@ module.exports.editCustomerPage = async function (req, res) {
   try {
     let customer = await Customer.findById(req.params.id);
     return res.render("customer_edit", {
-      title: (await common_function.AppName()) + " | Customer",
+      title: "Customer",
       customer
     });
   } catch (err) {

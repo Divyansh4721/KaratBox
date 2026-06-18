@@ -1,0 +1,116 @@
+<!-- Dashboard Title Block -->
+
+
+<% const actionCard = "group bg-surface-container-lowest dark:bg-dark-container rounded-xl p-4 flex flex-col items-center justify-center text-center border border-outline-variant/40 dark:border-white/10 shadow-sm hover:-translate-y-1 hover:shadow-card-hover transition-all duration-card ease-out w-full h-32  md:aspect-square min-w-0"; %>
+<% const cardLabel = "text-sm font-bold text-on-surface dark:text-dark-text group-hover:text-primary dark:group-hover:text-dark-brand transition-colors duration-card"; %>
+<% const cardIcon = "w-7 h-7 mb-2 text-on-surface dark:text-dark-text group-hover:text-primary-container dark:group-hover:text-dark-brand transition-colors duration-card"; %>
+
+<!-- Dashboard Grid -->
+<div class="space-y-5 w-full">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5">
+        <!-- Gold Rate Manager -->
+        <div
+            class="rounded-xl bg-gradient-to-b from-primary-fixed/25 via-surface-container-lowest to-surface-container-lowest dark:from-dark-brand/15 dark:via-dark-container dark:to-dark-container p-5 lg:p-6 flex flex-col justify-between border border-primary-container/50 dark:border-dark-brand/40 shadow-sm min-w-0 w-full">
+            <div>
+                <div class="flex items-center gap-2 text-primary dark:text-dark-brand mb-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    <h3 class="text-base lg:text-body-lg font-bold tracking-tight">Gold Rate Manager</h3>
+                </div>
+                <p class="text-sm text-secondary font-light leading-relaxed max-w-md">
+                    Update the current rate for calculations across all inventory valuations and billing systems.
+                </p>
+            </div>
+
+            <div class="text-center my-4">
+                <span class="block text-[10px] uppercase tracking-widest text-secondary mb-1">Current 24K Rate</span>
+                <div class="flex items-baseline justify-center gap-1">
+                    <span class="text-3xl lg:text-4xl font-bold text-on-surface dark:text-dark-text tracking-tight">
+                        <span class="text-primary-container dark:text-dark-brand font-semibold">₹</span>
+                        <%= goldPrice ? (goldPrice.value * 1).toLocaleString('en-IN') : '0' %>
+                    </span>
+                    <span class="text-xs text-secondary font-light">/ gm</span>
+                </div>
+            </div>
+
+            <form id="gold-rate-form" action="/goldPriceForm" method="POST" class="space-y-3">
+                <input type="number" name="amount" id="gold-rate-input" min="0" step="1"
+                    value="<%= goldPrice ? goldPrice.value : 0 %>"
+                    class="w-full px-4 py-2.5 bg-surface-container-low dark:bg-dark-container border border-outline-variant/40 dark:border-white/10 rounded-DEFAULT text-body-md text-on-surface dark:text-dark-text focus:outline-none focus:border-primary-container dark:focus:border-dark-brand transition-colors"
+                    placeholder="Enter gold rate per gm" />
+                <button type="submit"
+                    class="w-full py-2.5 bg-primary-container hover:brightness-105 dark:bg-dark-brand dark:hover:bg-dark-brand-hover text-on-primary dark:text-dark-on-brand text-[11px] uppercase font-semibold tracking-wider rounded-DEFAULT shadow-sm hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-card active:scale-[0.98] focus:outline-none">
+                    Update Gold Rate
+                </button>
+            </form>
+        </div>
+
+        <div class="rounded-xl border border-dashed border-outline-variant/50 dark:border-white/15 bg-surface-container-lowest/50 dark:bg-dark-container/40 min-h-[220px] lg:min-h-[320px]"></div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 w-full">
+        <a href="/stock_add" class="<%= actionCard %>">
+            <svg class="<%= cardIcon %>" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                <rect x="4" y="4" width="16" height="16" rx="2" />
+                <path stroke-linecap="round" d="M12 8v8M8 12h8" />
+            </svg>
+            <span class="<%= cardLabel %>">Stock Add</span>
+        </a>
+
+        <a href="/inventory" class="<%= actionCard %>">
+            <svg class="<%= cardIcon %>" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M12 3l2.09 6.26L20 12l-5.91 2.74L12 21l-2.09-6.26L4 12l5.91-2.74L12 3z" />
+            </svg>
+            <span class="<%= cardLabel %>">Inventory</span>
+        </a>
+
+        <a href="/approvalViewPage" class="<%= actionCard %>">
+            <svg class="<%= cardIcon %>" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <span class="<%= cardLabel %>">Approval</span>
+        </a>
+
+        <a href="/list_master" class="<%= actionCard %>">
+            <svg class="<%= cardIcon %>" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+            <span class="<%= cardLabel %>">List Master</span>
+        </a>
+
+        <a href="/customerTable" class="<%= actionCard %>">
+            <svg class="<%= cardIcon %>" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span class="<%= cardLabel %>">Customer</span>
+        </a>
+
+        <a href="/billPage" class="<%= actionCard %>">
+            <svg class="<%= cardIcon %>" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9 14l2 2 4-4M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z" />
+            </svg>
+            <span class="<%= cardLabel %>">Bills</span>
+        </a>
+
+        <a href="/dataPage" class="<%= actionCard %>">
+            <svg class="<%= cardIcon %>" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s8-1.79 8-4" />
+            </svg>
+            <span class="<%= cardLabel %>">Reports</span>
+        </a>
+
+        <a href="/analytics" class="<%= actionCard %>">
+            <svg class="<%= cardIcon %>" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l3-3 3 2 4-5" />
+            </svg>
+            <span class="<%= cardLabel %>">Analytics</span>
+        </a>
+    </div>
+</div>
