@@ -1,0 +1,566 @@
+<% activeNav = 'inventory' %>
+<% const label = "block text-[11px] font-semibold uppercase tracking-widest text-secondary mb-1.5"; %>
+<% const reqMark = "<span class=\"text-primary-container\">*</span>"; %>
+<% const input = "w-full px-4 py-3 bg-surface-container-low border border-transparent rounded-lg text-body-md text-on-surface placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors"; %>
+<% const inputReadonly = input + " opacity-80 cursor-not-allowed"; %>
+<% const select = input + " appearance-none cursor-pointer"; %>
+<% const sectionTitle = "text-[11px] font-semibold uppercase tracking-widest text-secondary"; %>
+<% const camBtn = "w-full min-h-[2.75rem] flex items-center justify-center gap-1 py-2.5 px-2 border border-primary-container text-primary font-semibold rounded-lg hover:bg-primary-fixed/20 transition-colors text-xs sm:text-sm text-center"; %>
+<div class="pb-28">
+  <div class="mb-8">
+    <h2 class="text-display-lg-mobile md:text-headline-xl font-bold text-on-surface tracking-tight mb-2">Add New Stock</h2>
+    <p class="text-body-md text-secondary font-light">Register a new luxury asset to the KaratBox vault.</p>
+  </div>
+  <form id="stock-form" action="/stock_add_form" method="post" enctype="multipart/form-data" class="space-y-8">
+    <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper p-6 lg:p-8">
+      <h3 class="<%= sectionTitle %> mb-6 pb-3 border-b border-surface-container">Product Details</h3>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div>
+          <p class="<%= sectionTitle %> mb-4">Product Images</p>
+          <div class="border-2 border-dashed border-outline-variant/50 rounded-xl p-4 bg-surface-container-low/50 space-y-4">
+            <div id="windowCapture" class="space-y-3">
+              <canvas id="canvas" width="400" height="400" class="hidden"></canvas>
+              <select id="cameraSelect" class="<%= select %> text-sm"></select>
+              <div class="flex flex-col md:flex-row gap-4 items-start">
+                <div class="w-full md:flex-1 md:max-w-sm">
+                  <div class="relative w-full aspect-square rounded-xl overflow-hidden border border-surface-container">
+                    <video id="video" class="w-full h-full object-cover" autoplay muted playsinline webkit-playsinline></video>
+                  </div>
+                </div>
+                <div id="cameraActionButtons" class="w-full md:w-48 md:shrink-0 grid grid-cols-2 md:grid-cols-1 gap-3">
+                  <button type="button" id="capture" class="<%= camBtn %>">
+                    <i class="fas fa-camera"></i><span>Capture Image</span>
+                  </button>
+                  <button type="button" id="quickCapture" class="<%= camBtn %>">
+                    <i class="fas fa-camera"></i><span>Capture</span>
+                  </button>
+                  <label id="imageLabel" for="imageButton" class="<%= camBtn %> cursor-pointer">
+                    <i class="fas fa-folder-open"></i><span>Browse</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div id="imagePreviews">
+              <div id="tbody" class="space-y-2"></div>
+            </div>
+            <input id="stockImage" type="file" name="stockImage" multiple required class="hidden">
+            <input id="imageButton" type="file" onchange="AddImage()" accept="image/*" class="hidden">
+          </div>
+        </div>
+        <div>
+          <p class="<%= sectionTitle %> mb-4">Stock Details</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label class="<%= label %>">SKU <%- reqMark %></label>
+              <input type="text" id="index" name="index" value="<%= index %>" readonly required class="<%= inputReadonly %>">
+            </div>
+            <div>
+              <label class="<%= label %>">Tag Number <%- reqMark %></label>
+              <input type="text" id="tag" name="tag" placeholder="Tag Number..." readonly required class="<%= inputReadonly %>">
+            </div>
+            <div>
+              <label class="<%= label %>">Prefix <%- reqMark %></label>
+              <select id="prefix" name="prefix" onchange="makeTag()" required class="<%= select %>">
+                <% for(let i of prefixTable){ %>
+                <option value="<%= i.id %>"><%= i.name ? i.name : "Select Prefix..." %></option>
+                <% } %>
+              </select>
+            </div>
+            <div>
+              <label class="<%= label %>">Stone Wt <%- reqMark %></label>
+              <input type="number" step="0.001" id="stoneWt" name="stoneWt" placeholder="Stone Wt..." readonly required class="<%= inputReadonly %>">
+            </div>
+            <div>
+              <label class="<%= label %>">Ornament <%- reqMark %></label>
+              <select id="ornament" name="ornament" onchange="makeTag()" required class="<%= select %>">
+                <option value="">Select Ornament...</option>
+                <% for(let i of ornamentTable){ %>
+                <option value="<%= i.id %>"><%= i.name %></option>
+                <% } %>
+              </select>
+            </div>
+            <div>
+              <label class="<%= label %>">Net Wt <%- reqMark %></label>
+              <input type="number" step="0.001" id="netWt" name="netWt" placeholder="Net Wt..." readonly required class="<%= inputReadonly %>">
+            </div>
+            <div>
+              <label class="<%= label %>">Gross Wt <%- reqMark %></label>
+              <input type="number" step="0.001" id="grossWt" name="grossWt" placeholder="Gross Wt..." onchange="calculateWeight()" required class="<%= input %>">
+            </div>
+            <div>
+              <label class="<%= label %>">Stock Type <%- reqMark %></label>
+              <select id="stockType" name="stockType" required class="<%= select %>">
+                <option value="">Select Stock Type...</option>
+                <% for(let i of stockTypeTable){ %>
+                <option value="<%= i.id %>"><%= i.name %></option>
+                <% } %>
+              </select>
+            </div>
+            <div>
+              <label class="<%= label %>">Purity <%- reqMark %></label>
+              <select id="purity" name="purity" required class="<%= select %>">
+                <option value="">Select Purity...</option>
+                <% for(let i of purityTable){ %>
+                <option value="<%= i.id %>"><%= i.name + " | " + i.wholesaleMultiplier + " | " + i.retailMultiplier + " | " + i.wastage %></option>
+                <% } %>
+              </select>
+            </div>
+            <div>
+              <label class="<%= label %>">Kaarigar</label>
+              <select id="kaarigar" name="kaarigar" class="<%= select %>">
+                <option value="">Select Kaarigar...</option>
+                <% for(let i of kaarigarTable){ %>
+                <option value="<%= i.id %>"><%= i.name %></option>
+                <% } %>
+              </select>
+            </div>
+            <div>
+              <label class="<%= label %>">HUID</label>
+              <input type="text" id="huid" name="huid" placeholder="HUID..." class="<%= input %>">
+            </div>
+            <div class="flex items-end pb-1">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="isKDM" name="isKDM" class="w-4 h-4 rounded border-outline-variant text-primary-container focus:ring-primary-container">
+                <span class="text-[11px] font-semibold uppercase tracking-widest text-secondary">Is KDM Gold</span>
+              </label>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="<%= label %>">Remark</label>
+              <textarea id="remark" name="remark" rows="3" placeholder="Remark..." autocomplete="off" class="<%= input %> resize-none"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-8 pt-6 border-t border-surface-container">
+        <div class="flex items-center justify-between mb-4">
+          <p class="<%= sectionTitle %>">Stone Details</p>
+          <button type="button" id="AddRowButton" onclick="AddRow()" class="px-4 py-2 bg-primary-container hover:brightness-105 text-on-primary text-sm font-semibold rounded-lg shadow-sm transition-all">
+            <i class="fas fa-plus mr-1"></i> Add Stone
+          </button>
+        </div>
+        <div id="stoneRow" class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6"></div>
+      </div>
+    </div>
+    <div class="fixed bottom-0 left-0 right-0 lg:left-80 z-30 bg-surface-container-lowest/95 backdrop-blur border-t border-surface-container px-4 sm:px-6 lg:px-8 xl:px-10 py-4">
+      <div class="w-full flex items-center justify-between gap-4">
+        <a href="/" class="text-sm font-semibold text-secondary hover:text-on-surface transition-colors">Cancel</a>
+        <button type="submit" class="px-8 py-3 bg-primary-container hover:brightness-105 text-on-primary text-sm font-semibold rounded-lg shadow-sm transition-all">
+          <i class="fas fa-save mr-2"></i>Submit Stock
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+<script>
+  let stock = [];
+  let stoneDealerTable = <%- JSON.stringify(stoneDealerTable) %>;
+  let stoneTypeTable = <%- JSON.stringify(stoneTypeTable) %>;
+  let indexTable = <%- JSON.stringify(indexTable.map(function(i) {
+    return { prefix: i.prefix ? String(i.prefix) : '', ornament: i.ornament ? String(i.ornament) : '', available: i.available || [] };
+  })) %>;
+  const stoneInput = <%- JSON.stringify(input) %>;
+  const stoneSelect = <%- JSON.stringify(select) %>;
+  const stoneLabel = <%- JSON.stringify(label) %>;
+  const stoneCard = 'bg-surface-container-low/50 rounded-xl border border-surface-container p-4 lg:p-5';
+  const imageRowClass = 'flex items-center gap-3 p-3 bg-surface-container-low rounded-lg border border-surface-container';
+  const camBtn = <%- JSON.stringify(camBtn) %>;
+
+  function addCameraActivationButton() {
+    const wrap = document.getElementById('cameraActionButtons');
+    if (!wrap || document.getElementById('enableCameraBtn')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'enableCameraBtn';
+    btn.className = camBtn;
+    btn.innerHTML = '<i class="fas fa-camera"></i><span>Enable Camera</span>';
+    btn.addEventListener('click', async function () {
+      try {
+        await initializeCamera();
+        cameraInitialized = true;
+        btn.remove();
+      } catch (e) {
+        console.warn('Camera init failed', e);
+      }
+    });
+    wrap.appendChild(btn);
+  }
+
+  function isMobile() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    const isUserAgentMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    return isUserAgentMobile || isTouchDevice;
+  }
+
+  let cameraInitialized = false;
+
+  async function checkCameraPermissionAndInit() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      const wrap = document.getElementById('windowCapture');
+      if (wrap) wrap.style.display = 'none';
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: isMobile() ? { ideal: 'environment' } : undefined }
+      });
+      stream.getTracks().forEach(track => track.stop());
+      await initializeCamera();
+      cameraInitialized = true;
+    } catch (error) {
+      if (error.name === 'NotAllowedError' || error.name === 'NotFoundError') {
+        addCameraActivationButton();
+      } else {
+        const wrap = document.getElementById('windowCapture');
+        if (wrap) wrap.style.display = 'none';
+      }
+    }
+  }
+
+  let totalRowCount = 0;
+  var dataTransfer = new DataTransfer();
+
+  function AddRow() {
+    const rowId = 'TableRow' + totalRowCount;
+    let row = `
+      <div class="${stoneCard}" id="${rowId}">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-bold text-on-surface flex items-center gap-2">
+            <i class="fas fa-gem text-primary text-xs"></i> Stone ${totalRowCount + 1}
+          </h3>
+          <button type="button" onclick="DeleteRow('${rowId}')" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-error/10 text-error hover:bg-error/20 text-xs font-semibold transition-colors">
+            <i class="fas fa-trash"></i> Delete
+          </button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div>
+            <label class="${stoneLabel}">Stone Type <span class="text-primary-container">*</span></label>
+            <select name="stoneType[]" class="stoneTabletoneType ${stoneSelect}" required onchange="ConvertWeightToCT('${rowId}');calculateWeight();">
+              <option value="">Select Stone Type...</option>`;
+    for (const i of stoneTypeTable) {
+      row += `<option value="${i._id}">${i.name}</option>`;
+    }
+    row += `</select></div>
+          <div>
+            <label class="${stoneLabel}">Stone Dealer</label>
+            <select name="stoneDealer[]" class="stoneTableStoneDealer ${stoneSelect}">
+              <option value="">Select Stone Dealer...</option>`;
+    for (const i of stoneDealerTable) {
+      row += `<option value="${i._id}">${i.name}</option>`;
+    }
+    row += `</select></div>
+          <div class="sm:col-span-2">
+            <label class="${stoneLabel}">Stone Weight <span class="text-primary-container">*</span></label>
+            <div class="flex flex-row gap-2">
+              <input type="number" step="0.001" placeholder="Weight..." class="dummyStoneTableWeight flex-1 ${stoneInput}" required oninput="ConvertWeightToCT('${rowId}');calculateWeight();">
+              <input type="number" step="0.001" name="stoneWeight[]" class="stoneTableWeight" required hidden>
+              <select class="selectWeight ${stoneSelect} w-28 shrink-0" onchange="ConvertWeightToCT('${rowId}');calculateWeight();">
+                <option value="1">Gram</option>
+                <option value="2" selected>Carat</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="${stoneLabel}">Purchase Rate</label>
+            <div class="flex flex-row gap-2">
+              <input type="number" placeholder="Purchase Rate..." class="dummyStoneTablePurchaseRate flex-1 ${stoneInput}" oninput="ConvertWeightToCT('${rowId}')">
+              <input type="number" name="purchaseRate[]" class="stoneTablePurchaseRate" hidden>
+              <select class="selectPurchaseRate ${stoneSelect} w-28 shrink-0" onchange="ConvertWeightToCT('${rowId}')">
+                <option value="1">per Gram</option>
+                <option value="2" selected>per Carat</option>
+                <option value="3">Whole Price</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="${stoneLabel}">Sell Rate <span class="text-primary-container">*</span></label>
+            <div class="flex flex-row gap-2">
+              <input type="number" placeholder="Sell Rate..." class="dummyStoneTableSellRate flex-1 ${stoneInput}" required oninput="ConvertWeightToCT('${rowId}')">
+              <input type="number" name="sellRate[]" class="stoneTableSellRate" required hidden>
+              <select class="selectSellRate ${stoneSelect} w-28 shrink-0" onchange="ConvertWeightToCT('${rowId}')">
+                <option value="1">per Gram</option>
+                <option value="2" selected>per Carat</option>
+                <option value="3">Whole Price</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    totalRowCount++;
+    document.getElementById('stoneRow').insertAdjacentHTML('beforeend', row);
+  }
+
+  function DeleteRow(id) {
+    document.getElementById(id).remove();
+    calculateWeight();
+  }
+
+  function buildTable() {
+    const container = document.getElementById('imagePreviews').querySelector('#tbody');
+    container.innerHTML = '';
+    if (!dataTransfer.files.length) return;
+    for (let i = 0; i < dataTransfer.files.length; i++) {
+      const reader = new FileReader();
+      const imageRow = document.createElement('div');
+      imageRow.className = imageRowClass;
+      imageRow.innerHTML = `
+        <span class="text-sm font-semibold text-secondary w-8">${i + 1}</span>
+        <div id="ImageRow${i}" class="flex-1">
+          <img src="" alt="" class="w-20 h-20 object-cover rounded-lg border border-surface-container">
+        </div>
+        <div class="flex gap-1">
+          <button type="button" onclick="ImageMove(${i},-1)" class="p-2 text-primary hover:bg-primary-fixed/20 rounded-lg transition-colors" ${i === 0 ? 'disabled' : ''}>
+            <i class="fas fa-arrow-up"></i>
+          </button>
+          <button type="button" onclick="ImageMove(${i},1)" class="p-2 text-primary hover:bg-primary-fixed/20 rounded-lg transition-colors" ${i === dataTransfer.files.length - 1 ? 'disabled' : ''}>
+            <i class="fas fa-arrow-down"></i>
+          </button>
+          <button type="button" onclick="ImageDel(${i})" class="p-2 text-error hover:bg-error/10 rounded-lg transition-colors">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>`;
+      container.appendChild(imageRow);
+      reader.onload = function (e) {
+        document.getElementById('ImageRow' + i).querySelector('img').src = e.target.result;
+      };
+      reader.readAsDataURL(dataTransfer.files[i]);
+    }
+  }
+
+  function AddImage() {
+    const fileInput = document.getElementById('imageButton');
+    if (!fileInput.files.length) return;
+    const reader = new FileReader();
+    reader.onload = function (loadEvent) {
+      const img = new Image();
+      img.onload = function () {
+        const imgSize = Math.min(img.width, img.height);
+        const startX = (img.width - imgSize) / 2;
+        const startY = (img.height - imgSize) / 2;
+        const canvasEl = document.getElementById('canvas');
+        const ctx = canvasEl.getContext('2d');
+        ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+        ctx.drawImage(img, startX, startY, imgSize, imgSize, 0, 0, canvasEl.width, canvasEl.height);
+        const dataUrl = canvasEl.toDataURL('image/png');
+        const byteString = atob(dataUrl.split(',')[1]);
+        const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+        const blob = new Blob([ab], { type: mimeString });
+        dataTransfer.items.add(new File([blob], 'upload_' + Date.now() + '.png', { type: 'image/png' }));
+        document.getElementById('stockImage').files = dataTransfer.files;
+        buildTable();
+      };
+      img.src = loadEvent.target.result;
+    };
+    reader.readAsDataURL(fileInput.files[0]);
+    fileInput.value = '';
+  }
+
+  function ImageMove(index, dir) {
+    if ((index === 0 && dir === -1) || (index === dataTransfer.files.length - 1 && dir === 1)) return;
+    const temp = new DataTransfer();
+    const x = Math.min(index, index + dir);
+    for (let i = 0; i < dataTransfer.files.length; i++) {
+      if (i === x) {
+        temp.items.add(dataTransfer.files[i + 1]);
+        temp.items.add(dataTransfer.files[i]);
+        i++;
+      } else {
+        temp.items.add(dataTransfer.files[i]);
+      }
+    }
+    dataTransfer = temp;
+    document.getElementById('stockImage').files = dataTransfer.files;
+    buildTable();
+  }
+
+  function ImageDel(index) {
+    dataTransfer.items.remove(index);
+    document.getElementById('stockImage').files = dataTransfer.files;
+    buildTable();
+  }
+
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const context = canvas ? canvas.getContext('2d') : null;
+  const captureButton = document.getElementById('capture');
+  const cameraSelect = document.getElementById('cameraSelect');
+
+  async function getAvailableCameras() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    return devices.filter(device => device.kind === 'videoinput');
+  }
+
+  async function setCamera(deviceId) {
+    const constraints = {
+      video: {
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        facingMode: isMobile() ? { ideal: 'environment' } : undefined,
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    };
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    if (isMobile()) {
+      video.setAttribute('playsinline', true);
+      video.setAttribute('webkit-playsinline', true);
+    }
+  }
+
+  async function populateCameraOptions() {
+    const cameras = await getAvailableCameras();
+    cameraSelect.innerHTML = '';
+    cameras.forEach(camera => {
+      const option = document.createElement('option');
+      option.value = camera.deviceId;
+      option.text = camera.label || ('Camera ' + (cameraSelect.length + 1));
+      cameraSelect.appendChild(option);
+    });
+  }
+
+  async function initializeCamera() {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: isMobile() ? { ideal: 'environment' } : undefined }
+    });
+    stream.getTracks().forEach(track => track.stop());
+    const cameras = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+    if (!cameras.length) throw new Error('No cameras found');
+    await populateCameraOptions();
+    if (isMobile()) {
+      const backCamera = cameras.find(c =>
+        /back|rear|environment/i.test(c.label)
+      );
+      await setCamera(backCamera ? backCamera.deviceId : cameras[0].deviceId);
+    } else {
+      await setCamera(cameraSelect.value);
+    }
+  }
+
+  if (cameraSelect) {
+    cameraSelect.addEventListener('change', async () => {
+      if (cameraInitialized) await setCamera(cameraSelect.value);
+    });
+  }
+
+  if (captureButton) {
+    captureButton.addEventListener('click', () => {
+      if (!cameraInitialized) {
+        alert('Please enable camera first');
+        return;
+      }
+      const imgSize = Math.min(video.videoWidth, video.videoHeight);
+      const startX = (video.videoWidth - imgSize) / 2;
+      const startY = (video.videoHeight - imgSize) / 2;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(video, startX, startY, imgSize, imgSize, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/png');
+      const byteString = atob(dataUrl.split(',')[1]);
+      const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+      const blob = new Blob([ab], { type: mimeString });
+      dataTransfer.items.add(new File([blob], 'camera_capture_' + Date.now() + '.png', { type: 'image/png' }));
+      document.getElementById('stockImage').files = dataTransfer.files;
+      buildTable();
+    });
+  }
+
+  function findIndexEntry(prefix, ornament) {
+    return indexTable.find(item =>
+      String(item.prefix) === String(prefix) && String(item.ornament) === String(ornament)
+    );
+  }
+
+  function makeTag() {
+    const prefix = document.querySelector("select[name='prefix']").value;
+    const ornament = document.querySelector("select[name='ornament']").value;
+    const tagInput = document.querySelector("input[name='tag']");
+    if (!ornament || !tagInput) return;
+    const entry = findIndexEntry(prefix, ornament);
+    if (!entry) {
+      tagInput.value = '';
+      return;
+    }
+    const availableArr = entry.available || [];
+    let tagnumber = availableArr.length ? availableArr.length + 1 : 1;
+    if (availableArr.length) {
+      availableArr.sort((a, b) => a - b);
+      for (let i = 1; i <= availableArr.length; i++) {
+        if (availableArr[i - 1] !== i) {
+          tagnumber = i;
+          break;
+        }
+      }
+    }
+    tagInput.value = tagnumber;
+  }
+
+  function calculateWeight() {
+    const grossWt = document.querySelector("input[name='grossWt']").value;
+    const stoneWeights = document.getElementsByClassName('stoneTableWeight');
+    let totalWeight = 0;
+    for (let i = 0; i < stoneWeights.length; i++) totalWeight += stoneWeights[i].value * 1;
+    document.querySelector("input[name='netWt']").value = (grossWt - totalWeight / 5).toFixed(3);
+    document.querySelector("input[name='stoneWt']").value = (totalWeight / 5).toFixed(3);
+  }
+
+  function ConvertWeightToCT(rowId) {
+    const row = document.getElementById(rowId);
+    if (!row) return;
+    let wt = row.querySelector('.dummyStoneTableWeight');
+    let option = row.querySelector('.selectWeight');
+    let stoneWt = row.querySelector('.stoneTableWeight');
+    if (!wt || !option || !stoneWt) return;
+    stoneWt.value = option.value === '1' ? (wt.value * 5).toFixed(3) : wt.value;
+    wt = row.querySelector('.dummyStoneTablePurchaseRate');
+    option = row.querySelector('.selectPurchaseRate');
+    let purchaseRate = row.querySelector('.stoneTablePurchaseRate');
+    if (wt && option && purchaseRate) {
+      if (option.value === '1') purchaseRate.value = (wt.value * (stoneWt.value != 0 ? 5 : 1)).toFixed(0);
+      else if (option.value === '2') purchaseRate.value = wt.value;
+      else purchaseRate.value = (wt.value / (stoneWt.value != 0 ? stoneWt.value : 1)).toFixed(0);
+    }
+    wt = row.querySelector('.dummyStoneTableSellRate');
+    option = row.querySelector('.selectSellRate');
+    let sellRate = row.querySelector('.stoneTableSellRate');
+    if (wt && option && sellRate) {
+      if (option.value === '1') sellRate.value = (wt.value * (stoneWt.value != 0 ? 5 : 1)).toFixed(0);
+      else if (option.value === '2') sellRate.value = wt.value;
+      else sellRate.value = (wt.value / (stoneWt.value != 0 ? stoneWt.value : 1)).toFixed(0);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    checkCameraPermissionAndInit();
+    document.getElementById('quickCapture')?.addEventListener('click', function () {
+      document.getElementById('capture')?.click();
+    });
+    const form = document.getElementById('stock-form');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        if (!dataTransfer.files.length) {
+          e.preventDefault();
+          alert('Please add at least one product image before submitting.');
+          return;
+        }
+        document.getElementById('stockImage').files = dataTransfer.files;
+        if (!document.querySelector("select[name='ornament']").value) {
+          e.preventDefault();
+          alert('Please select an ornament.');
+          return;
+        }
+        if (!document.querySelector("input[name='tag']").value) {
+          e.preventDefault();
+          alert('Tag number could not be generated. Check prefix and ornament selection.');
+        }
+      });
+    }
+    const grossInput = document.querySelector("input[name='grossWt']");
+    if (grossInput) grossInput.addEventListener('input', calculateWeight);
+    makeTag();
+  });
+</script>

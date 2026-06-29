@@ -1,0 +1,16 @@
+<% activeNav = 'reports' %>
+<%- include('reports/_tokens') %>
+<% const yesterday = new Date(new Date().getTime() + 19800000 - 86400000).toISOString().substring(0, 10); %>
+<% const today = new Date(new Date().getTime() + 19800000).toISOString().substring(0, 10); %>
+<div class="space-y-5 w-full pb-10">
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+    <%- include('reports/_link_card', { href: '/dailySheet', icon: 'fa-calendar-day', cardTitle: 'Daily Sheet', description: "View today's stock arrivals, edits, sales, and approvals." }) %>
+    <%- include('reports/_link_card', { href: '/allStock', icon: 'fa-boxes-stacked', cardTitle: 'All Stock', description: 'Complete inventory report across all stock items.' }) %>
+    <%- include('reports/_link_card', { href: '/allInStock', icon: 'fa-warehouse', cardTitle: 'In Stock', description: 'Items currently available in your inventory.' }) %>
+    <%- include('reports/_link_card', { href: '/allOutStock', icon: 'fa-truck-ramp-box', cardTitle: 'Out Stock', description: 'Sold, deleted, and approval items no longer in stock.' }) %>
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-5">
+    <%- include('reports/_date_form_card', { icon: 'fa-clock-rotate-left', cardTitle: 'Back Date Lists', description: 'Load historical daily update lists for a past date.', action: '/backDateSheet', dateValue: yesterday, maxDate: yesterday, submitLabel: 'View Back Date Lists' }) %>
+    <%- include('reports/_date_form_card', { icon: 'fa-list-check', cardTitle: 'Custom Lists', description: 'Generate a custom stock change list for any date up to today.', action: '/customSheetPage', dateValue: today, maxDate: today, submitLabel: 'View Custom Lists' }) %>
+  </div>
+</div>

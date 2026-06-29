@@ -1,0 +1,258 @@
+<% activeNav = 'reports' %>
+<%- include('reports/_tokens') %>
+<% const label = "block text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1.5"; %>
+<% const field = "w-full px-4 py-3 bg-surface-container-low dark:bg-dark-container border border-outline-variant/40 dark:border-white/10 rounded-DEFAULT text-sm text-on-surface dark:text-dark-text placeholder-secondary/60 focus:outline-none focus:border-primary-container dark:focus:border-dark-brand transition-colors"; %>
+<div class="pb-10 space-y-6">
+  <%- include('reports/_toolbar', {
+        pageTitle: title || 'Stock Report',
+        actions: []
+    }) %>
+  <%- include('table_page/_page', {
+    label,
+    field,
+    tableFilters: [
+        { type: 'search', id: 'searchInput', label: 'Search Stock', placeholder: 'SKU, tag, purity, remark...', span: 6, flexEnd: true },
+        { type: 'stat', id: 'stockCount', label: 'Total Items', span: 3, icon: 'fas fa-boxes-stacked' },
+        { type: 'stat', id: 'netWtTotal', label: 'Total Net Wt (gm)', span: 3, icon: 'fas fa-weight-scale' },
+        { type: 'custom', span: 12, html: '<label class="' + label + '">Category</label><div id="categoryChips" class="flex flex-wrap gap-2"></div>' }
+    ],
+    tablePage: {
+        tableTitle: title || 'Stock Report',
+        tableId: 'stockBody',
+        minWidth: '1400px',
+        colCount: 18,
+        headerActions: '<button type="button" onclick="buildExportAndPrint()" class="' + btnOutline + '"><i class="fas fa-print text-xs"></i> Print</button>',
+        columns: [
+            { label: 'S.No', thClass: 'px-4' },
+            { label: 'Cart', thClass: 'px-2 text-center' },
+            { label: 'SKU', thClass: 'px-3' },
+            { label: 'Prefix', thClass: 'px-3' },
+            { label: 'Ornament', thClass: 'px-3' },
+            { label: 'Tag', thClass: 'px-3' },
+            { label: 'Purity', thClass: 'px-3' },
+            { label: 'Stock Type', thClass: 'px-3' },
+            { label: 'Gross Wt', align: 'right', thClass: 'px-3' },
+            { label: 'Net Wt', align: 'right', thClass: 'px-3' },
+            { label: 'Stone Wt', align: 'right', thClass: 'px-3' },
+            { label: 'Sold To', thClass: 'px-3' },
+            { label: 'Sold By', thClass: 'px-3' },
+            { label: 'Sold Date', thClass: 'px-3' },
+            { label: 'Price', align: 'right', thClass: 'px-3' },
+            { label: 'In Stock', thClass: 'px-3' },
+            { label: 'Created', thClass: 'px-3' },
+            { label: 'Kaarigar', thClass: 'px-4' }
+        ],
+        pagination: { perPageSelectId: 'stockPerPage', paginationId: 'stockPagination', summaryId: 'stockSummary' }
+    },
+    tablePageAfter: '<div class="hidden"><table id="stockExportTable"><thead><tr><th>S.No</th><th>SKU</th><th>Tag</th><th>Purity</th><th>Gross Wt</th><th>Net Wt</th><th>Stone Wt</th><th>Stock Type</th></tr></thead><tbody id="stockExportBody"></tbody></table></div>'
+}) %>
+</div>
+<script>
+  const reportType = <%- JSON.stringify(typeof reportType !== 'undefined' ? reportType : 'all') %>;
+  let totalRows = 0;
+  let activeCategories = new Set();
+  let categoriesReady = false;
+  let fetchTimer = null;
+  let loading = false;
+  const pager = new KbPagination({
+    perPage: 20,
+    windowSize: 5,
+    paginationId: 'stockPagination',
+    summaryId: 'stockSummary',
+    perPageSelectId: 'stockPerPage',
+    onPageChange: function() {
+      fetchStockPage(false);
+    },
+    formatSummary: function(page, rows, start, self, total) {
+      const count = total != null ? total : rows.length;
+      if (!count || !page.length) return 'No items';
+      const from = start + 1;
+      const to = start + page.length;
+      return from + '–' + to + ' of ' + count + ' items';
+    }
+  });
+
+  function mapRow(s) {
+    const prefix = s.prefix && s.prefix.name ? s.prefix.name : '';
+    const ornament = s.ornament && s.ornament.name ? s.ornament.name : '';
+    const category = (prefix + ' ' + ornament).trim();
+    return {
+      _id: s._id,
+      index: s.index,
+      prefix: prefix,
+      ornament: ornament,
+      category: category,
+      tag: s.tag || '',
+      purity: s.purity && s.purity.name ? s.purity.name : '',
+      stockType: s.stockType && s.stockType.name ? s.stockType.name : '',
+      grossWt: s.grossWt * 1,
+      netWt: s.netWt * 1,
+      stoneWt: s.stoneWt * 1,
+      billCustomer: s.bill && s.bill.customer ? s.bill.customer.name : '',
+      billUser: s.bill && s.bill.user ? s.bill.user.name : '',
+      billDate: s.bill ? s.bill.createdAt : '',
+      sellingPrice: s.sellingPrice || '',
+      isInStock: s.isInStock ? 'YES' : 'NO',
+      createdBy: s.createdBy && s.createdBy.name ? s.createdBy.name : '',
+      createdDate: s.createdDate,
+      kaarigar: s.kaarigar && s.kaarigar.name ? s.kaarigar.name : ''
+    };
+  }
+
+  function fmtDate(val) {
+    if (!val) return '';
+    const d = new Date(val);
+    return d.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  }
+
+  function renderCategoryChips(names) {
+    const chipsEl = document.getElementById('categoryChips');
+    if (!chipsEl) return;
+    chipsEl.innerHTML = '';
+    activeCategories = new Set(names);
+    names.forEach(function(name) {
+      const label = document.createElement('label');
+      label.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-outline-variant/40 bg-surface-container-low/60 cursor-pointer hover:border-primary-container/60 has-[:checked]:border-primary-container has-[:checked]:bg-primary-fixed/25';
+      label.innerHTML = '<input type="checkbox" checked data-cat="' + name.replace(/"/g, '&quot;') + '" class="rounded border-outline-variant text-primary cat-cb"><span class="text-xs font-medium whitespace-nowrap">' + name + '</span>';
+      chipsEl.appendChild(label);
+    });
+    if (!chipsEl.dataset.bound) {
+      chipsEl.dataset.bound = '1';
+      chipsEl.addEventListener('change', function(e) {
+        if (!e.target.classList.contains('cat-cb')) return;
+        if (e.target.checked) activeCategories.add(e.target.dataset.cat);
+        else activeCategories.delete(e.target.dataset.cat);
+        pager.resetPage();
+        fetchStockPage(false);
+      });
+    }
+    categoriesReady = true;
+  }
+
+  function renderRows(rows, start) {
+    const body = document.getElementById('stockBody');
+    body.innerHTML = '';
+    if (!rows.length) {
+      body.innerHTML = '<tr><td colspan="18" class="px-5 py-10 text-center text-sm text-secondary">No stock found.</td></tr>';
+      return;
+    }
+    rows.forEach(function(r, i) {
+      const sn = start + i + 1;
+      body.innerHTML += '<tr class="border-b border-surface-container dark:border-white/10 hover:bg-surface-container-low/40">' +
+        '<td class="px-4 py-2.5">' + sn + '</td>' +
+        '<td class="px-2 py-2.5 text-center"><button type="button" onclick="AddToCart(\'' + r._id + '\')" class="p-1.5 rounded-lg text-primary hover:bg-primary-fixed/30"><i class="fas fa-cart-plus text-sm"></i></button></td>' +
+        '<td class="px-3 py-2.5">' + r.index + '</td>' +
+        '<td class="px-3 py-2.5">' + r.prefix + '</td>' +
+        '<td class="px-3 py-2.5">' + r.ornament + '</td>' +
+        '<td class="px-3 py-2.5">' + r.tag + '</td>' +
+        '<td class="px-3 py-2.5">' + r.purity + '</td>' +
+        '<td class="px-3 py-2.5">' + r.stockType + '</td>' +
+        '<td class="px-3 py-2.5 text-right">' + r.grossWt.toFixed(3) + '</td>' +
+        '<td class="px-3 py-2.5 text-right">' + r.netWt.toFixed(3) + '</td>' +
+        '<td class="px-3 py-2.5 text-right">' + r.stoneWt.toFixed(3) + '</td>' +
+        '<td class="px-3 py-2.5">' + r.billCustomer + '</td>' +
+        '<td class="px-3 py-2.5">' + r.billUser + '</td>' +
+        '<td class="px-3 py-2.5 whitespace-nowrap">' + fmtDate(r.billDate) + '</td>' +
+        '<td class="px-3 py-2.5 text-right">' + r.sellingPrice + '</td>' +
+        '<td class="px-3 py-2.5">' + r.isInStock + '</td>' +
+        '<td class="px-3 py-2.5 whitespace-nowrap">' + fmtDate(r.createdDate) + '</td>' +
+        '<td class="px-4 py-2.5">' + r.kaarigar + '</td></tr>';
+    });
+  }
+
+  function getCategoryParam() {
+    if (!categoriesReady) return null;
+    if (!activeCategories.size) return '__none__';
+    return Array.from(activeCategories).join('|');
+  }
+  async function fetchStockPage(includeMeta) {
+    if (loading) return;
+    loading = true;
+    const params = new URLSearchParams({
+      reportType: reportType,
+      page: String(pager.currentPage),
+      perPage: String(pager.perPage),
+      search: (document.getElementById('searchInput').value || '').trim()
+    });
+    const cats = getCategoryParam();
+    if (cats != null) params.set('categories', cats);
+    if (includeMeta) params.set('includeMeta', '1');
+    try {
+      const res = await fetch('/api/stockReport?' + params.toString());
+      const data = await res.json();
+      if (!data.success) throw new Error('fetch failed');
+      totalRows = data.total || 0;
+      document.getElementById('stockCount').textContent = totalRows;
+      document.getElementById('netWtTotal').textContent = (data.netWtTotal || 0).toFixed(3);
+      if (data.categories) renderCategoryChips(data.categories);
+      const rows = (data.rows || []).map(mapRow);
+      const result = pager.apply([], {
+        total: totalRows,
+        pageRows: rows
+      });
+      renderRows(rows, result.start);
+    } catch (err) {
+      document.getElementById('stockBody').innerHTML = '<tr><td colspan="18" class="px-5 py-10 text-center text-sm text-error">Could not load stock data.</td></tr>';
+    } finally {
+      loading = false;
+    }
+  }
+
+  function renderTable() {
+    pager.resetPage();
+    fetchStockPage(false);
+  }
+
+  function scheduleSearch() {
+    clearTimeout(fetchTimer);
+    fetchTimer = setTimeout(function() {
+      pager.resetPage();
+      fetchStockPage(false);
+    }, 300);
+  }
+  async function buildExportAndPrint() {
+    const params = new URLSearchParams({
+      reportType: reportType,
+      page: '1',
+      perPage: '100',
+      search: (document.getElementById('searchInput').value || '').trim()
+    });
+    const cats = getCategoryParam();
+    if (cats != null) params.set('categories', cats);
+    const exportBody = document.getElementById('stockExportBody');
+    exportBody.innerHTML = '';
+    let page = 1;
+    let total = 0;
+    let sn = 0;
+    do {
+      params.set('page', String(page));
+      const res = await fetch('/api/stockReport?' + params.toString());
+      const data = await res.json();
+      if (!data.success) break;
+      total = data.total || 0;
+      (data.rows || []).map(mapRow).forEach(function(r) {
+        sn += 1;
+        exportBody.innerHTML += '<tr><td>' + sn + '</td><td>' + r.index + '</td><td>' + r.prefix + ' ' + r.ornament + (r.tag ? '-' + r.tag : '') + '</td><td>' + r.purity + '</td><td>' + r.grossWt.toFixed(3) + '</td><td>' + r.netWt.toFixed(3) + '</td><td>' + r.stoneWt.toFixed(3) + '</td><td>' + r.stockType + '</td></tr>';
+      });
+      page += 1;
+    } while (sn < total);
+    printTable('stockExportTable');
+  }
+  document.getElementById('searchInput').oninput = scheduleSearch;
+
+  function initStockTable() {
+    fetchStockPage(true);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(initStockTable, 0);
+    });
+  } else {
+    setTimeout(initStockTable, 0);
+  }
+</script>
+<%- include('reports/_print_script') %>

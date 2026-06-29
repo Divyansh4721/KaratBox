@@ -1,0 +1,134 @@
+<% activeNav = 'reports' %>
+<%- include('reports/_tokens') %>
+<div class="pb-10 space-y-6">
+  <%- include('reports/_toolbar', {
+        pageTitle: title || 'Custom Lists',
+        date: date,
+        actions: [
+            { label: 'Print List', icon: 'fa-print', onclick: "printTable('fullList')" }
+        ]
+    }) %>
+  <%- include('reports/_category_filter', { checkList: checkList, defaultChecked: true }) %>
+  <div id="dailySummaryWrap">
+    <%- include('reports/_daily_summary_table', { listRows: [], tableId: 'fullList', tableTitle: 'Custom Summary', stoneMultiplier: 1, paginate: true }) %>
+  </div>
+</div>
+<%- include('reports/_pagination_script') %>
+<script>
+  const checkList = <%- JSON.stringify(checkList) %>;
+  const fullList = <%- JSON.stringify(fullList) %>;
+  const stoneMul = 1;
+  let customPager = null;
+  fullList.forEach(function(i) {
+    if (checkList.indexOf(i.name) !== -1) i.flag = true;
+  });
+
+  function sheetCell(row, section, field) {
+    if (!row[section] || row[section][field] == null || row[section][field] === '') return '';
+    if (field === 'stoneWt') return (row[section].stoneWt * stoneMul).toFixed(3);
+    if (field === 'grossWt') return (row[section].grossWt * 1).toFixed(3);
+    return row[section][field];
+  }
+
+  function buildTable() {
+    const data = JSON.parse(JSON.stringify(fullList));
+    const temp = {
+      name: 'Total',
+      flag: true,
+      opening: {
+        total: 0,
+        stoneWt: 0,
+        grossWt: 0
+      },
+      arrival: {
+        total: 0,
+        stoneWt: 0,
+        grossWt: 0
+      },
+      sold: {
+        total: 0,
+        stoneWt: 0,
+        grossWt: 0
+      },
+      delete: {
+        total: 0,
+        stoneWt: 0,
+        grossWt: 0
+      },
+      approval: {
+        total: 0,
+        stoneWt: 0,
+        grossWt: 0
+      },
+      closing: {
+        total: 0,
+        stoneWt: 0,
+        grossWt: 0
+      },
+      total: {
+        total: 0,
+        stoneWt: 0,
+        grossWt: 0
+      }
+    };
+    const total = JSON.parse(JSON.stringify(temp));
+    total.name = 'Grand Total';
+    data.forEach(function(i) {
+      if (i.flag) {
+        ['opening', 'arrival', 'sold', 'delete', 'approval', 'closing', 'total'].forEach(function(key) {
+          temp[key].total += i[key] ? i[key].total : 0;
+          temp[key].stoneWt += i[key] ? i[key].stoneWt : 0;
+          temp[key].grossWt += i[key] ? i[key].grossWt : 0;
+        });
+      }
+      ['opening', 'arrival', 'sold', 'delete', 'approval', 'closing', 'total'].forEach(function(key) {
+        total[key].total += i[key] ? i[key].total : 0;
+        total[key].stoneWt += i[key] ? i[key].stoneWt : 0;
+        total[key].grossWt += i[key] ? i[key].grossWt : 0;
+      });
+    });
+    data.push(temp, total);
+    const tbody = document.querySelector('#fullList tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    data.forEach(function(row, idx) {
+      if (row.flag === undefined) row.flag = false;
+      if (!row.flag) return;
+      const tr = document.createElement('tr');
+      tr.className = row.name === 'Total' || row.name === 'Grand Total' ? 'bg-primary-fixed/25 font-semibold pager-skip' : (idx % 2 ? 'bg-surface-container-low/40 dark:bg-dark-container/30' : '');
+      let html = '<td class="px-3 py-2 font-medium whitespace-nowrap">' + row.name + '</td>';
+      ['opening', 'arrival', 'sold', 'delete', 'approval', 'closing', 'total'].forEach(function(section) {
+        html += '<td class="px-2 py-2 text-center">' + sheetCell(row, section, 'total') + '</td>';
+        html += '<td class="px-2 py-2 text-center">' + sheetCell(row, section, 'stoneWt') + '</td>';
+        html += '<td class="px-2 py-2 text-center">' + sheetCell(row, section, 'grossWt') + '</td>';
+      });
+      tr.innerHTML = html;
+      tbody.appendChild(tr);
+    });
+    if (!customPager) {
+      customPager = paginateDomTable({
+        bodyId: 'fullListBody',
+        paginationId: 'fullListPagination',
+        summaryId: 'fullListSummary',
+        perPageSelectId: 'fullListPerPage'
+      });
+    } else {
+      customPager.resetPage();
+      customPager.refresh();
+    }
+  }
+
+  function updateTable(ele) {
+    fullList.forEach(function(i) {
+      if (i.name === ele.value) i.flag = ele.checked;
+    });
+    buildTable();
+  }
+  document.querySelectorAll('.category-filter-cb').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      updateTable(this);
+    });
+  });
+  buildTable();
+</script>
+<%- include('reports/_print_script') %>

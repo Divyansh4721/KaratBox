@@ -1,0 +1,241 @@
+<% activeNav = 'khata' %>
+<% const label = "block text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1.5"; %>
+<% const field = "w-full px-4 py-3 bg-surface-container-low border border-transparent rounded-lg text-sm text-on-surface placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors"; %>
+<% const fmt = n => new Intl.NumberFormat('en-IN').format(Math.round(n * 100) / 100); %>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+  <div class="bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/60 dark:border-emerald-800/40 p-5 shadow-whisper">
+    <p class="<%= label %> text-emerald-700 dark:text-emerald-400 mb-1">Total You'll Get</p>
+    <p class="text-2xl font-bold text-emerald-700 dark:text-emerald-300">&#8377; <%= fmt(totalReceivable) %></p>
+    <p class="text-xs text-emerald-600/80 dark:text-emerald-400/70 mt-1">From customers &amp; parties who owe you</p>
+  </div>
+  <div class="bg-rose-50 dark:bg-rose-950/30 rounded-xl border border-rose-200/60 dark:border-rose-800/40 p-5 shadow-whisper">
+    <p class="<%= label %> text-rose-700 dark:text-rose-400 mb-1">Total You'll Give</p>
+    <p class="text-2xl font-bold text-rose-700 dark:text-rose-300">&#8377; <%= fmt(totalPayable) %></p>
+    <p class="text-xs text-rose-600/80 dark:text-rose-400/70 mt-1">To suppliers &amp; parties you owe</p>
+  </div>
+</div>
+<%- include('../table_page/_page', {
+    label,
+    field,
+    tableFilters: [
+        { type: 'search', id: 'searchInput', label: 'Search Party', placeholder: 'Name, phone, address...', span: 5, flexEnd: true },
+        { type: 'select', id: 'typeFilter', label: 'Type', span: 3, flexEnd: true, options: [
+            { value: 'all', label: 'All Parties' },
+            { value: 'customer', label: 'Customers' },
+            { value: 'supplier', label: 'Suppliers' }
+        ]},
+        { type: 'select', id: 'balanceFilter', label: 'Balance', span: 2, flexEnd: true, options: [
+            { value: 'all', label: 'All Balances' },
+            { value: 'due', label: 'Has Due' },
+            { value: 'settled', label: 'Settled' }
+        ]},
+        { type: 'stat', id: 'partyCount', label: 'Total Parties', span: 2, icon: 'fas fa-book' }
+    ],
+    tablePage: {
+        tableTitle: 'Khata Ledger',
+        tableId: 'khataBody',
+        minWidth: '820px',
+        colCount: 7,
+        headerActions: `<button type="button" onclick="openAddModal()" title="Add New Party" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary-container hover:brightness-105 text-on-primary text-sm font-semibold rounded-lg shadow-sm transition-all shrink-0"><i class="fas fa-plus text-xs"></i> Add Party</button>`,
+        columns: [
+            { label: 'S.No', align: 'left', thClass: 'px-5' },
+            { label: 'Party Name', align: 'left', thClass: 'px-4' },
+            { label: 'Type', align: 'left', thClass: 'px-4' },
+            { label: 'Phone', align: 'left', thClass: 'px-4' },
+            { label: 'Balance', align: 'left', thClass: 'px-4' },
+            { label: 'Added By', align: 'left', thClass: 'px-4' },
+            { label: 'Actions', align: 'right', thClass: 'px-5' }
+        ]
+    }
+}) %>
+<div id="addModal" class="fixed inset-0 z-50 hidden items-start justify-center p-4 bg-black/40 backdrop-blur-sm">
+  <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper w-full max-w-lg my-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
+    <div class="flex items-start justify-between px-6 py-4 border-b border-surface-container">
+      <div class="flex items-center gap-3">
+        <span class="w-10 h-10 rounded-lg bg-primary-fixed/40 flex items-center justify-center text-primary"><i class="fas fa-book"></i></span>
+        <div>
+          <h3 class="text-lg font-bold text-on-surface">Add Khata Party</h3>
+          <p class="text-[10px] font-semibold uppercase tracking-widest text-primary">New Ledger Account</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeAddModal()" class="p-1 text-secondary hover:text-on-surface"><i class="fas fa-times"></i></button>
+    </div>
+    <form action="/khataBook/addPartyForm" method="post" class="p-6 space-y-5">
+      <div>
+        <label class="<%= label %>">Party Type</label>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="flex items-center gap-2 px-4 py-3 rounded-lg border border-surface-container bg-surface-container-low cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary-fixed/20">
+            <input type="radio" name="partyType" value="customer" checked class="accent-primary">
+            <span class="text-sm font-medium">Customer</span>
+          </label>
+          <label class="flex items-center gap-2 px-4 py-3 rounded-lg border border-surface-container bg-surface-container-low cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary-fixed/20">
+            <input type="radio" name="partyType" value="supplier" class="accent-primary">
+            <span class="text-sm font-medium">Supplier</span>
+          </label>
+        </div>
+      </div>
+      <div><label class="<%= label %>">Party Name <span class="text-error">*</span></label><input type="text" name="name" required placeholder="Enter name..." class="<%= field %>"></div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label class="<%= label %>">Phone Number</label><input type="tel" name="phNum" inputmode="numeric" maxlength="10" placeholder="10-digit mobile (optional)" class="<%= field %>"></div>
+        <div><label class="<%= label %>">Address</label><input type="text" name="address" placeholder="Optional address" class="<%= field %>"></div>
+      </div>
+      <div class="flex gap-3 pt-2 border-t border-surface-container">
+        <button type="submit" class="flex-1 py-3 bg-primary hover:brightness-110 text-on-primary text-sm font-bold uppercase tracking-wider rounded-lg transition-all">Add Party</button>
+        <button type="button" onclick="closeAddModal()" class="px-6 py-3 bg-surface-container-low text-on-surface text-sm font-semibold rounded-lg hover:bg-surface-container transition-colors">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="editModal" class="fixed inset-0 z-50 hidden items-start justify-center p-4 bg-black/40 backdrop-blur-sm">
+  <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper w-full max-w-lg my-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
+    <div class="flex items-start justify-between px-6 py-4 border-b border-surface-container">
+      <div class="flex items-center gap-3">
+        <span class="w-10 h-10 rounded-lg bg-primary-fixed/40 flex items-center justify-center text-primary"><i class="fas fa-pen"></i></span>
+        <div>
+          <h3 class="text-lg font-bold text-on-surface">Edit Party</h3>
+          <p class="text-[10px] font-semibold uppercase tracking-widest text-primary">Ledger Update</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeEditModal()" class="p-1 text-secondary hover:text-on-surface"><i class="fas fa-times"></i></button>
+    </div>
+    <form id="editForm" action="/khataBook/editPartyForm" method="post" class="p-6 space-y-5">
+      <input type="hidden" name="id" id="editId">
+      <input type="hidden" name="returnTo" value="/khataBook">
+      <div>
+        <label class="<%= label %>">Party Type</label>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="flex items-center gap-2 px-4 py-3 rounded-lg border border-surface-container bg-surface-container-low cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary-fixed/20">
+            <input type="radio" name="partyType" id="editTypeCustomer" value="customer" class="accent-primary">
+            <span class="text-sm font-medium">Customer</span>
+          </label>
+          <label class="flex items-center gap-2 px-4 py-3 rounded-lg border border-surface-container bg-surface-container-low cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary-fixed/20">
+            <input type="radio" name="partyType" id="editTypeSupplier" value="supplier" class="accent-primary">
+            <span class="text-sm font-medium">Supplier</span>
+          </label>
+        </div>
+      </div>
+      <div><label class="<%= label %>">Party Name <span class="text-error">*</span></label><input type="text" name="name" id="editName" required class="<%= field %>"></div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label class="<%= label %>">Phone Number</label><input type="tel" name="phNum" id="editPhone" inputmode="numeric" maxlength="10" placeholder="10-digit mobile (optional)" class="<%= field %>"></div>
+        <div><label class="<%= label %>">Address</label><input type="text" name="address" id="editAddress" class="<%= field %>"></div>
+      </div>
+      <div class="flex gap-3 pt-2 border-t border-surface-container">
+        <button type="submit" class="flex-1 py-3 bg-primary hover:brightness-110 text-on-primary text-sm font-bold uppercase tracking-wider rounded-lg transition-all">Save Changes</button>
+        <button type="button" onclick="closeEditModal()" class="px-6 py-3 bg-surface-container-low text-on-surface text-sm font-semibold rounded-lg hover:bg-surface-container transition-colors">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  const allRows = <%- JSON.stringify(parties) %>;
+  const fmt = n => new Intl.NumberFormat('en-IN').format(Math.round(n * 100) / 100);
+
+  function initials(name) {
+    return (name || 'K').trim().charAt(0).toUpperCase();
+  }
+
+  function balanceBadge(row) {
+    const d = row.display;
+    if (d.tone === 'settled') {
+      return '<span class="text-[10px] font-bold uppercase tracking-wide text-secondary bg-surface-container px-2.5 py-1 rounded-full">Settled</span>';
+    }
+    const cls = d.tone === 'receivable' ?
+      'text-emerald-700 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-900/40' :
+      'text-rose-700 bg-rose-100 dark:text-rose-300 dark:bg-rose-900/40';
+    return `<span class="text-xs font-bold ${cls} px-2.5 py-1 rounded-full">${d.label} &#8377;${fmt(d.amount)}</span>`;
+  }
+
+  function typeBadge(type) {
+    if (type === 'supplier') {
+      return '<span class="text-[10px] font-bold uppercase tracking-wide text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-900/40 px-2.5 py-1 rounded-full">Supplier</span>';
+    }
+    return '<span class="text-[10px] font-bold uppercase tracking-wide text-primary bg-primary-fixed/40 px-2.5 py-1 rounded-full">Customer</span>';
+  }
+
+  function filteredRows() {
+    const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+    const type = document.getElementById('typeFilter').value;
+    const balance = document.getElementById('balanceFilter').value;
+    let rows = [...allRows];
+    if (q) rows = rows.filter(r => r.searchStr.includes(q));
+    if (type !== 'all') rows = rows.filter(r => r.partyType === type);
+    if (balance === 'due') rows = rows.filter(r => r.display.tone !== 'settled');
+    if (balance === 'settled') rows = rows.filter(r => r.display.tone === 'settled');
+    return rows;
+  }
+
+  const pager = new KbPagination({
+    onPageChange: renderTable,
+    formatSummary(page, rows) {
+      return rows.length ?
+        `Showing ${page.length} of ${rows.length} part${rows.length > 1 ? 'ies' : 'y'}` :
+        'No parties';
+    }
+  });
+
+  function renderTable() {
+    const rows = filteredRows();
+    const { page, start } = pager.apply(rows);
+    const tbody = document.getElementById('khataBody');
+    if (!page.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="py-12 text-center text-secondary">No khata parties yet. Add your first party to start tracking udhaar.</td></tr>';
+    } else {
+      tbody.innerHTML = page.map((r, i) => `
+        <tr class="border-t border-surface-container hover:bg-surface-container-low/40 transition-colors">
+          <td class="py-4 px-5 text-secondary font-medium">${start + i + 1}</td>
+          <td class="py-4 px-4">
+            <div class="flex items-center gap-3">
+              <span class="w-9 h-9 rounded-full ${i % 2 ? 'bg-primary-fixed/50 text-primary' : 'bg-surface-container text-on-surface'} text-xs font-bold flex items-center justify-center shrink-0">${initials(r.name)}</span>
+              <a href="/khataBook/party?id=${r.id}" class="font-semibold text-primary hover:text-primary/80">${r.name}</a>
+            </div>
+          </td>
+          <td class="py-4 px-4">${typeBadge(r.partyType)}</td>
+          <td class="py-4 px-4 font-semibold text-primary">${r.phNum || '—'}</td>
+          <td class="py-4 px-4">${balanceBadge(r)}</td>
+          <td class="py-4 px-4"><span class="text-xs font-medium bg-surface-container px-2.5 py-1 rounded-full text-secondary">${r.addedBy}</span></td>
+          <td class="py-4 px-5 text-right whitespace-nowrap">
+            <a href="/khataBook/party?id=${r.id}" class="p-2 text-secondary hover:text-primary inline-block" title="Open Ledger"><i class="fas fa-book-open"></i></a>
+            <button type="button" onclick="openEditModal('${r.id}')" class="p-2 text-secondary hover:text-primary inline-block" title="Edit"><i class="fas fa-pen"></i></button>
+            <button type="button" onclick="deleteParty('${r.id}')" ${r.entryCount ? 'disabled' : ''} class="p-2 text-secondary inline-block ${r.entryCount ? 'opacity-40 cursor-not-allowed' : 'hover:text-error'}" title="${r.entryCount ? 'Clear ledger before deleting' : 'Delete'}"><i class="fas fa-trash"></i></button>
+          </td>
+        </tr>`).join('');
+    }
+    document.getElementById('partyCount').textContent = allRows.length.toLocaleString('en-IN');
+  }
+
+  function openAddModal() {
+    document.getElementById('addModal').classList.replace('hidden', 'flex');
+  }
+
+  function closeAddModal() {
+    document.getElementById('addModal').classList.replace('flex', 'hidden');
+  }
+
+  function openEditModal(id) {
+    const row = allRows.find(r => r.id === id);
+    if (!row) return;
+    document.getElementById('editId').value = row.id;
+    document.getElementById('editName').value = row.name;
+    document.getElementById('editPhone').value = row.phNum || '';
+    document.getElementById('editAddress').value = row.address || '';
+    document.getElementById('editTypeCustomer').checked = row.partyType === 'customer';
+    document.getElementById('editTypeSupplier').checked = row.partyType === 'supplier';
+    document.getElementById('editModal').classList.replace('hidden', 'flex');
+  }
+
+  function closeEditModal() {
+    document.getElementById('editModal').classList.replace('flex', 'hidden');
+  }
+
+  function deleteParty(id) {
+    const row = allRows.find(r => r.id === id);
+    if (!row || row.entryCount) return;
+    if (!confirm(`Delete khata party "${row.name}"?`)) return;
+    window.location.href = '/khataBook/delParty?id=' + encodeURIComponent(id);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    renderTable();
+    if (new URLSearchParams(window.location.search).get('openAdd') === '1') openAddModal();
+  });
+</script>

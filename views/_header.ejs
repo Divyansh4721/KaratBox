@@ -1,70 +1,98 @@
 <header class="w-full bg-surface-container-lowest dark:bg-dark-surface border-b border-surface-container-high dark:border-dark-container px-4 sm:px-6 lg:px-10 py-4 transition-colors duration-300">
-    <div class="flex items-center justify-between sm:grid sm:grid-cols-3 sm:items-center sm:gap-4">
-        <div class="flex items-center gap-3 min-w-0">
-            <button type="button" onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-lg hover:bg-surface-container-low text-on-surface shrink-0" aria-label="Open menu">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-            </button>
-            <h1 class="text-base sm:text-lg font-semibold text-on-surface truncate"><%= title %></h1>
-        </div>
-
-        <form action="/categoryForm" method="get" class="hidden sm:block w-full sm:max-w-md sm:justify-self-center">
-            <div class="relative ">
-                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-secondary pointer-events-none">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                </span>
-                <input type="number" name="item" placeholder="Search assets..."
-                    class="w-full pl-11 pr-4 py-2.5 bg-surface-container-low border border-transparent rounded-lg text-sm text-on-surface placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors" />
-            </div>
-        </form>
-
-        <div class="flex items-center gap-3 shrink-0 sm:justify-self-end">
-            <div class="relative" id="profile-menu">
-                <button type="button" onclick="toggleProfileMenu(event)" class="w-9 h-9 rounded-full p-[2px] bg-gradient-to-tr from-primary to-primary-container overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary-container/50" aria-label="Profile menu" aria-expanded="false" id="profile-menu-btn">
-                    <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=256&q=80" alt="Profile" class="w-full h-full object-cover rounded-full border border-surface-container-lowest" />
-                </button>
-                <div id="profile-dropdown" class="hidden absolute right-0 top-full mt-2 w-52 bg-surface-container-lowest dark:bg-dark-container border border-surface-container dark:border-dark-container-high rounded-lg shadow-card z-50 overflow-hidden">
-                    <% if (typeof user !== 'undefined' && user) { %>
-                        <div class="px-4 py-3 border-b border-surface-container dark:border-dark-container-high">
-                            <p class="text-sm font-semibold text-on-surface dark:text-dark-text truncate"><%= user.name %></p>
-                            <p class="text-xs text-secondary truncate"><%= user.email %></p>
-                        </div>
-                    <% } %>
-                    <div class="py-1">
-                        <% if (typeof user !== 'undefined' && user) { %>
-                            <a href="/permission_user/<%= user._id %>" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-on-surface dark:text-dark-text hover:bg-surface-container-low dark:hover:bg-dark-container-high transition-colors">
-                                <i class="fas fa-user w-4 text-secondary"></i>
-                                View Profile
-                            </a>
-                        <% } %>
-                        <a href="/users/signout" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-error hover:bg-error/10 transition-colors">
-                            <i class="fas fa-sign-out-alt w-4"></i>
-                            Logout
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <% const profileAvatar = (typeof user !== 'undefined' && user && user.avatar)
+    ? (user.avatar.startsWith('http') || user.avatar.startsWith('/') ? user.avatar : '/uploads/' + user.avatar)
+    : ''; %>
+  <% const profileName = (typeof user !== 'undefined' && user && user.name) ? user.name : 'User'; %>
+  <% const profileParts = profileName.trim().split(/\s+/).filter(Boolean); %>
+  <% let profileInitials = 'U'; %>
+  <% if (profileParts.length === 1) { profileInitials = profileParts[0].charAt(0).toUpperCase(); } else if (profileParts.length > 1) { profileInitials = (profileParts[0].charAt(0) + profileParts[profileParts.length - 1].charAt(0)).toUpperCase(); } %>
+  <div class="flex items-center justify-between sm:grid sm:grid-cols-3 sm:items-center sm:gap-4">
+    <div class="flex items-center gap-3 min-w-0">
+      <button type="button" onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-lg hover:bg-surface-container-low text-on-surface shrink-0" aria-label="Open menu">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <a href="/" class="sm:hidden shrink-0" aria-label="Dashboard">
+        <span class="text-lg font-bold text-primary tracking-tight" style="font-family: 'Playfair Display', Georgia, serif;">KaratBox</span>
+      </a>
+      <h1 class="hidden sm:block text-base sm:text-lg font-semibold text-on-surface truncate"><%= title %></h1>
     </div>
+    <form action="/inventorySelection" method="get" class="hidden sm:block w-full sm:max-w-md sm:justify-self-center">
+      <div class="relative ">
+        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-secondary pointer-events-none">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </span>
+        <input type="number" name="item" placeholder="Search assets..." class="w-full pl-11 pr-4 py-2.5 bg-surface-container-low border border-transparent rounded-lg text-sm text-on-surface placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors" />
+      </div>
+    </form>
+    <div class="flex items-center gap-3 shrink-0 sm:justify-self-end">
+      <% if (typeof user !== 'undefined' && user) { %>
+      <a href="/cart" class="relative p-2 rounded-lg text-secondary hover:text-primary hover:bg-surface-container-low dark:hover:bg-dark-container transition-colors" title="Cart" aria-label="Cart">
+        <i class="fas fa-shopping-cart text-lg"></i>
+        <% if (typeof cartCount !== 'undefined' && cartCount > 0) { %>
+        <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary-container text-on-primary text-[10px] font-bold flex items-center justify-center leading-none"><%= cartCount %></span>
+        <% } %>
+      </a>
+      <% } %>
+      <div class="relative" id="profile-menu">
+        <button type="button" onclick="toggleProfileMenu(event)" class="w-9 h-9 rounded-full p-[2px] bg-gradient-to-tr from-primary to-primary-container overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary-container/50" aria-label="Profile menu" aria-expanded="false" id="profile-menu-btn">
+          <% if (profileAvatar) { %>
+          <span class="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-primary-fixed/50 text-primary text-xs font-bold border border-surface-container-lowest" data-fallback="<%= profileInitials %>">
+            <img src="<%= profileAvatar %>" alt="Profile" id="profile-avatar-img" class="w-full h-full object-cover rounded-full" />
+          </span>
+          <% } else { %>
+          <span class="w-full h-full rounded-full bg-primary-fixed/50 text-primary text-xs font-bold flex items-center justify-center border border-surface-container-lowest"><%= profileInitials %></span>
+          <% } %>
+        </button>
+        <div id="profile-dropdown" class="hidden absolute right-0 top-full mt-2 w-52 bg-surface-container-lowest dark:bg-dark-container border border-surface-container dark:border-dark-container-high rounded-lg shadow-card z-50 overflow-hidden">
+          <% if (typeof user !== 'undefined' && user) { %>
+          <div class="px-4 py-3 border-b border-surface-container dark:border-dark-container-high">
+            <p class="text-sm font-semibold text-on-surface dark:text-dark-text truncate"><%= user.name %></p>
+            <p class="text-xs text-secondary truncate"><%= user.email %></p>
+          </div>
+          <% } %>
+          <div class="py-1">
+            <% if (typeof user !== 'undefined' && user) { %>
+            <a href="/user_profile" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-on-surface dark:text-dark-text hover:bg-surface-container-low dark:hover:bg-dark-container-high transition-colors">
+              <i class="fas fa-user w-4 text-secondary"></i>
+              View Profile
+            </a>
+            <% } %>
+            <a href="/users/signout" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-error hover:bg-error/10 transition-colors">
+              <i class="fas fa-sign-out-alt w-4"></i>
+              Logout
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </header>
 <script>
-    function toggleProfileMenu(e) {
-        e.stopPropagation();
-        const dropdown = document.getElementById('profile-dropdown');
-        const btn = document.getElementById('profile-menu-btn');
-        dropdown.classList.toggle('hidden');
-        btn.setAttribute('aria-expanded', !dropdown.classList.contains('hidden'));
+  function toggleProfileMenu(e) {
+    e.stopPropagation();
+    const dropdown = document.getElementById('profile-dropdown');
+    const btn = document.getElementById('profile-menu-btn');
+    dropdown.classList.toggle('hidden');
+    btn.setAttribute('aria-expanded', !dropdown.classList.contains('hidden'));
+  }
+  document.addEventListener('click', function(e) {
+    const menu = document.getElementById('profile-menu');
+    const dropdown = document.getElementById('profile-dropdown');
+    const btn = document.getElementById('profile-menu-btn');
+    if (menu && dropdown && !menu.contains(e.target)) {
+      dropdown.classList.add('hidden');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
     }
-    document.addEventListener('click', function (e) {
-        const menu = document.getElementById('profile-menu');
-        const dropdown = document.getElementById('profile-dropdown');
-        const btn = document.getElementById('profile-menu-btn');
-        if (menu && dropdown && !menu.contains(e.target)) {
-            dropdown.classList.add('hidden');
-            if (btn) btn.setAttribute('aria-expanded', 'false');
-        }
-    });
+  });
+  document.getElementById('profile-avatar-img')?.addEventListener('error', function() {
+    const wrap = this.parentElement;
+    if (wrap && wrap.dataset.fallback) {
+      wrap.textContent = wrap.dataset.fallback;
+      this.remove();
+    }
+  });
 </script>

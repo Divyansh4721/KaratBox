@@ -1,0 +1,4 @@
+<% const pgSummaryId = typeof summaryId !== 'undefined' ? summaryId : 'tableSummary'; %>
+<% const pgPaginationId = typeof paginationId !== 'undefined' ? paginationId : 'pagination'; %>
+<% const pgPerPageId = typeof perPageSelectId !== 'undefined' ? perPageSelectId : 'perPageSelect'; %>
+<%- include('../partials/_pagination_footer', { summaryId: pgSummaryId, paginationId: pgPaginationId, perPageSelectId: pgPerPageId }) %>

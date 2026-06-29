@@ -1,0 +1,316 @@
+<% activeNav = 'inventory' %>
+<% const fmt = n => new Intl.NumberFormat('en-IN').format(n); %>
+<% const stockCrumb = (stock.prefix.name + " " || "") + (stock.ornament.name || "") + (stock.tag ? " - " + stock.tag : ""); %>
+<% const marketPrice = Math.round(stock.sellingPrice / 1000) * 1000; %>
+<% const isNew = stock.createdDate && (Date.now() - new Date(stock.createdDate).getTime()) < 30 * 86400000; %>
+<% const images = stock.stockImage || []; %>
+<% const thumbMax = 4; %>
+<% const extraCount = images.length > thumbMax ? images.length - thumbMax + 1 : 0; %>
+<% const label = "text-[10px] font-semibold uppercase tracking-widest text-secondary"; %>
+<% const val = "text-sm font-bold text-on-surface"; %>
+<% const row = "flex justify-between items-center py-3.5 border-b border-surface-container last:border-0"; %>
+<div class="pb-10">
+  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-display-lg-mobile md:text-headline-xl font-bold text-on-surface tracking-tight mb-2">Asset Details</h2>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      <a href="/stock_image_edit/<%= stock._id %>" class="hidden sm:inline-flex p-2.5 rounded-lg border border-surface-container text-secondary hover:bg-surface-container-low transition-colors" title="Edit Images">
+        <i class="far fa-image"></i>
+      </a>
+      <a href="/printTag?id=<%= stock._id %>" class="hidden sm:inline-flex p-2.5 rounded-lg border border-surface-container text-secondary hover:bg-surface-container-low transition-colors" title="Print Tag">
+        <i class="fa-solid fa-print"></i>
+      </a>
+      <a href="/stock_edit/<%= stock._id %>" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-primary-container text-primary text-sm font-semibold hover:bg-primary-fixed/20 transition-colors">
+        <i class="fas fa-pen text-xs"></i> Edit
+      </a>
+      <button type="button" onclick="AddToCart('<%= stock._id %>')" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-container hover:brightness-105 text-on-primary text-sm font-semibold shadow-sm transition-all">
+        <i class="fa-solid fa-cart-plus text-xs"></i> Add to Cart
+      </button>
+      <button type="button" onclick="confirmDelete()" class="p-2.5 rounded-lg border border-error/40 text-error hover:bg-error-container/30 transition-colors" title="Delete">
+        <i class="fa-solid fa-trash text-sm"></i>
+      </button>
+    </div>
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mb-6">
+    <div class="flex gap-3">
+      <% if (images.length > 1) { %>
+      <div class="flex flex-col gap-2 shrink-0">
+        <% for (let i = 0; i < Math.min(images.length, thumbMax); i++) { %>
+        <button type="button" onclick="setImage(<%= i %>)" class="thumb-btn relative w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden border-2 <%= i === 0 ? 'border-primary-container' : 'border-transparent' %> bg-surface-container-low shrink-0">
+          <img src="/uploads/<%= images[i].fileName %>" alt="" class="w-full h-full object-cover">
+        </button>
+        <% } %>
+        <% if (extraCount > 0) { %>
+        <button type="button" onclick="setImage(<%= thumbMax - 1 %>)" class="w-14 h-14 sm:w-16 sm:h-16 rounded-lg border border-surface-container bg-surface-container-low text-sm font-bold text-secondary shrink-0">+<%= extraCount %></button>
+        <% } %>
+      </div>
+      <% } %>
+      <div class="relative rounded-xl overflow-hidden bg-surface-container-low border border-surface-container shadow-whisper aspect-square flex-1">
+        <% if (isNew) { %>
+        <span class="absolute top-4 left-4 z-10 text-[10px] font-bold uppercase tracking-wider bg-primary-container text-on-primary px-3 py-1 rounded-full">New Arrival</span>
+        <% } %>
+        <div id="mainImage" class="w-full h-full">
+          <% if (images.length) { %>
+          <img id="heroImg" src="/uploads/<%= images[0].fileName %>" alt="<%= stockCrumb %>" class="w-full h-full object-cover">
+          <% } else { %>
+          <div class="w-full h-full flex items-center justify-center"><i class="fa-solid fa-image text-5xl text-secondary/30"></i></div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+    <div class="space-y-6">
+      <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper p-6">
+        <div class="flex items-center gap-2 mb-5">
+          <span class="w-8 h-8 rounded-full bg-primary-fixed/40 flex items-center justify-center text-primary text-sm"><i class="fas fa-circle-info"></i></span>
+          <h3 class="text-base font-bold text-on-surface">Core Specifications</h3>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-6 pb-6 border-b border-surface-container">
+          <div>
+            <p class="<%= label %> mb-1">Market Price</p>
+            <p class="text-xl font-bold text-on-surface">₹ <%= fmt(marketPrice) %> <span class="text-sm font-normal text-secondary">/-</span></p>
+          </div>
+          <div>
+            <p class="<%= label %> mb-1">Gross Weight</p>
+            <p class="text-xl font-bold text-on-surface"><%= stock.grossWt.toFixed(3) %> <span class="text-sm font-normal text-secondary">gm</span></p>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-x-6 gap-y-4">
+          <div>
+            <p class="<%= label %> mb-0.5">Net Weight</p>
+            <p class="<%= val %>"><%= stock.netWt.toFixed(3) %> gm</p>
+          </div>
+          <div>
+            <p class="<%= label %> mb-0.5">Purity</p>
+            <p class="<%= val %>"><%= stock.purity.name %></p>
+          </div>
+          <div>
+            <p class="<%= label %> mb-0.5">Stone Weight</p>
+            <p class="<%= val %>"><%= stock.stoneWt.toFixed(3) %> gm</p>
+          </div>
+          <div>
+            <p class="<%= label %> mb-0.5">Tag Number</p>
+            <p class="text-sm font-bold text-primary bg-primary-fixed/30 inline-block px-2 py-0.5 rounded"><%= stockCrumb %></p>
+          </div>
+          <div>
+            <p class="<%= label %> mb-0.5">Stock Type</p>
+            <p class="<%= val %>"><%= stock.stockType.name %></p>
+          </div>
+          <div>
+            <p class="<%= label %> mb-0.5">SKU</p>
+            <p class="<%= val %>"><%= stock.index %></p>
+          </div>
+        </div>
+      </div>
+      <% if (stock.stoneTable.length) { %>
+      <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper p-6 overflow-x-auto">
+        <h3 class="text-sm font-bold text-on-surface mb-4">Stone Details</h3>
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-[10px] font-semibold uppercase tracking-widest text-secondary border-b border-surface-container">
+              <th class="pb-3 pr-4">Type</th>
+              <th class="pb-3 pr-4">Carat</th>
+              <th class="pb-3 pr-4">Gram</th>
+              <th class="pb-3 pr-4">Sell Rate</th>
+              <th class="pb-3">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% for (let i = 0; i < stock.stoneTable.length; i++) { const s = stock.stoneTable[i]; %>
+            <tr class="border-b border-surface-container last:border-0">
+              <td class="py-3 pr-4 font-medium text-on-surface"><%= s.type.name %></td>
+              <td class="py-3 pr-4 text-secondary"><%= s.ctWeight.toFixed(3) %></td>
+              <td class="py-3 pr-4 text-secondary"><%= s.gmWeight.toFixed(3) %></td>
+              <td class="py-3 pr-4 text-secondary">₹ <%= fmt(s.sellRate) %> /-</td>
+              <td class="py-3 font-semibold text-on-surface">₹ <%= fmt(Math.round(s.sellRate * (s.ctWeight || 1))) %> /-</td>
+            </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+      <% } %>
+    </div>
+  </div>
+  <button type="button" id="detailsToggle" onclick="toggleDetails()" class="w-full py-3 mb-4 rounded-xl border border-primary-container/50 text-primary text-sm font-semibold hover:bg-primary-fixed/15 transition-colors flex items-center justify-center gap-2">
+    <span id="detailsToggleText">View More Details</span>
+    <i id="detailsToggleIcon" class="fas fa-chevron-down text-xs"></i>
+  </button>
+  <div id="detailsPanel" class="hidden space-y-6 mb-6">
+    <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper overflow-hidden">
+      <% const detailRows = [
+                { l: 'Selling Price', v: '₹ ' + fmt(stock.sellingPrice) + ' /-', gold: true },
+                { l: 'In Stock', v: stock.isInStock ? 'YES' : 'NO', green: stock.isInStock },
+                { l: 'Created By', v: stock.createdBy.name },
+                { l: 'Created Date', v: convertDate(stock.createdDate) },
+                { l: 'Kaarigar', v: stock.kaarigar ? stock.kaarigar.name : '—' },
+                { l: 'HUID', v: stock.HUID || '—' },
+                { l: 'ISKDM', v: stock.isKDM ? 'YES' : 'NO' },
+                { l: 'Remark', v: stock.remark || '—' },
+            ]; %>
+      <% detailRows.forEach(r => { %>
+      <div class="<%= row %> px-6">
+        <span class="<%= label %>"><%= r.l %></span>
+        <span class="text-sm font-semibold text-right max-w-[60%] <%= r.gold ? 'text-primary' : r.green ? 'text-green-600' : 'text-on-surface' %>"><%= r.v %></span>
+      </div>
+      <% }); %>
+    </div>
+    <% if (stock.bill) { %>
+    <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper overflow-hidden">
+      <p class="px-6 pt-4 text-sm font-bold text-on-surface">Sale Info</p>
+      <% if (stock.bill.customer) { %>
+      <div class="<%= row %> px-6"><span class="<%= label %>">Sold To</span><span class="<%= val %>"><%= stock.bill.customer.name %></span></div>
+      <div class="<%= row %> px-6"><span class="<%= label %>">Customer</span><a href="/customer?id=<%= stock.bill.customer.id %>" class="text-sm font-semibold text-primary hover:underline">View Profile</a></div>
+      <div class="<%= row %> px-6"><span class="<%= label %>">Bill</span><a href="/bill?id=<%= stock.bill.id %>" class="text-sm font-semibold text-primary hover:underline">View Bill</a></div>
+      <div class="<%= row %> px-6"><span class="<%= label %>">Sold By</span><span class="<%= val %>"><%= stock.bill.user.name %></span></div>
+      <div class="<%= row %> px-6"><span class="<%= label %>">Sold Date</span><span class="<%= val %>"><%= convertDate(stock.bill.createdAt) %></span></div>
+      <% } else { %>
+      <div class="<%= row %> px-6"><span class="<%= label %>">Deleted By</span><span class="<%= val %>"><%= stock.bill.user.name %></span></div>
+      <div class="<%= row %> px-6"><span class="<%= label %>">Deleted Date</span><span class="<%= val %>"><%= convertDate(stock.bill.createdAt) %></span></div>
+      <% } %>
+    </div>
+    <% } %>
+    <% if (stock.approveTable.length) { %>
+    <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper p-6 overflow-x-auto">
+      <p class="text-sm font-bold text-on-surface mb-4">Approval History</p>
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-[10px] font-semibold uppercase tracking-widest text-secondary border-b border-surface-container">
+            <th class="pb-2 pr-3 text-left">Given By</th>
+            <th class="pb-2 pr-3 text-left">Given Date</th>
+            <th class="pb-2 pr-3 text-left">Customer</th>
+            <th class="pb-2 pr-3 text-left">Received By</th>
+            <th class="pb-2 text-left">Recv. Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% for (let i = 0; i < stock.approveTable.length; i++) { const a = stock.approveTable[i]; %>
+          <tr class="border-b border-surface-container">
+            <td class="py-2 pr-3"><%= a.userGave.name %></td>
+            <td class="py-2 pr-3 text-secondary"><%= convertDate(a.approvedDate) %></td>
+            <td class="py-2 pr-3"><%= a.customer.name %></td>
+            <td class="py-2 pr-3"><%= a.userTake ? a.userTake.name : '' %></td>
+            <td class="py-2 text-secondary"><%= a.receivedDate ? convertDate(a.receivedDate) : '' %></td>
+          </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+    <% if (stock.stoneTable.length) { %>
+    <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper p-6 overflow-x-auto">
+      <p class="text-sm font-bold text-on-surface mb-4">Stone Purchase Details</p>
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-[10px] font-semibold uppercase tracking-widest text-secondary border-b border-surface-container">
+            <th class="pb-2 pr-3 text-left">Type</th>
+            <th class="pb-2 pr-3 text-left">Carat</th>
+            <th class="pb-2 pr-3 text-left">Pur. Rate</th>
+            <th class="pb-2 pr-3 text-left">Total</th>
+            <th class="pb-2 text-left">Dealer</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% for (let i = 0; i < stock.stoneTable.length; i++) { const s = stock.stoneTable[i]; %>
+          <tr class="border-b border-surface-container">
+            <td class="py-2 pr-3"><%= s.type.name %></td>
+            <td class="py-2 pr-3 text-secondary"><%= s.ctWeight.toFixed(3) %></td>
+            <td class="py-2 pr-3 text-secondary">₹ <%= fmt(s.purchaseRate) %> /-</td>
+            <td class="py-2 pr-3">₹ <%= fmt(Math.round(s.purchaseRate * (s.ctWeight || 1))) %> /-</td>
+            <td class="py-2"><%= s.dealerName ? s.dealerName.name : '' %></td>
+          </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+    <% if (stock.updatedTable.length) { %>
+    <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper overflow-hidden">
+      <div class="flex items-center gap-2 px-6 py-4 border-b border-surface-container">
+        <span class="w-8 h-8 rounded-full bg-primary-fixed/40 flex items-center justify-center text-primary text-sm"><i class="fas fa-clock-rotate-left"></i></span>
+        <h3 class="text-base font-bold text-on-surface">Audit Log</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-surface-container-low text-[10px] font-semibold uppercase tracking-widest text-secondary">
+              <th class="text-left py-3 px-6">User / Location</th>
+              <th class="text-left py-3 px-4">Timestamp</th>
+              <th class="text-left py-3 px-6">Action / Remark</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% const logs = [...stock.updatedTable].reverse(); %>
+            <% logs.forEach((entry, idx) => {
+                            const initials = (entry.user.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                            const isBadge = entry.remark && entry.remark.includes('**');
+                        %>
+            <tr class="border-t border-surface-container">
+              <td class="py-4 px-6">
+                <div class="flex items-center gap-3">
+                  <span class="w-9 h-9 rounded-full bg-inverse-surface text-inverse-on-surface text-xs font-bold flex items-center justify-center shrink-0"><%= initials %></span>
+                  <span class="font-medium text-on-surface"><%= entry.user.name %></span>
+                </div>
+              </td>
+              <td class="py-4 px-4 text-secondary whitespace-nowrap"><%= convertDate(entry.date) %></td>
+              <td class="py-4 px-6">
+                <% if (isBadge) { %>
+                <span class="text-xs font-semibold px-3 py-1 rounded-full <%= idx === 0 ? 'bg-surface-container text-on-surface' : 'bg-primary-fixed/50 text-primary' %>"><%= entry.remark %></span>
+                <% } else { %>
+                <span class="text-on-surface"><%= entry.remark || '—' %></span>
+                <% } %>
+              </td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <% } %>
+  </div>
+  <div id="cartToast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 hidden px-5 py-3 rounded-lg shadow-lg text-sm font-medium text-on-primary bg-primary"></div>
+</div>
+<script>
+  const imageList = <%- JSON.stringify(images.map(i => i.fileName)) %>;
+
+  function setImage(i) {
+    const img = document.getElementById('heroImg');
+    if (!img || !imageList[i]) return;
+    img.src = '/uploads/' + imageList[i];
+    document.querySelectorAll('.thumb-btn').forEach((el, n) => {
+      el.classList.toggle('border-primary-container', n === i);
+      el.classList.toggle('border-transparent', n !== i);
+    });
+  }
+
+  function toggleDetails() {
+    const panel = document.getElementById('detailsPanel');
+    panel.classList.toggle('hidden');
+    const hidden = panel.classList.contains('hidden');
+    document.getElementById('detailsToggleText').textContent = hidden ? 'View More Details' : 'View Less Details';
+    document.getElementById('detailsToggleIcon').className = hidden ? 'fas fa-chevron-down text-xs' : 'fas fa-chevron-up text-xs';
+  }
+
+  function showToast(msg, err) {
+    const t = document.getElementById('cartToast');
+    if (!t) return;
+    t.textContent = msg;
+    t.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-lg shadow-lg text-sm font-medium text-on-primary ' + (err ? 'bg-error' : 'bg-primary');
+    t.classList.remove('hidden');
+    setTimeout(() => t.classList.add('hidden'), 2000);
+  }
+
+  function AddToCart(id) {
+    fetch('/addToCart?index=' + id, {
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(r => r.json())
+      .then(d => showToast(d.message, d.status !== 'success'))
+      .catch(() => showToast('Could not add to cart', true));
+  }
+
+  function confirmDelete() {
+    alert('Delete is not wired yet — confirm with your team if this should remove stock from inventory.');
+  }
+</script>

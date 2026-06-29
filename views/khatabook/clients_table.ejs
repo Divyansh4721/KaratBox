@@ -1,0 +1,268 @@
+<% activeNav = 'khata' %>
+<% const label = "block text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1.5"; %>
+<% const field = "w-full px-4 py-3 bg-surface-container-low border border-transparent rounded-lg text-sm text-on-surface placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors"; %>
+<% const bookOptions = []; %>
+<% const bookMap = {}; %>
+<% (clients || []).forEach(function(c) { if (c.book && c.book._id && !bookMap[c.book._id]) { bookMap[c.book._id] = c.book.name; bookOptions.push({ id: c.book._id, name: c.book.name }); } }); %>
+<div class="pb-10">
+  <div class="flex flex-wrap items-center gap-3 mb-6">
+    <a href="/khataBook" class="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
+      <i class="fas fa-arrow-left text-xs"></i> All Books
+    </a>
+    <span id="activeBookBadge" class="hidden text-[10px] font-bold uppercase tracking-wide text-primary bg-primary-fixed/40 px-2.5 py-1 rounded-full"></span>
+  </div>
+  <%- include('../table_page/_page', {
+    label,
+    field,
+    tableFilters: [
+        { type: 'search', id: 'searchInput', label: 'Search Client', placeholder: 'Name, phone, address...', span: 6, flexEnd: true },
+        { type: 'select', id: 'bookFilter', label: 'Book', span: 4, flexEnd: true, options: [{ value: 'all', label: 'All Books' }].concat(bookOptions.map(b => ({ value: b.id, label: b.name }))) },
+        { type: 'stat', id: 'clientCount', label: 'Clients', span: 2, icon: 'fas fa-users' }
+    ],
+    tablePage: {
+        tableTitle: 'Client Ledger Accounts',
+        tableId: 'clientBody',
+        minWidth: '760px',
+        colCount: 6,
+        headerActions: `<button type="button" onclick="openAddModal()" title="Add Client" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary-container hover:brightness-105 text-on-primary text-sm font-semibold rounded-lg shadow-sm transition-all shrink-0"><i class="fas fa-user-plus text-xs"></i> Add Client</button>`,
+        columns: [
+            { label: 'S.No', align: 'left', thClass: 'px-5' },
+            { label: 'Client Name', align: 'left', thClass: 'px-4' },
+            { label: 'Book', align: 'left', thClass: 'px-4' },
+            { label: 'Phone', align: 'left', thClass: 'px-4' },
+            { label: 'Address', align: 'left', thClass: 'px-4' },
+            { label: 'Actions', align: 'right', thClass: 'px-5' }
+        ]
+    }
+}) %>
+</div>
+<div id="addModal" class="fixed inset-0 z-50 hidden items-start justify-center p-4 bg-black/40 backdrop-blur-sm">
+  <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper w-full max-w-lg my-8">
+    <div class="flex items-start justify-between px-6 py-4 border-b border-surface-container">
+      <div>
+        <h3 class="text-lg font-bold text-on-surface">Add Client</h3>
+        <p class="text-[10px] font-semibold uppercase tracking-widest text-primary">Khata Party</p>
+      </div>
+      <button type="button" onclick="closeAddModal()" class="p-1 text-secondary hover:text-on-surface"><i class="fas fa-times"></i></button>
+    </div>
+    <form id="addClientForm" class="p-6 space-y-4">
+      <div>
+        <label class="<%= label %>">Book <span class="text-error">*</span></label>
+        <select name="book" id="addBookSelect" required class="<%= field %> cursor-pointer"></select>
+      </div>
+      <div><label class="<%= label %>">Client Name <span class="text-error">*</span></label><input type="text" name="name" required placeholder="Enter name..." class="<%= field %>"></div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label class="<%= label %>">Phone <span class="text-error">*</span></label><input type="tel" name="phNum" required inputmode="numeric" maxlength="10" placeholder="10-digit mobile" class="<%= field %>"></div>
+        <div><label class="<%= label %>">Address</label><input type="text" name="address" placeholder="Optional" class="<%= field %>"></div>
+      </div>
+      <div class="flex gap-3 pt-2 border-t border-surface-container">
+        <button type="submit" class="flex-1 py-3 bg-primary hover:brightness-110 text-on-primary text-sm font-bold uppercase tracking-wider rounded-lg">Add Client</button>
+        <button type="button" onclick="closeAddModal()" class="px-5 py-3 bg-surface-container-low text-on-surface text-sm font-semibold rounded-lg">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="editModal" class="fixed inset-0 z-50 hidden items-start justify-center p-4 bg-black/40 backdrop-blur-sm">
+  <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper w-full max-w-lg my-8">
+    <div class="flex items-start justify-between px-6 py-4 border-b border-surface-container">
+      <h3 class="text-lg font-bold text-on-surface">Edit Client</h3>
+      <button type="button" onclick="closeEditModal()" class="p-1 text-secondary hover:text-on-surface"><i class="fas fa-times"></i></button>
+    </div>
+    <form id="editClientForm" class="p-6 space-y-4">
+      <input type="hidden" name="id" id="editId">
+      <div>
+        <label class="<%= label %>">Book <span class="text-error">*</span></label>
+        <select name="book" id="editBookSelect" required class="<%= field %> cursor-pointer"></select>
+      </div>
+      <div><label class="<%= label %>">Client Name</label><input type="text" name="name" id="editName" required class="<%= field %>"></div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label class="<%= label %>">Phone</label><input type="tel" name="phNum" id="editPhone" required inputmode="numeric" maxlength="10" class="<%= field %>"></div>
+        <div><label class="<%= label %>">Address</label><input type="text" name="address" id="editAddress" class="<%= field %>"></div>
+      </div>
+      <div class="flex gap-3 pt-2 border-t border-surface-container">
+        <button type="submit" class="flex-1 py-3 bg-primary hover:brightness-110 text-on-primary text-sm font-bold uppercase tracking-wider rounded-lg">Save</button>
+        <button type="button" onclick="closeEditModal()" class="px-5 py-3 bg-surface-container-low text-on-surface text-sm font-semibold rounded-lg">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  const allRows = <%- JSON.stringify((clients || []).map(c => ({
+    id: c._id,
+    name: c.name || '',
+    phNum: c.phNum,
+    address: c.address || '',
+    bookId: c.book ? c.book._id : '',
+    bookName: c.book ? c.book.name : '—',
+    searchStr: ((c.name || '') + ' ' + (c.phNum || '') + ' ' + (c.address || '') + ' ' + (c.book ? c.book.name : '')).toLowerCase()
+  }))) %>;
+  const bookOptions = <%- JSON.stringify(bookOptions) %>;
+  const urlBook = new URLSearchParams(window.location.search).get('book');
+  const urlBookName = new URLSearchParams(window.location.search).get('bookName');
+
+  function ensureActiveBookOption() {
+    if (urlBook && !bookOptions.some(b => b.id === urlBook)) {
+      bookOptions.push({ id: urlBook, name: urlBookName || 'Selected Book' });
+    }
+    const filter = document.getElementById('bookFilter');
+    if (filter && urlBook && !Array.from(filter.options).some(o => o.value === urlBook)) {
+      const opt = document.createElement('option');
+      opt.value = urlBook;
+      opt.textContent = urlBookName || 'Selected Book';
+      filter.appendChild(opt);
+    }
+  }
+
+  function notify(text, type) {
+    if (typeof Noty !== 'undefined') new Noty({ theme: 'nest', text, type, layout: 'topCenter', timeout: 2000 }).show();
+    else alert(text);
+  }
+
+  async function postJson(url, data) {
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Request failed');
+    return json;
+  }
+
+  function fillBookSelects() {
+    const opts = bookOptions.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+    document.getElementById('addBookSelect').innerHTML = opts || '<option value="">No books — create one first</option>';
+    document.getElementById('editBookSelect').innerHTML = opts;
+    if (urlBook) {
+      document.getElementById('addBookSelect').value = urlBook;
+      const badge = document.getElementById('activeBookBadge');
+      const book = bookOptions.find(b => b.id === urlBook);
+      if (book) {
+        badge.textContent = book.name;
+        badge.classList.remove('hidden');
+      }
+    }
+  }
+
+  function filteredRows() {
+    const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+    const book = document.getElementById('bookFilter').value;
+    let rows = [...allRows];
+    if (q) rows = rows.filter(r => r.searchStr.includes(q));
+    if (book !== 'all') rows = rows.filter(r => r.bookId === book);
+    return rows;
+  }
+
+  const pager = new KbPagination({
+    onPageChange: renderTable,
+    formatSummary(page, rows) {
+      return rows.length ? `Showing ${page.length} of ${rows.length} client${rows.length > 1 ? 's' : ''}` : 'No clients';
+    }
+  });
+
+  function renderTable() {
+    const rows = filteredRows();
+    const { page, start } = pager.apply(rows);
+    const tbody = document.getElementById('clientBody');
+    if (!page.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="py-12 text-center text-secondary">No clients in this book yet.</td></tr>';
+    } else {
+      tbody.innerHTML = page.map((r, i) => `
+        <tr class="border-t border-surface-container hover:bg-surface-container-low/40 transition-colors">
+          <td class="py-4 px-5 text-secondary font-medium">${start + i + 1}</td>
+          <td class="py-4 px-4"><a href="/khataBook/entries?id=${r.id}" class="font-semibold text-primary hover:text-primary/80">${r.name}</a></td>
+          <td class="py-4 px-4"><span class="text-xs font-medium bg-primary-fixed/30 text-primary px-2.5 py-1 rounded-full">${r.bookName}</span></td>
+          <td class="py-4 px-4 font-semibold text-primary">${r.phNum}</td>
+          <td class="py-4 px-4 text-secondary text-xs max-w-[140px]">${r.address || '—'}</td>
+          <td class="py-4 px-5 text-right whitespace-nowrap">
+            <a href="/khataBook/entries?id=${r.id}" class="p-2 text-secondary hover:text-primary inline-block" title="Open ledger"><i class="fas fa-book-open"></i></a>
+            <button type="button" onclick="openEditModal('${r.id}')" class="p-2 text-secondary hover:text-primary inline-block" title="Edit"><i class="fas fa-pen"></i></button>
+            <button type="button" onclick="deleteClient('${r.id}')" class="p-2 text-secondary hover:text-error inline-block" title="Delete"><i class="fas fa-trash"></i></button>
+          </td>
+        </tr>`).join('');
+    }
+    document.getElementById('clientCount').textContent = rows.length.toLocaleString('en-IN');
+  }
+
+  function openAddModal() {
+    if (!bookOptions.length) {
+      notify('Create a khata book first.', 'error');
+      return;
+    }
+    document.getElementById('addModal').classList.replace('hidden', 'flex');
+  }
+
+  function closeAddModal() {
+    document.getElementById('addModal').classList.replace('flex', 'hidden');
+  }
+
+  function openEditModal(id) {
+    const row = allRows.find(r => r.id === id);
+    if (!row) return;
+    document.getElementById('editId').value = row.id;
+    document.getElementById('editName').value = row.name;
+    document.getElementById('editPhone').value = row.phNum;
+    document.getElementById('editAddress').value = row.address;
+    document.getElementById('editBookSelect').value = row.bookId;
+    document.getElementById('editModal').classList.replace('hidden', 'flex');
+  }
+
+  function closeEditModal() {
+    document.getElementById('editModal').classList.replace('flex', 'hidden');
+  }
+
+  async function deleteClient(id) {
+    const row = allRows.find(r => r.id === id);
+    if (!row || !confirm(`Delete client "${row.name}"?`)) return;
+    try {
+      const res = await fetch('/khataBook/delete-client?id=' + encodeURIComponent(id), { method: 'POST' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message);
+      notify(json.message, 'success');
+      window.location.reload();
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  }
+
+  document.getElementById('addClientForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    try {
+      await postJson('/khataBook/add-client', {
+        book: fd.get('book'),
+        name: fd.get('name'),
+        phNum: fd.get('phNum'),
+        address: fd.get('address')
+      });
+      notify('Client added!', 'success');
+      const book = fd.get('book');
+      const bookName = bookOptions.find(b => b.id === book)?.name || urlBookName || '';
+      window.location.href = '/khataBook/clients?book=' + encodeURIComponent(book) + (bookName ? '&bookName=' + encodeURIComponent(bookName) : '');
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  });
+
+  document.getElementById('editClientForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    try {
+      await postJson('/khataBook/edit-client', {
+        id: fd.get('id'),
+        book: fd.get('book'),
+        name: fd.get('name'),
+        phNum: fd.get('phNum'),
+        address: fd.get('address')
+      });
+      notify('Client updated!', 'success');
+      window.location.reload();
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    ensureActiveBookOption();
+    fillBookSelects();
+    if (urlBook) document.getElementById('bookFilter').value = urlBook;
+    renderTable();
+    if (new URLSearchParams(window.location.search).get('openAdd') === '1') openAddModal();
+  });
+</script>

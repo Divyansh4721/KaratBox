@@ -1,0 +1,74 @@
+<script>
+  function AddToCart(id) {
+    fetch('/addToCart?index=' + id, {
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(function(r) {
+        return r.json();
+      })
+      .then(function(data) {
+        new Noty({
+          theme: 'nest',
+          text: data.message,
+          type: data.status,
+          layout: 'topCenter',
+          timeout: 1500
+        }).show();
+      })
+      .catch(function() {});
+  }
+
+  function printTable(tableId) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    const dateEl = document.querySelector('.PageDate');
+    let html = '<html><head><title>Print</title><style>';
+    html += 'body{font-family:Montserrat,Arial,sans-serif;padding:16px;font-size:11px}';
+    html += 'table{border-collapse:collapse;width:100%}';
+    html += 'td,th{border:1px solid #ccc;padding:4px 6px;text-align:center}';
+    html += 'thead tr:first-child{background:#735c00;color:#fff}';
+    html += 'thead tr:nth-child(2){background:#efeded}';
+    html += 'tbody tr:nth-child(even){background:#f5f3f3}';
+    html += 'tbody tr td:first-child{font-weight:600;text-align:left}';
+    html += 'h3{margin:0 0 6px;font-size:14px}';
+    html += '</style></head><body>';
+    if (typeof printArrHeader !== 'undefined') {
+      for (let i = 0; i < printArrHeader.length; i++) {
+        html += '<h3>' + printArrHeader[i] + '</h3>';
+      }
+    }
+    if (dateEl) html += '<p><strong>List Date:</strong> ' + dateEl.textContent + '</p>';
+    html += table.outerHTML + '</body></html>';
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.print();
+    win.close();
+  }
+
+  function printTableDetail(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    const dateEl = document.querySelector('.PageDate');
+    let html = '<html><head><title>Print Detail</title><style>';
+    html += 'body{font-family:Montserrat,Arial,sans-serif;padding:16px;font-size:11px}';
+    html += 'table{border-collapse:collapse;width:100%;margin-bottom:24px}';
+    html += 'td,th{border:1px solid #ccc;padding:4px 6px}';
+    html += 'h3{font-size:14px;margin:16px 0 8px}';
+    html += '</style></head><body>';
+    if (dateEl) html += '<p><strong>List Date:</strong> ' + dateEl.textContent + '</p>';
+    html += el.innerHTML.replace(/ hidden/g, '');
+    html += '</body></html>';
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.print();
+    win.close();
+  }
+</script>

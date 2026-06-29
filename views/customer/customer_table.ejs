@@ -1,0 +1,358 @@
+<% activeNav = 'customer' %>
+<% const label = "block text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1.5"; %>
+<% const field = "w-full px-4 py-3 bg-surface-container-low border border-transparent rounded-lg text-sm text-on-surface placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors"; %>
+<%- include('../table_page/_page', {
+    label,
+    field,
+    tableFilters: [
+        { type: 'search', id: 'searchInput', label: 'Search Customer Name', placeholder: 'Enter name or ID...', span: 7, flexEnd: true },
+        { type: 'select', id: 'categoryFilter', label: 'Short', span: 3, flexEnd: true, options: [
+            { value: 'all', label: 'All Customers' },
+            { value: 'events', label: 'Upcoming Events' },
+            { value: 'name', label: 'Name A-Z' }
+        ]},
+        { type: 'stat', id: 'activeCount', label: 'Active Accounts', span: 2, icon: 'fas fa-users' }
+    ],
+    tablePage: {
+        tableTitle: 'Customer Records',
+        tableId: 'customerBody',
+        minWidth: '720px',
+        colCount: 7,
+        headerActions: `<button type="button" onclick="openAddModal()" title="Add New Customer" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary-container hover:brightness-105 text-on-primary text-sm font-semibold rounded-lg shadow-sm transition-all shrink-0"><i class="fas fa-user-plus text-xs"></i> Add New Customer</button>`,
+        columns: [
+            { label: 'S.No', align: 'left', thClass: 'px-5' },
+            { label: 'Customer Name', align: 'left', thClass: 'px-4' },
+            { label: 'Address', align: 'left', thClass: 'px-4' },
+            { label: 'Added By', align: 'left', thClass: 'px-4' },
+            { label: 'Phone Number', align: 'left', thClass: 'px-4' },
+            { label: 'Date Added', align: 'left', thClass: 'px-4' },
+            { label: 'Actions', align: 'right', thClass: 'px-5' }
+        ]
+    }
+}) %>
+<div id="addModal" class="fixed inset-0 z-50 hidden items-start justify-center p-4 bg-black/40 backdrop-blur-sm">
+  <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper w-full max-w-lg my-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
+    <div class="flex items-start justify-between px-6 py-4 border-b border-surface-container">
+      <div class="flex items-center gap-3">
+        <span class="w-10 h-10 rounded-lg bg-primary-fixed/40 flex items-center justify-center text-primary"><i class="fas fa-user-plus"></i></span>
+        <div>
+          <h3 class="text-lg font-bold text-on-surface">Add New Customer</h3>
+          <p class="text-[10px] font-semibold uppercase tracking-widest text-primary">Registry Entry</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeAddModal()" class="p-1 text-secondary hover:text-on-surface"><i class="fas fa-times"></i></button>
+    </div>
+    <form action="/addCustomerForm" method="post" class="p-6 space-y-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label class="<%= label %>">Customer Name</label><input type="text" name="name" required placeholder="Enter Customer Name ...." class="<%= field %>"></div>
+        <div><label class="<%= label %>">Address <span class="text-error">*</span></label><input type="text" name="address" required placeholder="Enter Customer Address ...." class="<%= field %>"></div>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="<%= label %> mb-0">Phone Number <span class="text-error">*</span></label>
+          <button type="button" onclick="addPhoneRow()" class="text-xs font-semibold text-primary hover:underline"><i class="fas fa-plus mr-1"></i>Add Row</button>
+        </div>
+        <div id="phoneRows" class="space-y-2"></div>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="<%= label %> mb-0">Care Of</label>
+          <button type="button" onclick="addCORow()" class="text-xs font-semibold text-primary hover:underline"><i class="fas fa-plus mr-1"></i>Add Row</button>
+        </div>
+        <div id="coRows" class="space-y-2"></div>
+        <div id="coEmpty" class="mt-2 border border-dashed border-outline-variant/50 rounded-lg p-4 text-center text-xs text-secondary">
+          <i class="fas fa-user-friends mb-2 text-secondary/50"></i>
+          <p>No 'Care Of' details added. Click 'Add Row' to include.</p>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="<%= label %> mb-0">Important Dates</label>
+          <button type="button" onclick="addDateRow()" class="text-xs font-semibold text-primary hover:underline"><i class="fas fa-calendar-plus mr-1"></i>Add Row</button>
+        </div>
+        <div id="dateRows" class="space-y-2"></div>
+        <div id="dateEmpty" class="mt-2 border border-dashed border-outline-variant/50 rounded-lg p-4 text-center text-xs text-secondary">
+          <i class="fas fa-calendar mb-2 text-secondary/50"></i>
+          <p>Add significant anniversaries or birthdays.</p>
+        </div>
+      </div>
+      <div class="flex gap-3 pt-2 border-t border-surface-container">
+        <button type="submit" class="flex-1 py-3 bg-primary hover:brightness-110 text-on-primary text-sm font-bold uppercase tracking-wider rounded-lg transition-all">Add Customer</button>
+        <button type="button" onclick="closeAddModal()" class="px-6 py-3 bg-surface-container-low text-on-surface text-sm font-semibold rounded-lg hover:bg-surface-container transition-colors">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="editModal" class="fixed inset-0 z-50 hidden items-start justify-center p-4 bg-black/40 backdrop-blur-sm">
+  <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper w-full max-w-lg my-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
+    <div class="flex items-start justify-between px-6 py-4 border-b border-surface-container">
+      <div class="flex items-center gap-3">
+        <span class="w-10 h-10 rounded-lg bg-primary-fixed/40 flex items-center justify-center text-primary"><i class="fas fa-pen"></i></span>
+        <div>
+          <h3 class="text-lg font-bold text-on-surface">Edit Profile</h3>
+          <p class="text-[10px] font-semibold uppercase tracking-widest text-primary">Registry Update</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeEditModal()" class="p-1 text-secondary hover:text-on-surface"><i class="fas fa-times"></i></button>
+    </div>
+    <form id="editForm" action="/editCustomerForm" method="post" class="p-6 space-y-5">
+      <input type="hidden" name="id" id="editId">
+      <input type="hidden" name="returnTo" value="/customerTable">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label class="<%= label %>">Customer Name</label><input type="text" name="name" id="editName" required placeholder="Enter Customer Name ...." class="<%= field %>"></div>
+        <div><label class="<%= label %>">Address <span class="text-error">*</span></label><input type="text" name="address" id="editAddress" required placeholder="Enter Customer Address ...." class="<%= field %>"></div>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="<%= label %> mb-0">Phone Number <span class="text-error">*</span></label>
+          <button type="button" onclick="addEditPhoneRow()" class="text-xs font-semibold text-primary hover:underline"><i class="fas fa-plus mr-1"></i>Add Row</button>
+        </div>
+        <div id="editPhoneRows" class="space-y-2"></div>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="<%= label %> mb-0">Care Of</label>
+          <button type="button" onclick="addEditCORow()" class="text-xs font-semibold text-primary hover:underline"><i class="fas fa-plus mr-1"></i>Add Row</button>
+        </div>
+        <div id="editCoRows" class="space-y-2"></div>
+        <div id="editCoEmpty" class="mt-2 border border-dashed border-outline-variant/50 rounded-lg p-4 text-center text-xs text-secondary">
+          <i class="fas fa-user-friends mb-2 text-secondary/50"></i>
+          <p>No 'Care Of' details added. Click 'Add Row' to include.</p>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="<%= label %> mb-0">Important Dates</label>
+          <button type="button" onclick="addEditDateRow()" class="text-xs font-semibold text-primary hover:underline"><i class="fas fa-calendar-plus mr-1"></i>Add Row</button>
+        </div>
+        <div id="editDateRows" class="space-y-2"></div>
+        <div id="editDateEmpty" class="mt-2 border border-dashed border-outline-variant/50 rounded-lg p-4 text-center text-xs text-secondary">
+          <i class="fas fa-calendar mb-2 text-secondary/50"></i>
+          <p>Add significant anniversaries or birthdays.</p>
+        </div>
+      </div>
+      <div class="flex gap-3 pt-2 border-t border-surface-container">
+        <button type="submit" class="flex-1 py-3 bg-primary hover:brightness-110 text-on-primary text-sm font-bold uppercase tracking-wider rounded-lg transition-all">Save Changes</button>
+        <button type="button" onclick="closeEditModal()" class="px-6 py-3 bg-surface-container-low text-on-surface text-sm font-semibold rounded-lg hover:bg-surface-container transition-colors">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  const rawRows = <%- JSON.stringify(customerTable) %>;
+  const allRows = rawRows.map((r) => ({
+    id: r._id,
+    name: r.name || '',
+    address: r.address || '',
+    addedBy: r.user && r.user.name ? r.user.name : 'Main Shop',
+    phone: r.phNum && r.phNum.length ? r.phNum[0] : '',
+    createdAt: r.createdAt,
+    impDate: r.impDates && r.impDates.length ? r.impDates[0].date : null,
+    hasRecords: !!(r.bills && r.bills.length) || !!(r.approvals && r.approvals.length) || !!(r.payments && r.payments.length),
+    searchStr: (
+      (r.name || '') + ' ' +
+      (r.phNum || []).join(' ') + ' ' +
+      (r.address || '') + ' ' +
+      (r.CO || []).join(' ')
+    ).toLowerCase()
+  }));
+  const inputClass = 'flex-1 px-4 py-3 bg-surface-container-low border border-transparent rounded-lg text-sm text-on-surface placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors';
+  let displayRows = [];
+  const pager = new KbPagination({
+    onPageChange: renderTable,
+    formatSummary(page, rows) {
+      return rows.length ?
+        `Showing ${page.length} of ${rows.length} customer${rows.length > 1 ? 's' : ''}` :
+        'No customers';
+    }
+  });
+  let phoneIdx = 0,
+    coIdx = 0,
+    dateIdx = 0,
+    editPhoneIdx = 0,
+    editCoIdx = 0,
+    editDateIdx = 0;
+
+  function initials(name) {
+    return (name || 'C').trim().charAt(0).toUpperCase();
+  }
+
+  function fmtDate(iso) {
+    const d = new Date(iso);
+    const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${d.getDate()} ${m[d.getMonth()]} ${d.getFullYear()}, ${d.toTimeString().slice(0, 5)}`;
+  }
+
+  function filteredRows() {
+    const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+    const cat = document.getElementById('categoryFilter').value;
+    let rows = [...allRows];
+    if (q) rows = rows.filter(r => r.searchStr.includes(q));
+    if (cat === 'events') {
+      rows = rows.filter(r => r.impDate).sort((a, b) => new Date(a.impDate) - new Date(b.impDate));
+    }
+    return rows;
+  }
+
+  function renderTable() {
+    const rows = filteredRows();
+    const {
+      page,
+      start
+    } = pager.apply(rows);
+    displayRows = page;
+    const tbody = document.getElementById('customerBody');
+    if (!page.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="py-12 text-center text-secondary">No customers found.</td></tr>';
+    } else {
+      tbody.innerHTML = page.map((r, i) => `
+                <tr class="border-t border-surface-container hover:bg-surface-container-low/40 transition-colors">
+                    <td class="py-4 px-5 text-secondary font-medium">${start + i + 1}</td>
+                    <td class="py-4 px-4">
+                        <div class="flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-full ${i % 2 ? 'bg-primary-fixed/50 text-primary' : 'bg-surface-container text-on-surface'} text-xs font-bold flex items-center justify-center shrink-0">${initials(r.name)}</span>
+                            <a href="/customer?id=${r.id}" class="font-semibold text-primary hover:text-primary/80">${r.name}</a>
+                        </div>
+                    </td>
+                    <td class="py-4 px-4 text-secondary text-xs leading-relaxed max-w-[140px]">${r.address}</td>
+                    <td class="py-4 px-4"><span class="text-xs font-medium bg-surface-container px-2.5 py-1 rounded-full text-secondary">${r.addedBy}</span></td>
+                    <td class="py-4 px-4 font-semibold text-primary">${r.phone}</td>
+                    <td class="py-4 px-4 text-secondary text-xs whitespace-nowrap">${fmtDate(r.createdAt)}</td>
+                    <td class="py-4 px-5 text-right whitespace-nowrap">
+                        <button type="button" onclick="openEditModal('${r.id}')" class="p-2 text-secondary hover:text-primary inline-block" title="Edit"><i class="fas fa-pen"></i></button>
+                        <button type="button" onclick="deleteCustomer('${r.id}')" ${r.hasRecords ? 'disabled' : ''} class="p-2 text-secondary inline-block ${r.hasRecords ? 'opacity-40 cursor-not-allowed' : 'hover:text-error'}" title="${r.hasRecords ? 'Settle customer before deleting' : 'Delete'}"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`).join('');
+    }
+    document.getElementById('activeCount').textContent = allRows.length.toLocaleString('en-IN');
+  }
+
+  function deleteCustomer(id) {
+    const row = allRows.find((r) => r.id === id);
+    if (!row || row.hasRecords) return;
+    if (!confirm(`Delete customer "${row.name}"? This cannot be undone.`)) return;
+    window.location.href = '/delCustomer?id=' + encodeURIComponent(id);
+  }
+
+  function openAddModal() {
+    document.getElementById('addModal').classList.replace('hidden', 'flex');
+    if (!document.getElementById('phoneRows').children.length) addPhoneRow();
+  }
+
+  function closeAddModal() {
+    document.getElementById('addModal').classList.replace('flex', 'hidden');
+  }
+
+  function fmtDateInput(d) {
+    const x = new Date(d);
+    return x.toISOString().substring(0, 10);
+  }
+
+  function escAttr(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+
+  function openEditModal(id) {
+    const c = rawRows.find((r) => String(r._id) === String(id));
+    if (!c) return;
+    closeAddModal();
+    document.getElementById('editId').value = c._id;
+    document.getElementById('editName').value = c.name || '';
+    document.getElementById('editAddress').value = c.address || '';
+    const editPhoneRows = document.getElementById('editPhoneRows');
+    editPhoneRows.innerHTML = '';
+    editPhoneIdx = 0;
+    (c.phNum || []).forEach((ph) => addEditPhoneRow(ph));
+    if (!c.phNum || !c.phNum.length) addEditPhoneRow();
+    const editCoRows = document.getElementById('editCoRows');
+    editCoRows.innerHTML = '';
+    editCoIdx = 0;
+    (c.CO || []).forEach((co) => addEditCORow(co));
+    document.getElementById('editCoEmpty').classList.toggle('hidden', !!(c.CO && c.CO.length));
+    const editDateRows = document.getElementById('editDateRows');
+    editDateRows.innerHTML = '';
+    editDateIdx = 0;
+    (c.impDates || []).forEach((d) => addEditDateRow(d.date, d.remark));
+    document.getElementById('editDateEmpty').classList.toggle('hidden', !!(c.impDates && c.impDates.length));
+    document.getElementById('editModal').classList.replace('hidden', 'flex');
+  }
+
+  function closeEditModal() {
+    document.getElementById('editModal').classList.replace('flex', 'hidden');
+  }
+
+  function addEditPhoneRow(value = '') {
+    const id = editPhoneIdx++;
+    const row = document.createElement('div');
+    row.className = 'flex gap-2';
+    row.id = 'editPh' + id;
+    row.innerHTML = `<input type="number" name="phNum[]" min="1111111111" max="9999999999" required value="${escAttr(value)}" placeholder="Enter Phone Number ...." class="${inputClass}"><button type="button" onclick="removeEditRow('editPh${id}')" class="p-3 text-error hover:bg-error-container/20 rounded-lg"><i class="fas fa-trash text-sm"></i></button>`;
+    document.getElementById('editPhoneRows').appendChild(row);
+  }
+
+  function addEditCORow(value = '') {
+    document.getElementById('editCoEmpty').classList.add('hidden');
+    const id = editCoIdx++;
+    const row = document.createElement('div');
+    row.className = 'flex gap-2';
+    row.id = 'editCo' + id;
+    row.innerHTML = `<input type="text" name="CO[]" value="${escAttr(value)}" placeholder="Enter Care Of ...." class="${inputClass}"><button type="button" onclick="removeEditRow('editCo${id}', 'co')" class="p-3 text-error hover:bg-error-container/20 rounded-lg"><i class="fas fa-trash text-sm"></i></button>`;
+    document.getElementById('editCoRows').appendChild(row);
+  }
+
+  function addEditDateRow(date = '', remark = '') {
+    document.getElementById('editDateEmpty').classList.add('hidden');
+    const id = editDateIdx++;
+    const row = document.createElement('div');
+    row.className = 'flex gap-2 flex-wrap sm:flex-nowrap';
+    row.id = 'editDt' + id;
+    const dateVal = date ? fmtDateInput(date) : '';
+    row.innerHTML = `<input type="date" name="impDates[]" required value="${escAttr(dateVal)}" class="${inputClass} min-w-[140px]"><input type="text" name="remark[]" required value="${escAttr(remark)}" placeholder="Remark ...." class="${inputClass}"><button type="button" onclick="removeEditRow('editDt${id}', 'date')" class="p-3 text-error hover:bg-error-container/20 rounded-lg"><i class="fas fa-trash text-sm"></i></button>`;
+    document.getElementById('editDateRows').appendChild(row);
+  }
+
+  function removeEditRow(id, type) {
+    document.getElementById(id)?.remove();
+    if (type === 'co' && !document.getElementById('editCoRows').children.length) document.getElementById('editCoEmpty').classList.remove('hidden');
+    if (type === 'date' && !document.getElementById('editDateRows').children.length) document.getElementById('editDateEmpty').classList.remove('hidden');
+  }
+
+  function addPhoneRow() {
+    const id = phoneIdx++;
+    const row = document.createElement('div');
+    row.className = 'flex gap-2';
+    row.id = 'ph' + id;
+    row.innerHTML = `<input type="number" name="phNum[]" min="1111111111" max="9999999999" required placeholder="Enter Phone Number ...." class="${inputClass}"><button type="button" onclick="removeRow('ph${id}')" class="p-3 text-error hover:bg-error-container/20 rounded-lg"><i class="fas fa-trash text-sm"></i></button>`;
+    document.getElementById('phoneRows').appendChild(row);
+  }
+
+  function addCORow() {
+    document.getElementById('coEmpty').classList.add('hidden');
+    const id = coIdx++;
+    const row = document.createElement('div');
+    row.className = 'flex gap-2';
+    row.id = 'co' + id;
+    row.innerHTML = `<input type="text" name="CO[]" placeholder="Enter Care Of ...." class="${inputClass}"><button type="button" onclick="removeRow('co${id}', 'co')" class="p-3 text-error hover:bg-error-container/20 rounded-lg"><i class="fas fa-trash text-sm"></i></button>`;
+    document.getElementById('coRows').appendChild(row);
+  }
+
+  function addDateRow() {
+    document.getElementById('dateEmpty').classList.add('hidden');
+    const id = dateIdx++;
+    const row = document.createElement('div');
+    row.className = 'flex gap-2 flex-wrap sm:flex-nowrap';
+    row.id = 'dt' + id;
+    row.innerHTML = `<input type="date" name="impDates[]" required class="${inputClass} min-w-[140px]"><input type="text" name="remark[]" required placeholder="Remark ...." class="${inputClass}"><button type="button" onclick="removeRow('dt${id}', 'date')" class="p-3 text-error hover:bg-error-container/20 rounded-lg"><i class="fas fa-trash text-sm"></i></button>`;
+    document.getElementById('dateRows').appendChild(row);
+  }
+
+  function removeRow(id, type) {
+    document.getElementById(id)?.remove();
+    if (type === 'co' && !document.getElementById('coRows').children.length) document.getElementById('coEmpty').classList.remove('hidden');
+    if (type === 'date' && !document.getElementById('dateRows').children.length) document.getElementById('dateEmpty').classList.remove('hidden');
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    renderTable();
+    if (new URLSearchParams(window.location.search).get('openAdd') === '1') openAddModal();
+  });
+</script>

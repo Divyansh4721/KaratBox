@@ -1,0 +1,25 @@
+<%- include('_crud_page', { options, lm: {
+    entity: 'Prefix',
+    tableId: 'prefixTableBody',
+    searchLabel: 'prefix name',
+    recordLabel: 'prefix',
+    ledgerLabel: 'Prefix',
+    csvFile: 'prefix-records.csv',
+    routes: { add: '/addPrefix', edit: '/editPrefix', delete: '/delPrefix' },
+    columns: [
+        { key: 'name', label: 'Prefix Name', cell: 'primary' },
+        { key: 'stockCount', label: 'Stock Count', cell: 'badge' }
+    ],
+    fields: [
+        { name: 'name', editName: 'newname', editId: 'editName', label: 'Prefix Name', type: 'text', placeholder: 'Enter Prefix Name ....' }
+    ],
+    labels: {
+        addButton: 'Add Prefix',
+        createTitle: 'Add Prefix',
+        createSubmit: 'Add Prefix',
+        editTitle: 'Edit Prefix',
+        editSubmit: 'Edit Prefix',
+        deleteQuestion: 'Delete Prefix?',
+        deleteSubmit: 'Delete Prefix'
+    }
+}}) %>

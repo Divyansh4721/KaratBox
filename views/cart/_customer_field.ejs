@@ -1,0 +1,46 @@
+<% const custRequired = typeof customerRequired !== 'undefined' ? customerRequired : false; %>
+<div class="space-y-2">
+  <label class="<%= label %>">Search Customer</label>
+  <input type="text" id="customerinput" placeholder="Search by name, phone, or address..." autocomplete="off" class="<%= field %>">
+  <label class="<%= label %>">Customer<%= custRequired ? ' <span class="text-error">*</span>' : '' %></label>
+  <select id="customeroptions" name="customer" class="<%= select %>"<%= custRequired ? ' required' : '' %>>
+    <option value=""><%= custRequired ? 'Select customer...' : 'Walk-in customer (optional)' %></option>
+    <% for (let i of customerTable) { %>
+    <option value="<%= i._id %>"><%= i.name %><% if (i.phNum && i.phNum.length) { %> — <%= i.phNum.join(', ') %><% } %></option>
+    <% } %>
+  </select>
+</div>
+<script>
+  (function() {
+    const customers = <%- JSON.stringify(customerTable.map(function(c) { return { _id: c._id, searchStr: c.searchStr }; })) %>;
+    const input = document.getElementById('customerinput');
+    const select = document.getElementById('customeroptions');
+    if (!input || !select) return;
+    const defaultLabel = '<%= custRequired ? "Select customer..." : "Walk-in customer (optional)" %>';
+    function fillOptions(list) {
+      select.innerHTML = '<option value="">' + defaultLabel + '</option>';
+      list.forEach(function(c) {
+        const opt = document.createElement('option');
+        opt.value = c._id;
+        opt.textContent = c.searchStr;
+        select.appendChild(opt);
+      });
+    }
+    fillOptions(customers);
+    input.addEventListener('input', function() {
+      const q = input.value.toLowerCase().trim();
+      if (!q) {
+        fillOptions(customers);
+        return;
+      }
+      const matches = customers.filter(function(c) { return c.searchStr.toLowerCase().includes(q); });
+      select.innerHTML = '<option value="">' + (matches.length ? defaultLabel : 'No customer found') + '</option>';
+      matches.forEach(function(c) {
+        const opt = document.createElement('option');
+        opt.value = c._id;
+        opt.textContent = c.searchStr;
+        select.appendChild(opt);
+      });
+    });
+  })();
+</script>

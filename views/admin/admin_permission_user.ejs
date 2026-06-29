@@ -1,0 +1,67 @@
+<% activeNav = 'permission' %>
+<% const label = "block text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1.5"; %>
+<% const field = "w-full px-4 py-3 bg-surface-container-low border border-transparent rounded-lg text-sm text-on-surface placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors"; %>
+<% const profileParts = (userlist.name || 'U').trim().split(/\s+/).filter(Boolean); %>
+<% let profileInitials = 'U'; %>
+<% if (profileParts.length === 1) { profileInitials = profileParts[0].charAt(0).toUpperCase(); } else if (profileParts.length > 1) { profileInitials = (profileParts[0].charAt(0) + profileParts[profileParts.length - 1].charAt(0)).toUpperCase(); } %>
+<div class="w-full pb-10">
+  <form action="/permission_user_form/<%= userlist.id %>" method="post" class="space-y-6">
+    <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper overflow-hidden">
+      <div class="px-6 py-4 border-b border-surface-container flex items-center gap-4">
+        <span class="w-14 h-14 rounded-full bg-primary-fixed/50 text-primary text-lg font-bold flex items-center justify-center shrink-0"><%= profileInitials %></span>
+        <div>
+          <h3 class="text-lg font-bold text-on-surface"><%= userlist.name %></h3>
+          <p class="text-xs text-secondary"><%= userlist.email %></p>
+        </div>
+      </div>
+      <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div>
+          <label class="<%= label %>">Full Name</label>
+          <input type="text" name="name" required value="<%= userlist.name %>" class="<%= field %>">
+        </div>
+        <div>
+          <label class="<%= label %>">Email Address</label>
+          <input type="email" name="email" required value="<%= userlist.email %>" class="<%= field %>">
+        </div>
+      </div>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper p-6">
+      <h3 class="text-sm font-bold text-on-surface mb-4">Administrative Privileges</h3>
+      <div class="flex flex-wrap gap-6">
+        <label class="inline-flex items-center gap-2.5 cursor-pointer">
+          <input type="checkbox" name="adminPermissionPerm" <%= userlist.adminPermissionPerm ? 'checked' : '' %> class="w-4 h-4 rounded border-surface-container text-primary focus:ring-primary-container">
+          <span class="text-sm text-on-surface">Permanent Admin Access</span>
+        </label>
+        <label class="inline-flex items-center gap-2.5 cursor-pointer">
+          <input type="checkbox" name="adminPermissionTemp" <%= userlist.adminPermissionTemp ? 'checked' : '' %> class="w-4 h-4 rounded border-surface-container text-primary focus:ring-primary-container">
+          <span class="text-sm text-on-surface">Temporary Admin Access</span>
+        </label>
+      </div>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper overflow-hidden">
+      <div class="px-6 py-4 border-b border-surface-container">
+        <h3 class="text-sm font-bold text-on-surface">Module Permissions</h3>
+        <p class="text-xs text-secondary mt-1">Toggle access for individual system modules.</p>
+      </div>
+      <div class="divide-y divide-surface-container">
+        <% permissionSections.forEach(function(section) { %>
+        <div class="p-6">
+          <h4 class="text-[10px] font-semibold uppercase tracking-widest text-secondary mb-3"><%= section.title %></h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <% section.items.forEach(function(p) { %>
+            <label class="flex items-center gap-2.5 p-3 rounded-lg border border-surface-container hover:bg-surface-container-low/50 cursor-pointer transition-colors">
+              <input type="checkbox" name="permission[]" value="<%= p._id %>" <%= p.granted ? 'checked' : '' %> class="w-4 h-4 rounded border-surface-container text-primary focus:ring-primary-container shrink-0">
+              <span class="text-sm text-on-surface leading-tight"><%= p.nickname %></span>
+            </label>
+            <% }); %>
+          </div>
+        </div>
+        <% }); %>
+      </div>
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+      <button type="submit" class="px-6 py-3 bg-primary hover:brightness-110 text-on-primary text-sm font-bold uppercase tracking-wider rounded-lg transition-all">Save Changes</button>
+      <a href="/permission" class="px-6 py-3 bg-surface-container-low text-on-surface text-sm font-semibold rounded-lg hover:bg-surface-container transition-colors inline-flex items-center">Cancel</a>
+    </div>
+  </form>
+</div>

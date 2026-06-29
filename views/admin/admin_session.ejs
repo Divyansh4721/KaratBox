@@ -1,0 +1,85 @@
+<% activeNav = 'permission' %>
+<% const label = "block text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1.5"; %>
+
+<%- include('../table_page/_page', {
+    label,
+    tableFilters: [
+        { type: 'search', id: 'searchInput', label: 'Search Session', placeholder: 'Enter name or email...', span: 10, flexEnd: true },
+        { type: 'stat', id: 'sessionCount', label: 'Active Sessions', span: 2, icon: 'fas fa-clock-rotate-left' }
+    ],
+    tablePage: {
+        tableTitle: 'Session Registry',
+        tableId: 'sessionBody',
+        minWidth: '520px',
+        colCount: 3,
+        headerActions: `<a href="/session-delete/all" onclick="return confirm('End all active sessions?')" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-error/30 text-error text-sm font-semibold rounded-lg hover:bg-error/5 transition-all shrink-0"><i class="fas fa-power-off text-xs"></i> End All Sessions</a>`,
+        columns: [
+            { label: 'S.No', align: 'left', thClass: 'px-5' },
+            { label: 'Member', align: 'left', thClass: 'px-4' },
+            { label: 'Last Active', align: 'left', thClass: 'px-5' }
+        ],
+        pagination: { summaryClass: 'text-[10px] font-semibold uppercase tracking-widest text-secondary' }
+    }
+}) %>
+
+<script>
+    const allRows = <%- JSON.stringify(sessionlist) %>.map(s => ({
+        name: s.name || '',
+        email: s.email || '',
+        expires: s.expires || '',
+        searchStr: ((s.name || '') + ' ' + (s.email || '')).toLowerCase()
+    }));
+
+    const pager = new KbPagination({
+        onPageChange: renderTable,
+        formatSummary(page, rows, start) {
+            const end = start + page.length;
+            return rows.length ?
+                `Showing ${start + 1}-${end} of ${rows.length} active session${rows.length > 1 ? 's' : ''}` :
+                'No active sessions';
+        }
+    });
+
+    function initials(name) {
+        const parts = (name || 'U').trim().split(/\s+/).filter(Boolean);
+        if (!parts.length) return 'U';
+        if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+        return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    }
+
+    function filteredRows() {
+        const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+        let rows = [...allRows];
+        if (q) rows = rows.filter(r => r.searchStr.includes(q));
+        return rows;
+    }
+
+    function renderTable() {
+        const rows = filteredRows();
+        const { page, start } = pager.apply(rows);
+        const tbody = document.getElementById('sessionBody');
+        if (!page.length) {
+            tbody.innerHTML = '<tr><td colspan="3" class="py-12 text-center text-secondary">No active sessions found.</td></tr>';
+        } else {
+            tbody.innerHTML = page.map((r, i) => `
+                <tr class="border-t border-surface-container hover:bg-surface-container-low/30 transition-colors">
+                    <td class="py-4 px-5 text-secondary font-medium">${start + i + 1}</td>
+                    <td class="py-4 px-4">
+                        <div class="flex items-center gap-3">
+                            <span class="w-10 h-10 rounded-full ${i % 2 ? 'bg-primary-fixed/50 text-primary' : 'bg-surface-container text-on-surface'} text-sm font-bold flex items-center justify-center shrink-0">${initials(r.name)}</span>
+                            <div>
+                                <p class="font-semibold text-on-surface">${r.name}</p>
+                                <p class="text-xs text-secondary">${r.email}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-4 px-5">
+                        <span class="text-xs font-medium bg-surface-container px-2.5 py-1 rounded-full text-secondary whitespace-nowrap">${r.expires}</span>
+                    </td>
+                </tr>`).join('');
+        }
+        document.getElementById('sessionCount').textContent = rows.length.toLocaleString('en-IN');
+    }
+
+    document.addEventListener('DOMContentLoaded', renderTable);
+</script>

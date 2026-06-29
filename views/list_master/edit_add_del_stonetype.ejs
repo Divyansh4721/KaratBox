@@ -1,0 +1,25 @@
+<%- include('_crud_page', { options, lm: {
+    entity: 'StoneType',
+    tableId: 'stoneTypeTableBody',
+    searchLabel: 'stone type name',
+    recordLabel: 'stone type',
+    ledgerLabel: 'StoneType',
+    csvFile: 'stonetype-records.csv',
+    routes: { add: '/addStoneType', edit: '/editStoneType', delete: '/delStoneType' },
+    columns: [
+        { key: 'name', label: 'StoneType Name', cell: 'primary' },
+        { key: 'stockCount', label: 'Stock Count', cell: 'badge' }
+    ],
+    fields: [
+        { name: 'name', editName: 'newname', editId: 'editName', label: 'StoneType Name', type: 'text', placeholder: 'Enter StoneType Name ....' }
+    ],
+    labels: {
+        addButton: 'Add StoneType',
+        createTitle: 'Add StoneType',
+        createSubmit: 'Add StoneType',
+        editTitle: 'Edit StoneType',
+        editSubmit: 'Edit StoneType',
+        deleteQuestion: 'Delete StoneType?',
+        deleteSubmit: 'Delete StoneType'
+    }
+}}) %>

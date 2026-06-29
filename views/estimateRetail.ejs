@@ -1,0 +1,127 @@
+<% activeNav = 'inventory' %>
+<%- include('reports/_tokens') %>
+<% const label = "block text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1.5"; %>
+<% const field = "w-full px-4 py-3 bg-surface-container-low dark:bg-dark-container border border-outline-variant/40 dark:border-white/10 rounded-lg text-sm text-on-surface dark:text-dark-text placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors"; %>
+<% const select = field + " appearance-none cursor-pointer"; %>
+<% const btn = "inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:brightness-110 text-on-primary text-sm font-semibold rounded-lg transition-all"; %>
+<% const pageSubtitle = stockTable.length + ' cart item' + (stockTable.length !== 1 ? 's' : '') + ' for retail estimate'; %>
+<div class="pb-10 space-y-6">
+  <%- include('cart/_workflow_header', { title, pageSubtitle, backHref: typeof backHref !== 'undefined' ? backHref : '/cart' }) %>
+
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+    <div class="<%= formCard %>">
+      <h3 class="text-sm font-bold text-on-surface dark:text-dark-text mb-4">Add Item</h3>
+      <form id="itemform" onsubmit="itemForm(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="sm:col-span-2">
+          <label class="<%= label %>">Prefix</label>
+          <select id="prefix" class="<%= select %>">
+            <% for (let i of prefixTable) { %>
+            <option value="<%= i.name %>"><%= i.name ? i.name : 'Select Prefix...' %></option>
+            <% } %>
+          </select>
+        </div>
+        <div>
+          <label class="<%= label %>">Ornament</label>
+          <select id="ornament" required class="<%= select %>">
+            <option value="">Select Ornament...</option>
+            <% for (let i of ornamentTable) { %>
+            <option value="<%= i.name %>"><%= i.name %></option>
+            <% } %>
+          </select>
+        </div>
+        <div>
+          <label class="<%= label %>">Purity</label>
+          <select id="purity" required class="<%= select %>">
+            <option value="">Select Purity...</option>
+            <% for (let i of purityTable) { %>
+            <option value="<%= i.name + '$' + i.wholesaleMultiplier + '$' + i.retailMultiplier + '$' + i.wastage %>"><%= i.name + ' | ' + i.wholesaleMultiplier + ' | ' + i.retailMultiplier + ' | ' + i.wastage %></option>
+            <% } %>
+          </select>
+        </div>
+        <div>
+          <label class="<%= label %>">Gross Weight</label>
+          <input type="number" id="grossweight" placeholder="Gross Weight" step="0.001" required class="<%= field %>">
+        </div>
+        <div>
+          <label class="<%= label %>">Net Weight</label>
+          <input type="number" id="netweight" placeholder="Net Weight" step="0.001" required class="<%= field %>">
+        </div>
+        <div class="sm:col-span-2">
+          <label class="<%= label %>">Wastage</label>
+          <input type="number" id="wastage" placeholder="Wastage" value="20" step="0.001" required class="<%= field %>">
+        </div>
+        <div class="sm:col-span-2">
+          <button type="submit" class="<%= btn %> w-full sm:w-auto">Add Item</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="<%= formCard %>">
+      <h3 class="text-sm font-bold text-on-surface dark:text-dark-text mb-4">Add Stone & Gold Rate</h3>
+      <form id="stoneform" onsubmit="stoneForm(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="sm:col-span-2">
+          <label class="<%= label %>">Stone Type</label>
+          <select id="stonetype" required class="<%= select %>">
+            <option value="">Select Stone Type...</option>
+            <% for (let i of stoneTypeTable) { %>
+            <option value="<%= i.name %>"><%= i.name %></option>
+            <% } %>
+          </select>
+        </div>
+        <div>
+          <label class="<%= label %>">Stone Weight</label>
+          <input type="number" id="stoneweight" placeholder="Stone Weight" step="0.001" class="<%= field %>">
+        </div>
+        <div>
+          <label class="<%= label %>">Stone Rate</label>
+          <input type="number" id="stonerate" placeholder="Stone Rate" step="0.01" class="<%= field %>">
+        </div>
+        <div>
+          <label class="<%= label %>">Gold Rate</label>
+          <input type="number" id="goldrate" onchange="goldRateUpdate()" placeholder="Gold Rate" step="0.01" min="1000" max="11000" class="<%= field %>">
+        </div>
+        <div>
+          <label class="<%= label %>">Gold Rate Purity</label>
+          <input type="number" id="goldratepurity" onchange="goldRateUpdate()" value="100" placeholder="Gold Rate Purity" step="0.001" class="<%= field %>">
+        </div>
+        <div class="sm:col-span-2">
+          <button type="submit" class="<%= btn %> w-full sm:w-auto">Add Stone</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="<%= sectionCard %> overflow-x-auto">
+    <div class="px-5 py-4 border-b border-surface-container dark:border-white/10">
+      <h3 class="text-sm font-bold text-on-surface dark:text-dark-text">Edit Line Items</h3>
+    </div>
+    <form id="editorForm" onsubmit="submitEditor(event)" class="p-4">
+      <table id="editor" class="w-full text-sm min-w-[640px]"></table>
+      <div class="mt-4">
+        <button type="submit" class="<%= btnOutline %>">Update Table</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="<%= sectionCard %> overflow-x-auto">
+    <div class="px-5 py-4 border-b border-surface-container dark:border-white/10 flex flex-wrap items-center justify-between gap-3">
+      <h3 class="text-sm font-bold text-on-surface dark:text-dark-text">Estimate Table</h3>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" onclick="printTable()" class="<%= btnOutline %>"><i class="fas fa-download text-xs"></i> Download PDF</button>
+        <button type="button" onclick="printTable2()" class="<%= btnOutline %>"><i class="fas fa-print text-xs"></i> Print Table</button>
+      </div>
+    </div>
+    <div class="p-4 overflow-x-auto">
+      <table id="table" class="w-full text-sm min-w-[640px]"></table>
+    </div>
+  </div>
+</div>
+<script>
+  let stockTable = <%- JSON.stringify(stockTable) %>;
+  let ornamentTable = <%- JSON.stringify(ornamentTable) %>;
+  let prefixTable = <%- JSON.stringify(prefixTable) %>;
+  let purityTable = <%- JSON.stringify(purityTable) %>;
+  let stoneTypeTable = <%- JSON.stringify(stoneTypeTable) %>;
+  let goldPrice = <%= goldPrice %> * 1;
+</script>
+<script src="/assets/js/estimateRetail.js"></script>

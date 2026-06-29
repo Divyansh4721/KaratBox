@@ -1,0 +1,22 @@
+<% if (typeof hideBreadcrumb === 'undefined' || !hideBreadcrumb) { %>
+<% const isHome = typeof title !== 'undefined' && title === 'Home'; %>
+<% if (!isHome) { %>
+<nav id="page-breadcrumb" class="text-[10px] font-semibold uppercase tracking-widest text-secondary mb-3">
+  <% if (typeof breadcrumbs !== 'undefined' && breadcrumbs && breadcrumbs.length) { %>
+  <% for (let i = 0; i < breadcrumbs.length; i++) { %>
+  <% if (i > 0) { %><span class="mx-1.5">/</span><% } %>
+  <% const crumb = breadcrumbs[i]; %>
+  <% if (crumb.href) { %>
+  <a href="<%= crumb.href %>" class="hover:text-primary"><%= crumb.label %></a>
+  <% } else { %>
+  <span class="text-primary"><%= crumb.label %></span>
+  <% } %>
+  <% } %>
+  <% } else { %>
+  <a href="/" class="hover:text-primary">Dashboard</a>
+  <span class="mx-1.5">/</span>
+  <span class="text-primary"><%= (typeof breadcrumbLabel !== 'undefined' && breadcrumbLabel) ? breadcrumbLabel : title %></span>
+  <% } %>
+</nav>
+<% } %>
+<% } %>

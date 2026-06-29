@@ -1,0 +1,12 @@
+<div class="<%= formCard %>">
+  <span class="<%= iconWrap %>"><i class="fas <%= icon %>"></i></span>
+  <h3 class="text-base font-bold text-on-surface dark:text-dark-text mb-1"><%= cardTitle %></h3>
+  <p class="text-sm text-secondary font-light leading-relaxed mb-6"><%= description %></p>
+  <form action="<%= action %>" method="post" class="mt-auto space-y-4">
+    <div>
+      <label class="<%= label %>">Select Date</label>
+      <input type="date" name="date" value="<%= dateValue %>" max="<%= maxDate %>" class="<%= field %>" required>
+    </div>
+    <button type="submit" class="<%= btnPrimary %>"><%= submitLabel %></button>
+  </form>
+</div>
