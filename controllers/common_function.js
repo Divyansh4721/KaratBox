@@ -3,13 +3,13 @@ const Bill = require("../models/bill");
 const Customer = require("../models/customer");
 const Env_Variable = require("../models/env_variable");
 const Index = require("../models/index");
-const Kaarigar = require("../models/list_kaarigar");
-const Ornament = require("../models/list_ornament");
-const Prefix = require("../models/list_prefix");
-const Purity = require("../models/list_purity");
-const StockType = require("../models/list_stocktype");
-const StoneDealer = require("../models/list_stonedealer");
-const StoneType = require("../models/list_stonetype");
+const Kaarigar = require("../models/list_master/kaarigar");
+const Ornament = require("../models/list_master/ornament");
+const Prefix = require("../models/list_master/prefix");
+const Purity = require("../models/list_master/purity");
+const StockType = require("../models/list_master/stocktype");
+const StoneDealer = require("../models/list_master/stonedealer");
+const StoneType = require("../models/list_master/stonetype");
 const DailyUpdateList = require("../models/DailyUpdateList");
 const Permission = require("../models/permission");
 const Stock = require("../models/stock");
@@ -20,6 +20,12 @@ module.exports.checkPermission = (listname) => {
   return async (req, res, next) => {
     try {
       let user = await User.findById(req.user.id);
+      let adminPermission = await Permission.findOne({
+        listname: "admin"
+      });
+      if (adminPermission.users.includes(user.id)) {
+        return next();
+      }
       let permission = await Permission.findOne({
         listname: listname
       });
@@ -40,6 +46,13 @@ module.exports.checkPermission = (listname) => {
       return res.redirect(req.get("Referrer") || "/");
     }
   };
+};
+module.exports.generateTagName = function (item) {
+  return (
+    (item.prefix ? item.prefix.name + " " : "") +
+    (item.ornament ? item.ornament.name : "") +
+    (item.tag ? " - " + item.tag : "")
+  );
 };
 module.exports.convertTime = function (date) {
   if (date === null || date === undefined) {
@@ -176,7 +189,7 @@ module.exports.scheduleDeleteAfterXDays = async function () {
   try {
     let env = require("../config/environment");
     let path = require("path");
-    let STOCK_PATH = path.join(env.assetPath);
+    let imagePath = Stock.imagePath;
     let fs = require("fs");
     let date = new Date();
     let XthDay = new Date(date.setHours(23, 59, 59, 999));
@@ -226,8 +239,8 @@ module.exports.scheduleDeleteAfterXDays = async function () {
       for (let eachStockID of eachBill.cart) {
         let eachStock = await Stock.findById(eachStockID);
         for (let item of eachStock.stockImage) {
-          if (await fs.existsSync(path.join(STOCK_PATH, item.fileName))) {
-            await fs.unlinkSync(path.join(STOCK_PATH, item.fileName));
+          if (await fs.existsSync(path.join(imagePath, item.fileName))) {
+            await fs.unlinkSync(path.join(imagePath, item.fileName));
           }
         }
         await Stock.findByIdAndDelete(eachStockID);
@@ -267,7 +280,7 @@ async function initPermission() {
     cart: []
   });
   let arr = `[
-        {"listname": "admin", "nickname": "Adminstrator"},
+        {"listname": "admin", "nickname": "Administrator"},
         {"listname": "approvalAdd", "nickname": "Approval Add"},
         {"listname": "approvalRecv", "nickname": "Approval Recv"},
         {"listname": "approvalView", "nickname": "Approval View"},

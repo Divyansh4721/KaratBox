@@ -1,12 +1,32 @@
 const Approval = require("../models/approval");
 const Bill = require("../models/bill");
 const Index = require("../models/index");
-const Ornament = require("../models/list_ornament");
-const Prefix = require("../models/list_prefix");
+const Ornament = require("../models/list_master/ornament");
+const Prefix = require("../models/list_master/prefix");
 const DailyUpdateList = require("../models/DailyUpdateList");
 const Stock = require("../models/stock");
-const StockType = require("../models/list_stocktype");
+const StockType = require("../models/list_master/stocktype");
+const Env_Variable = require("../models/env_variable");
 const common_function = require("../controllers/common_function");
+const breadcrumb = require("../config/breadcrumbs");
+const ejs = require("ejs");
+const path = require("path");
+const STOCK_CARD_PATH = path.join(
+  __dirname,
+  "../views/partials/_stock_item_card.ejs"
+);
+function renderStockItemCard(item, options = {}) {
+  const stock =
+    item && typeof item.toObject === "function"
+      ? item.toObject({ virtuals: true })
+      : item;
+  return ejs.renderFile(STOCK_CARD_PATH, {
+    item: stock,
+    generateTagName: common_function.generateTagName,
+    action: options.action || "add",
+    wrapForFilter: !!options.wrapForFilter
+  });
+}
 async function getCategoryFilters() {
   const [ornamentTable, prefixTable, stockTypeTable] = await Promise.all([
     Ornament.find().sort({ name: 1 }),
@@ -15,12 +35,36 @@ async function getCategoryFilters() {
   ]);
   return { ornamentTable, prefixTable, stockTypeTable };
 }
-module.exports.categoryPage = async function (req, res) {
+module.exports.invertorySelectionPage = async function (req, res) {
+  try {
+    if (!Object.keys(req.query).length) {
+      return res.redirect("/inventory");
+    }
+    const filters = await getCategoryFilters();
+    return res.render("inventory/inventorySelection", {
+      title: "Inventory Selection",
+      activeNav: "inventory",
+      query: req.query,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Inventory", href: "/inventory" },
+        { label: "Stock Items" }
+      ]),
+      ...filters
+    });
+  } catch (err) {
+    console.log("Error in Inventory Selection Page!", err);
+    req.flash("error", "Error in Inventory Selection Page!");
+    return res.redirect(req.get("Referrer") || "/inventory");
+  }
+};
+module.exports.inventoryPage = async function (req, res) {
   try {
     const filters = await getCategoryFilters();
-    return res.render("inventory", {
+    return res.render("inventory/inventory", {
       title: "Inventory",
-      query: {},
+      activeNav: "inventory",
+      query: req.query || {},
+      ...breadcrumb.label("Inventory"),
       ...filters
     });
   } catch (err) {
@@ -29,88 +73,84 @@ module.exports.categoryPage = async function (req, res) {
     return res.redirect(req.get("Referrer") || "/");
   }
 };
-module.exports.categoryForm = async function (req, res) {
+module.exports.inventoryQuery = async function (req, res) {
   try {
-    if (req.query.item) {
-      let stock = await Stock.findOne({
-        index: req.query.item
-      });
-      if (stock) {
-        return res.redirect("/stock/" + stock.id);
-      } else {
-        req.flash("error", "Tag Number Not Found!");
-        return res.redirect("back");
+    const { item, tag, prefix, ornament, stockType } = req.query;
+    const toFilterArray = (val) => {
+      if (!val) return [];
+      const raw = Array.isArray(val) ? val : String(val).split(",");
+      return raw.map((v) => v.trim()).filter(Boolean);
+    };
+    if (item || tag) {
+      const searchCriteria = item ? { index: item } : { prefix, ornament, tag };
+      const stock = await Stock.findOne(searchCriteria);
+      if (!stock) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Tag Number Not Found!" });
       }
-    } else if (req.query.tag) {
-      let stock = await Stock.findOne({
-        prefix: req.query.prefix,
-        ornament: req.query.ornament,
-        tag: req.query.tag
-      });
-      if (stock) {
-        return res.redirect("/stock/" + stock.id);
-      } else {
-        req.flash("error", "Tag Number Not Found!");
-        return res.redirect("back");
-      }
-    } else if (req.query.stockType) {
-      let stockTable = await Stock.find({
-        stockType: req.query.stockType
-      }).populate("prefix ornament purity stockType stoneTable.type");
-      for (let i = 0; i < stockTable.length; i++) {
-        await common_function.calculatePrice(stockTable[i]);
-      }
-      const filters = await getCategoryFilters();
-      return res.render("inventory", {
-        title: "Stock List",
-        stockTable,
-        query: req.query,
-        ...filters
-      });
-    } else if (!req.query.ornament) {
-      let stockTable = await Stock.find({
-        prefix: req.query.prefix
-      }).populate("prefix ornament purity stockType stoneTable.type");
-      for (let i = 0; i < stockTable.length; i++) {
-        await common_function.calculatePrice(stockTable[i]);
-      }
-      const filters = await getCategoryFilters();
-      return res.render("inventory", {
-        title: "Stock List",
-        stockTable,
-        query: req.query,
-        ...filters
-      });
-    } else {
-      let stockTable = await Stock.find({
-        prefix: req.query.prefix,
-        ornament: req.query.ornament
-      }).populate("prefix ornament purity stockType stoneTable.type");
-      for (let i = 0; i < stockTable.length; i++) {
-        await common_function.calculatePrice(stockTable[i]);
-      }
-      const filters = await getCategoryFilters();
-      return res.render("inventory", {
-        title: "Stock List",
-        stockTable,
-        query: req.query,
-        ...filters
-      });
+      return res
+        .status(200)
+        .json({ success: true, redirectUrl: `/stock/${stock.id}`, stock });
     }
+    const stockQuery = {};
+    const prefixes = toFilterArray(prefix);
+    const ornaments = toFilterArray(ornament);
+    const stockTypes = toFilterArray(stockType);
+    if (stockTypes.length) stockQuery.stockType = { $in: stockTypes };
+    if (prefixes.length) stockQuery.prefix = { $in: prefixes };
+    if (ornaments.length) stockQuery.ornament = { $in: ornaments };
+    const stockTable = await Stock.find(stockQuery).populate(
+      "prefix ornament purity stockType stoneTable.type"
+    );
+    await Promise.all(
+      stockTable.map((stock) => common_function.calculatePrice(stock))
+    );
+    const cardHtml = await Promise.all(
+      stockTable.map((stock) =>
+        renderStockItemCard(stock, { action: "add", wrapForFilter: true })
+      )
+    );
+    const filters = await getCategoryFilters();
+    return res.status(200).json({
+      success: true,
+      title: "Stock List",
+      stockTable,
+      cardHtml,
+      filters,
+      query: req.query
+    });
   } catch (err) {
-    console.log("Error in Stock List Page!", err);
-    req.flash("error", "Error in Stock List Page!");
-    return res.redirect(req.get("Referrer") || "/");
+    console.error("Error in Stock List API:", err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal Server Error" });
   }
 };
 module.exports.dataPage = async function (req, res) {
   try {
     return res.render("dataPage", {
-      title: "Data"
+      title: "Report",
+      ...breadcrumb.label("Reports")
     });
   } catch (err) {
     console.log("Error in Category List Page!", err);
     req.flash("error", "Error in Category List Page!");
+    return res.redirect(req.get("Referrer") || "/");
+  }
+};
+module.exports.analyticsPage = async function (req, res) {
+  try {
+    const goldPrice = await Env_Variable.findOne({ name: "goldPrice" });
+    return res.render("analytics", {
+      title: "Analytics",
+      activeNav: "analytics",
+      goldPrice,
+      ...breadcrumb.label("Analytics")
+    });
+  } catch (err) {
+    console.log("Error in Analytics Page!", err);
+    req.flash("error", "Error in Analytics Page!");
     return res.redirect(req.get("Referrer") || "/");
   }
 };
@@ -436,7 +476,11 @@ module.exports.dailySheetPage = async function (req, res) {
       soldTable: tables[4],
       deletedTable: tables[5],
       approvalGiveTable: tables[6],
-      approvalTakeTable: tables[7]
+      approvalTakeTable: tables[7],
+      breadcrumbs: breadcrumb.trail([
+        { label: "Reports", href: "/dataPage" },
+        { label: "Daily Sheet" }
+      ])
     });
   } catch (err) {
     console.log("Error in Daily Sheet Page!", err);
@@ -494,7 +538,11 @@ module.exports.customSheetPage = async function (req, res) {
       title: "Updates List",
       date: new Date(req.body.date).toDateString(),
       fullList: tables[0],
-      checkList
+      checkList,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Reports", href: "/dataPage" },
+        { label: "Custom Lists" }
+      ])
     });
   } catch (err) {
     console.log("Error in Back Date Page!", err);
@@ -537,7 +585,11 @@ module.exports.backDateSheetPage = async function (req, res) {
       soldTable: tables[4],
       deletedTable: tables[5],
       approvalGiveTable: tables[6],
-      approvalTakeTable: tables[7]
+      approvalTakeTable: tables[7],
+      breadcrumbs: breadcrumb.trail([
+        { label: "Reports", href: "/dataPage" },
+        { label: "Back Date Lists" }
+      ])
     });
   } catch (err) {
     console.log("Error in Back Date Page!", err);
@@ -547,37 +599,16 @@ module.exports.backDateSheetPage = async function (req, res) {
 };
 module.exports.allStockPage = async function (req, res) {
   try {
-    let stockTable = await Stock.find()
-      .populate(
-        "prefix ornament purity kaarigar stockType approveTable stoneTable.type stoneTable.dealerName"
-      )
-      .populate("createdBy", "email name")
-      .populate("deletedBy", "email name")
-      .populate("updatedTable.user", "email name")
-      .populate({
-        path: "bill",
-        populate: [
-          {
-            path: "customer",
-            select: "name"
-          },
-          {
-            path: "user",
-            select: "email name"
-          }
-        ]
-      })
-      .sort({
-        prefix: 1,
-        ornament: 1,
-        tag: 1
-      });
-    for (let i = 0; i < stockTable.length; i++) {
-      await common_function.calculatePrice(stockTable[i]);
-    }
+    const filters = await getCategoryFilters();
+    const totalStock = await Stock.countDocuments();
     return res.render("stockTable", {
       title: "All Stock",
-      stockTable
+      filters,
+      totalStock,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Reports", href: "/dataPage" },
+        { label: "All Stock" }
+      ])
     });
   } catch (err) {
     console.log("Error in All Stock Page!", err);
@@ -585,10 +616,13 @@ module.exports.allStockPage = async function (req, res) {
     return res.redirect(req.get("Referrer") || "/");
   }
 };
-module.exports.allInStockPage = async function (req, res) {
+module.exports.allStockApi = async function (req, res) {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const perPage = parseInt(req.query.perPage) || 10;
+    const skip = (page - 1) * perPage;
     let stockTable = await Stock.find({
-      isInStock: true
+      isInStock: req.query.inStock
     })
       .populate(
         "prefix ornament purity kaarigar stockType approveTable stoneTable.type stoneTable.dealerName"
@@ -613,59 +647,22 @@ module.exports.allInStockPage = async function (req, res) {
         prefix: 1,
         ornament: 1,
         tag: 1
-      });
-    for (let i = 0; i < stockTable.length; i++) {
-      await common_function.calculatePrice(stockTable[i]);
-    }
-    return res.render("stockTable", {
-      title: "All In Stock",
-      stockTable
-    });
-  } catch (err) {
-    console.log("Error in All InStock Page!", err);
-    req.flash("error", "Error in All InStock Page!");
-    return res.redirect(req.get("Referrer") || "/");
-  }
-};
-module.exports.allOutStockPage = async function (req, res) {
-  try {
-    let stockTable = await Stock.find({
-      isInStock: false
-    })
-      .populate(
-        "prefix ornament purity kaarigar stockType approveTable stoneTable.type stoneTable.dealerName"
-      )
-      .populate("createdBy", "email name")
-      .populate("deletedBy", "email name")
-      .populate("updatedTable.user", "email name")
-      .populate({
-        path: "bill",
-        populate: [
-          {
-            path: "customer",
-            select: "name"
-          },
-          {
-            path: "user",
-            select: "email name"
-          }
-        ]
       })
-      .sort({
-        prefix: 1,
-        ornament: 1,
-        tag: 1
-      });
-    for (let i = 0; i < stockTable.length; i++) {
-      await common_function.calculatePrice(stockTable[i]);
-    }
-    return res.render("stockTable", {
-      title: "All Out Stock",
-      stockTable
+      .skip(skip)
+      .limit(perPage);
+    await Promise.all(
+      stockTable.map((stock) => common_function.calculatePrice(stock))
+    );
+    return res.json({
+      success: true,
+      stockTable,
+      currentPage: page,
+      perPage,
+      totalStock: await Stock.countDocuments({ isInStock: req.query.inStock })
     });
   } catch (err) {
-    console.log("Error in All Out Stock Page!", err);
-    req.flash("error", "Error in All Out Stock Page!");
+    console.log("Error in All Stock API!", err);
+    req.flash("error", "Error in All Stock API!");
     return res.redirect(req.get("Referrer") || "/");
   }
 };

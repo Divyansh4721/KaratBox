@@ -4,6 +4,7 @@ const Permission = require("../models/permission");
 const Env_Variable = require("../models/env_variable");
 const mongoose = require("mongoose");
 const common_function = require("../controllers/common_function");
+const breadcrumb = require("../config/breadcrumbs");
 const { use } = require("passport");
 const db = mongoose.connection;
 module.exports.DeveloperConsole = async function (req, res) {
@@ -58,8 +59,8 @@ module.exports.environment = async function (req, res) {
       variables.findIndex((v) => v.name === "daysAllowed"),
       1
     );
-    return res.render("admin_environment", {
-      title: "Environment Page",
+    return res.render("admin/admin_environment", {
+      title: "Settings",
       variables,
       daysAllowed
     });
@@ -133,9 +134,13 @@ module.exports.sessionPage = async function (req, res) {
         newSession[i].expires
       );
     }
-    return res.render("admin_session", {
+    return res.render("admin/admin_session", {
       title: "Session Page",
-      sessionlist: newSession
+      sessionlist: newSession,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Staff Management", href: "/permission" },
+        { label: "Session Page" }
+      ])
     });
   } catch (err) {
     await db.collection("sessions").deleteMany({});
@@ -165,8 +170,9 @@ module.exports.permissionPage = async function (req, res) {
   try {
     let user = await User.find({});
     user.sort(common_function.sortByProperty("name", 1));
-    return res.render("admin_permission", {
-      title: "Permission",
+    return res.render("admin/admin_permission", {
+      title: "Staff Management",
+      breadcrumbLabel: "Staff Management",
       userlist: user
     });
   } catch (err) {
@@ -184,10 +190,13 @@ module.exports.permissionPage_UserButton = async function (req, res) {
       permission[i].available = permission[i].users.includes(req.params.id);
     }
     permission.sort(common_function.sortByProperty("nickname", 1));
-    return res.render("admin_permission_user", {
+    return res.render("admin/admin_permission_user", {
       title: "User Permission",
       userlist: user,
-      permissionlist: permission
+      breadcrumbs: breadcrumb.trail([
+        { label: "Staff Management", href: "/permission" },
+        { label: user.name }
+      ])
     });
   } catch (err) {
     console.log("Error in User Permission Page!", err);
@@ -261,7 +270,6 @@ module.exports.permissionPage_UserForm = async function (req, res) {
     user.adminPermissionTemp = req.body.adminPermissionTemp ? true : false;
     user.adminPermissionPerm = req.body.adminPermissionPerm ? true : false;
     await user.save();
-    permission = permission.filter((obj) => obj.listname !== "admin");
     permission.forEach(async (p) => {
       if (req.body.permission === undefined) p.users.pull(user.id);
       else if (req.body.permission === p.id && !p.users.includes(user.id))
@@ -275,7 +283,8 @@ module.exports.permissionPage_UserForm = async function (req, res) {
       } else p.users.pull(user.id);
       await p.save();
     });
-    return res.redirect(req.get("Referrer") || "/");
+    req.flash("success", "User permissions updated successfully!");
+    return res.redirect("/permission_user/" + user.id);
   } catch (err) {
     console.log("Error in Updating User Permission!", err);
     req.flash("error", "Error in Updating User Permission!");

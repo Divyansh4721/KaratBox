@@ -159,8 +159,13 @@ const StockSchema = new mongoose.Schema(
 const env = require("../config/environment");
 const multer = require("multer");
 const path = require("path");
-const STOCK_PATH = path.join(env.assetPath);
-StockSchema.statics.uploadedAvatar = multer({
+const imagePath = path.join(
+  __dirname,
+  "..",
+  "uploads",
+  "stock"
+);
+StockSchema.statics.uploadImage = multer({
   storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
     if (
@@ -175,6 +180,6 @@ StockSchema.statics.uploadedAvatar = multer({
     }
   }
 }).array("stockImage", 10);
-StockSchema.statics.stockPath = STOCK_PATH;
+StockSchema.statics.stockPath = imagePath;
 const Stock = mongoose.model("Stock", StockSchema);
 module.exports = Stock;

@@ -6,7 +6,7 @@ router.get("/signin", usersController.signin);
 router.get(
   "/auth/google",
   passport.authenticate("google", {
-    scope: ["email"]
+    scope: ["profile", "email"]
   })
 );
 router.get(

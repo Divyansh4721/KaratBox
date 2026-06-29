@@ -5,6 +5,29 @@ const Permission = require("../models/permission");
 const Env_Variable = require("../models/env_variable");
 const mongoose = require("mongoose");
 const db = mongoose.connection;
+function getGooglePhoto(profile) {
+  if (profile.photos && profile.photos.length) {
+    return profile.photos[0].value;
+  }
+  if (profile._json && profile._json.picture) {
+    return profile._json.picture;
+  }
+  return "";
+}
+async function syncGoogleProfile(user, profile) {
+  if (user.useGoogleAvatar === false) {
+    return user;
+  }
+  const googlePhoto = getGooglePhoto(profile);
+  if (!googlePhoto) {
+    return user;
+  }
+  user.googleAvatar = googlePhoto;
+  user.avatar = googlePhoto;
+  user.useGoogleAvatar = true;
+  await user.save();
+  return user;
+}
 // tell passport to use a new strategy for google
 passport.UpdateStrategy = async function () {
   // let google_clientID = await Env_Variable.findOne({
@@ -42,6 +65,7 @@ passport.UpdateStrategy = async function () {
                 user.id == JSON.parse(item.session).passport.user
               )
                 await db.collection("sessions").findOneAndDelete(item);
+            await syncGoogleProfile(user, profile);
             return done(null, user);
           }
           return done(null, false);
@@ -118,11 +142,11 @@ passport.checkAuthentication = async function (req, res, next) {
       }
     }
     // if user not authorized
-    req.logout(function (err) {});
+    req.logout(function (err) { });
     return res.redirect("/users/signin");
   } catch (err) {
     console.log("Error in Checking Authentication!", err);
-    req.logout(function (err) {});
+    req.logout(function (err) { });
     return res.redirect("/users/signin");
   }
 };

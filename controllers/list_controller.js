@@ -1,22 +1,29 @@
 const Index = require("../models/index");
-const Kaarigar = require("../models/list_kaarigar");
-const Ornament = require("../models/list_ornament");
-const Prefix = require("../models/list_prefix");
-const Purity = require("../models/list_purity");
-const StockType = require("../models/list_stocktype");
-const StoneDealer = require("../models/list_stonedealer");
-const StoneType = require("../models/list_stonetype");
+const Kaarigar = require("../models/list_master/kaarigar");
+const Ornament = require("../models/list_master/ornament");
+const Prefix = require("../models/list_master/prefix");
+const Purity = require("../models/list_master/purity");
+const StockType = require("../models/list_master/stocktype");
+const StoneDealer = require("../models/list_master/stonedealer");
+const StoneType = require("../models/list_master/stonetype");
 const Stock = require("../models/stock");
 const Env_Variable = require("../models/env_variable");
 const common_function = require("../controllers/common_function");
+const breadcrumb = require("../config/breadcrumbs");
 module.exports.listMasterPage = async function (req, res) {
   try {
     let TagName = await Env_Variable.findOne({
       name: "TagName"
     });
-    return res.render("_list_master", {
+    let goldPrice = await Env_Variable.findOne({
+      name: "goldPrice"
+    });
+    return res.render("list_master", {
       title: "List Master",
-      TagName
+      activeNav: "list_master",
+      TagName: TagName || { value: "" },
+      goldPrice: goldPrice || { value: "0" },
+      ...breadcrumb.label("List Master")
     });
   } catch (err) {
     console.log("Error in List Master Page!", err);
@@ -44,16 +51,22 @@ module.exports.kaarigarPage = async function (req, res) {
     let kaarigar = await Kaarigar.find().sort({
       name: 1
     });
+    kaarigar = JSON.parse(JSON.stringify(kaarigar));
     for (let i = 0; i < kaarigar.length; i++) {
       let stock = await Stock.find({
-        kaarigar: kaarigar[i].id
+        kaarigar: kaarigar[i]._id
       });
-      kaarigar[i].name += " (" + stock.length + ")";
+      kaarigar[i].stockCount = stock.length;
     }
-    return res.render("edit_add_del_layout", {
+    return res.render("list_master/edit_add_del_kaarigar", {
       title: "Kaarigar",
+      activeNav: "list_master",
       name: "Kaarigar",
-      options: kaarigar
+      options: kaarigar,
+      breadcrumbs: breadcrumb.trail([
+        { label: "List Master", href: "/list_master" },
+        { label: "Kaarigar" }
+      ])
     });
   } catch (err) {
     console.log("Error in Kaarigar Page!", err);
@@ -108,16 +121,22 @@ module.exports.ornamentPage = async function (req, res) {
     let ornament = await Ornament.find().sort({
       name: 1
     });
+    ornament = JSON.parse(JSON.stringify(ornament));
     for (let i = 0; i < ornament.length; i++) {
       let stock = await Stock.find({
-        ornament: ornament[i].id
+        ornament: ornament[i]._id
       });
-      ornament[i].name += " (" + stock.length + ")";
+      ornament[i].stockCount = stock.length;
     }
-    return res.render("edit_add_del_layout", {
+    return res.render("list_master/edit_add_del_ornament", {
       title: "Ornament",
+      activeNav: "list_master",
       name: "Ornament",
-      options: ornament
+      options: ornament,
+      breadcrumbs: breadcrumb.trail([
+        { label: "List Master", href: "/list_master" },
+        { label: "Ornament" }
+      ])
     });
   } catch (err) {
     console.log("Error in Ornament Page!", err);
@@ -183,16 +202,22 @@ module.exports.prefixPage = async function (req, res) {
     let prefix = await Prefix.find().sort({
       name: 1
     });
+    prefix = JSON.parse(JSON.stringify(prefix));
     for (let i = 0; i < prefix.length; i++) {
       let stock = await Stock.find({
-        prefix: prefix[i].id
+        prefix: prefix[i]._id
       });
-      prefix[i].name += " (" + stock.length + ")";
+      prefix[i].stockCount = stock.length;
     }
-    return res.render("edit_add_del_layout", {
+    return res.render("list_master/edit_add_del_prefix", {
       title: "Prefix",
+      activeNav: "list_master",
       name: "Prefix",
-      options: prefix
+      options: prefix,
+      breadcrumbs: breadcrumb.trail([
+        { label: "List Master", href: "/list_master" },
+        { label: "Prefix" }
+      ])
     });
   } catch (err) {
     console.log("Error in Prefix Page!", err);
@@ -258,24 +283,22 @@ module.exports.purityPage = async function (req, res) {
     let purity = await Purity.find().sort({
       name: 1
     });
+    purity = JSON.parse(JSON.stringify(purity));
     for (let i = 0; i < purity.length; i++) {
-      purity[i].name =
-        purity[i].name +
-        " | " +
-        purity[i].wholesaleMultiplier +
-        " | " +
-        purity[i].retailMultiplier +
-        " | " +
-        purity[i].wastage;
       let stock = await Stock.find({
-        purity: purity[i].id
+        purity: purity[i]._id
       });
-      purity[i].name += " (" + stock.length + ")";
+      purity[i].stockCount = stock.length;
     }
-    return res.render("edit_add_del_purity", {
+    return res.render("list_master/edit_add_del_purity", {
       title: "Purity",
+      activeNav: "list_master",
       name: "Purity",
-      options: purity
+      options: purity,
+      breadcrumbs: breadcrumb.trail([
+        { label: "List Master", href: "/list_master" },
+        { label: "Purity" }
+      ])
     });
   } catch (err) {
     console.log("Error in Purity Page!", err);
@@ -336,16 +359,22 @@ module.exports.stockTypePage = async function (req, res) {
     let stockType = await StockType.find().sort({
       name: 1
     });
+    stockType = JSON.parse(JSON.stringify(stockType));
     for (let i = 0; i < stockType.length; i++) {
       let stock = await Stock.find({
-        stockType: stockType[i].id
+        stockType: stockType[i]._id
       });
-      stockType[i].name += " (" + stock.length + ")";
+      stockType[i].stockCount = stock.length;
     }
-    return res.render("edit_add_del_layout", {
+    return res.render("list_master/edit_add_del_stocktype", {
       title: "StockType",
+      activeNav: "list_master",
       name: "StockType",
-      options: stockType
+      options: stockType,
+      breadcrumbs: breadcrumb.trail([
+        { label: "List Master", href: "/list_master" },
+        { label: "StockType" }
+      ])
     });
   } catch (err) {
     console.log("Error in StockType Page!", err);
@@ -400,16 +429,22 @@ module.exports.stoneDealerPage = async function (req, res) {
     let stoneDealer = await StoneDealer.find().sort({
       name: 1
     });
+    stoneDealer = JSON.parse(JSON.stringify(stoneDealer));
     for (let i = 0; i < stoneDealer.length; i++) {
       let stock = await Stock.find({
-        "stoneTable.dealerName": stoneDealer[i].id
+        "stoneTable.dealerName": stoneDealer[i]._id
       });
-      stoneDealer[i].name += " (" + stock.length + ")";
+      stoneDealer[i].stockCount = stock.length;
     }
-    return res.render("edit_add_del_layout", {
+    return res.render("list_master/edit_add_del_stonedealer", {
       title: "StoneDealer",
+      activeNav: "list_master",
       name: "StoneDealer",
-      options: stoneDealer
+      options: stoneDealer,
+      breadcrumbs: breadcrumb.trail([
+        { label: "List Master", href: "/list_master" },
+        { label: "StoneDealer" }
+      ])
     });
   } catch (err) {
     console.log("Error in StoneDealer Page!", err);
@@ -464,16 +499,22 @@ module.exports.stoneTypePage = async function (req, res) {
     let stoneType = await StoneType.find().sort({
       name: 1
     });
+    stoneType = JSON.parse(JSON.stringify(stoneType));
     for (let i = 0; i < stoneType.length; i++) {
       let stock = await Stock.find({
-        "stoneTable.type": stoneType[i].id
+        "stoneTable.type": stoneType[i]._id
       });
-      stoneType[i].name += " (" + stock.length + ")";
+      stoneType[i].stockCount = stock.length;
     }
-    return res.render("edit_add_del_layout", {
+    return res.render("list_master/edit_add_del_stonetype", {
       title: "StoneType",
+      activeNav: "list_master",
       name: "StoneType",
-      options: stoneType
+      options: stoneType,
+      breadcrumbs: breadcrumb.trail([
+        { label: "List Master", href: "/list_master" },
+        { label: "StoneType" }
+      ])
     });
   } catch (err) {
     console.log("Error in StoneType Page!", err);

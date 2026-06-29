@@ -1,15 +1,17 @@
+const axios = require("axios");
 const Approval = require("../models/approval");
 const Bill = require("../models/bill");
 const Customer = require("../models/customer");
 const Env_Variable = require("../models/env_variable");
 const Index = require("../models/index");
-const Ornament = require("../models/list_ornament");
-const Prefix = require("../models/list_prefix");
-const Purity = require("../models/list_purity");
-const StoneType = require("../models/list_stonetype");
+const Ornament = require("../models/list_master/ornament");
+const Prefix = require("../models/list_master/prefix");
+const Purity = require("../models/list_master/purity");
+const StoneType = require("../models/list_master/stonetype");
 const Stock = require("../models/stock");
 const User = require("../models/user");
 const common_function = require("../controllers/common_function");
+const breadcrumb = require("../config/breadcrumbs");
 module.exports.homePage = async function (req, res) {
   try {
     let goldPrice = await Env_Variable.findOne({
@@ -23,6 +25,24 @@ module.exports.homePage = async function (req, res) {
     console.log("Error in Home Page!", err);
     req.flash("error", "Error in Home Page!");
     return res.redirect(req.get("Referrer") || "/");
+  }
+};
+module.exports.getLiveGoldRate = async function (req, res) {
+  try {
+    const apiUrl =
+      "https://bcast.jmdpatil.com:7768/VOTSBroadcastStreaming/Services/xml/GetLiveRateByTemplateID/jmd";
+    const response = await axios.get(apiUrl);
+    const rows = response.data.trim().split("\n");
+    const result = [];
+    for (const row of rows) {
+      const trimmedRow = row.trim();
+      const columns = trimmedRow.split("\t");
+      result.push(columns.slice(2));
+    }
+    return res.json({ rate: result[5][1] });
+  } catch (err) {
+    console.log("Error fetching live gold rate", err.message);
+    return res.status(502).json({ error: "Unable to fetch live gold rate" });
   }
 };
 module.exports.updateGoldPriceForm = async function (req, res) {
@@ -60,7 +80,10 @@ module.exports.cartPage = async function (req, res) {
     }
     return res.render("cart", {
       title: "Cart",
-      stockTable
+      stockTable,
+      generateTagName: common_function.generateTagName,
+      hideBreadcrumb: true,
+      ...breadcrumb.label("Cart")
     });
   } catch (err) {
     console.log("Error in Cart Page!", err);
@@ -165,12 +188,17 @@ module.exports.estimateRetailPage = async function (req, res) {
     });
     return res.render("estimateRetail", {
       title: "Estimate Retail",
+      activeNav: "inventory",
       stockTable,
       ornamentTable,
       prefixTable,
       purityTable,
       stoneTypeTable,
-      goldPrice: goldPrice.value
+      goldPrice: goldPrice.value,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Cart", href: "/cart" },
+        { label: "Estimate Retail" }
+      ])
     });
   } catch (err) {
     console.log("Error in Estimate Page!", err);
@@ -210,13 +238,18 @@ module.exports.estimateWholesalePage = async function (req, res) {
     });
     return res.render("estimateWholesale", {
       title: "Estimate Wholesale",
+      activeNav: "inventory",
       stockTable,
       ornamentTable,
       billTable: [],
       prefixTable,
       purityTable,
       stoneTypeTable,
-      goldPrice: goldPrice.value
+      goldPrice: goldPrice.value,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Cart", href: "/cart" },
+        { label: "Estimate Wholesale" }
+      ])
     });
   } catch (err) {
     console.log("Error in Estimate Page!", err);
@@ -256,13 +289,19 @@ module.exports.estimateWholesaleBillPage = async function (req, res) {
     });
     return res.render("estimateWholesale", {
       title: "Estimate Wholesale",
+      activeNav: "inventory",
       stockTable,
       ornamentTable,
       billTable: bill.stoneTable,
       prefixTable,
       purityTable,
       stoneTypeTable,
-      goldPrice: bill.goldRate
+      goldPrice: bill.goldRate,
+      backHref: "/billPage",
+      breadcrumbs: breadcrumb.trail([
+        { label: "Bills", href: "/billPage" },
+        { label: "Estimate Wholesale" }
+      ])
     });
   } catch (err) {
     console.log("Error in Estimate Page!", err);
@@ -305,9 +344,14 @@ module.exports.soldRetailPage = async function (req, res) {
     }
     return res.render("soldRetail", {
       title: "Sell Retail",
+      activeNav: "inventory",
       stockTable,
       customerTable,
-      tTotalPrice
+      tTotalPrice,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Cart", href: "/cart" },
+        { label: "Sell Retail" }
+      ])
     });
   } catch (err) {
     console.log("Error in Stock Selling Page!", err);
@@ -418,9 +462,14 @@ module.exports.soldWholesalePage = async function (req, res) {
     });
     return res.render("soldWholesale", {
       title: "Sell Wholesale",
+      activeNav: "inventory",
       stockTable,
       customerTable,
-      goldPrice: goldPrice.value
+      goldPrice: goldPrice.value,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Cart", href: "/cart" },
+        { label: "Sell Wholesale" }
+      ])
     });
   } catch (err) {
     console.log("Error in Stock Selling Page!", err);
@@ -499,9 +548,10 @@ module.exports.billPage = async function (req, res) {
       .sort({
         createdAt: -1
       });
-    return res.render("billForm", {
+    return res.render("bill/billForm", {
       title: "View Bill",
-      billTable
+      billTable,
+      ...breadcrumb.label("Bills")
     });
   } catch (err) {
     console.log("Error in Bill List Page!", err);
@@ -524,11 +574,16 @@ module.exports.billView = async function (req, res) {
         ornament: 1,
         tag: 1
       });
-    return res.render("bill", {
+    return res.render("bill/bill", {
       title: "Bill",
       bill,
       stockTable,
-      convertDate: common_function.convertDate
+      convertDate: common_function.convertDate,
+      generateTagName: common_function.generateTagName,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Bills", href: "/billPage" },
+        { label: bill.customer ? bill.customer.name : "Bill" }
+      ])
     });
   } catch (err) {
     console.log("Error in Viewing Bill Page!", err);
@@ -571,10 +626,15 @@ module.exports.approvalAddPage = async function (req, res) {
       totalCash += i.sellingPrice;
     }
     return res.render("approval_add", {
-      title: "Add Approval",
+      title: "Approval",
+      activeNav: "inventory",
       stockTable,
       customerTable,
-      totalCash
+      totalCash,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Cart", href: "/cart" },
+        { label: "Approval" }
+      ])
     });
   } catch (err) {
     console.log("Error in Approval Add Page!", err);
@@ -627,9 +687,10 @@ module.exports.approvalViewPage = async function (req, res) {
         userTake: 1,
         approvedDate: -1
       });
-    return res.render("approval_view", {
+    return res.render("approval/approval_view", {
       title: "Approval List",
-      approvalTable
+      approvalTable,
+      breadcrumbLabel: "Approval List"
     });
   } catch (err) {
     console.log("Error in Approval View Page!", err);
@@ -654,10 +715,14 @@ module.exports.approvalRecvPage = async function (req, res) {
         ornament: 1,
         tag: 1
       });
-    return res.render("approval_recv", {
+    return res.render("approval/approval_recv", {
       title: "View Approval",
       approval,
-      stockTable
+      stockTable,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Approval List", href: "/approvalViewPage" },
+        { label: "View Approval" }
+      ])
     });
   } catch (err) {
     console.log("Error in Approval Receive Page!", err);

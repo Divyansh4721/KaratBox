@@ -1,15 +1,16 @@
 const Env_Variable = require("../models/env_variable");
 const Index = require("../models/index");
-const Kaarigar = require("../models/list_kaarigar");
-const Ornament = require("../models/list_ornament");
-const Prefix = require("../models/list_prefix");
-const Purity = require("../models/list_purity");
-const StockType = require("../models/list_stocktype");
-const StoneDealer = require("../models/list_stonedealer");
-const StoneType = require("../models/list_stonetype");
+const Kaarigar = require("../models/list_master/kaarigar");
+const Ornament = require("../models/list_master/ornament");
+const Prefix = require("../models/list_master/prefix");
+const Purity = require("../models/list_master/purity");
+const StockType = require("../models/list_master/stocktype");
+const StoneDealer = require("../models/list_master/stonedealer");
+const StoneType = require("../models/list_master/stonetype");
 const Stock = require("../models/stock");
 const User = require("../models/user");
 const common_function = require("../controllers/common_function");
+const breadcrumb = require("../config/breadcrumbs");
 module.exports.stockAddPage = async function (req, res) {
   try {
     let indexTable = await Index.find();
@@ -35,8 +36,9 @@ module.exports.stockAddPage = async function (req, res) {
     let envVar = await Index.findOne({
       name: "index"
     });
-    return res.render("stock_add", {
+    return res.render("inventory/stock_add", {
       title: "Add Stock",
+      activeNav: "inventory",
       index: envVar.index * 1 + 1,
       indexTable,
       kaarigarTable,
@@ -45,7 +47,11 @@ module.exports.stockAddPage = async function (req, res) {
       purityTable,
       stockTypeTable,
       stoneDealerTable,
-      stoneTypeTable
+      stoneTypeTable,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Inventory", href: "/inventory" },
+        { label: "Add Stock" }
+      ])
     });
   } catch (err) {
     console.log("Error in Stock Add Page!", err);
@@ -62,22 +68,26 @@ module.exports.stockAddForm = async function (req, res) {
     await envVar.save();
     req.fileCounter = 0;
     req.fileName = envVar.index;
-    Stock.uploadedAvatar(req, res, async function (err) {
+    Stock.uploadImage(req, res, async function (err) {
       if (err) {
         console.log("************Multer Error", err);
         req.flash("error", "File Type Not Correct!");
         return res.redirect(req.get("Referrer") || "/");
       }
+      if (!req.files || !req.files.length) {
+        req.flash("error", "Please add at least one product image.");
+        return res.redirect("/stock_add");
+      }
       let env = require("../config/environment");
       let path = require("path");
-      let STOCK_PATH = path.join(env.assetPath);
+      let imagePath = Stock.imagePath;
       let fs = require("fs");
       for (let i = 0; i < req.files.length; i++) {
         let dest = path.join(
-          STOCK_PATH,
+          imagePath,
           req.body.index + "-" + (i + 1) + ".png"
         );
-        await fs.writeFile(dest, req.files[i].buffer, () => {});
+        await fs.writeFile(dest, req.files[i].buffer, () => { });
         req.files[i].filename = path.join(
           req.body.index + "-" + (i + 1) + ".png"
         );
@@ -230,10 +240,15 @@ module.exports.stockViewPage = async function (req, res) {
         ]
       });
     await common_function.calculatePrice(stock);
-    return res.render("stock_view", {
+    const tagName = common_function.generateTagName(stock);
+    return res.render("inventory/stock_view", {
       title: "View Stock",
       stock,
-      convertDate: common_function.convertDate
+      convertDate: common_function.convertDate,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Inventory", href: "/inventory" },
+        { label: tagName }
+      ])
     });
   } catch (err) {
     console.log("Error in Stock Viewing Page!", err);
@@ -281,7 +296,11 @@ module.exports.stockEditPage = async function (req, res) {
       purityTable,
       stockTypeTable,
       stoneDealerTable,
-      stoneTypeTable
+      stoneTypeTable,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Inventory", href: "/inventory" },
+        { label: "Edit Stock" }
+      ])
     });
   } catch (err) {
     console.log("Error in Stock Edit Page!", err);
@@ -292,7 +311,7 @@ module.exports.stockEditPage = async function (req, res) {
 module.exports.stockEditForm = async function (req, res) {
   try {
     req.fileCounter = 0;
-    Stock.uploadedAvatar(req, res, async function (err) {
+    Stock.uploadImage(req, res, async function (err) {
       if (err) {
         console.log("************Multer Error", err);
         req.flash("error", "File Type Not Correct!");
@@ -300,17 +319,17 @@ module.exports.stockEditForm = async function (req, res) {
       }
       let env = require("../config/environment");
       let path = require("path");
-      let STOCK_PATH = path.join(env.assetPath);
+      let imagePath = Stock.imagePath;
       let fs = require("fs");
       for (
         let i = 0;
         await fs.existsSync(
-          path.join(STOCK_PATH, req.body.index + "-" + (i + 1) + ".png")
+          path.join(imagePath, req.body.index + "-" + (i + 1) + ".png")
         );
         i++
       ) {
         await fs.unlinkSync(
-          path.join(STOCK_PATH, req.body.index + "-" + (i + 1) + ".png")
+          path.join(imagePath, req.body.index + "-" + (i + 1) + ".png")
         );
       }
       let tempStock = await Stock.findOne({
@@ -319,20 +338,20 @@ module.exports.stockEditForm = async function (req, res) {
       for (let i = 0; i < tempStock.stockImage.length; i++) {
         if (
           await fs.existsSync(
-            path.join(STOCK_PATH, tempStock.stockImage[i].fileName)
+            path.join(imagePath, tempStock.stockImage[i].fileName)
           )
         ) {
           await fs.unlinkSync(
-            path.join(STOCK_PATH, tempStock.stockImage[i].fileName)
+            path.join(imagePath, tempStock.stockImage[i].fileName)
           );
         }
       }
       for (let i = 0; i < req.files.length; i++) {
         let dest = path.join(
-          STOCK_PATH,
+          imagePath,
           req.body.index + "-" + (i + 1) + ".png"
         );
-        await fs.writeFile(dest, req.files[i].buffer, () => {});
+        await fs.writeFile(dest, req.files[i].buffer, () => { });
         req.files[i].filename = path.join(
           req.body.index + "-" + (i + 1) + ".png"
         );
@@ -495,15 +514,15 @@ module.exports.stockEditForm = async function (req, res) {
         if (
           String(tempStock.stoneTable[i].type) !== String(stoneTable[i].type) ||
           Number(tempStock.stoneTable[i].ctWeight) !==
-            Number(stoneTable[i].ctWeight) ||
+          Number(stoneTable[i].ctWeight) ||
           Number(tempStock.stoneTable[i].gmWeight) !==
-            Number(stoneTable[i].gmWeight) ||
+          Number(stoneTable[i].gmWeight) ||
           Number(tempStock.stoneTable[i].sellRate || "") !==
-            Number(stoneTable[i].sellRate || "") ||
+          Number(stoneTable[i].sellRate || "") ||
           Number(tempStock.stoneTable[i].purchaseRate || "") !==
-            Number(stoneTable[i].purchaseRate || "") ||
+          Number(stoneTable[i].purchaseRate || "") ||
           String(tempStock.stoneTable[i].dealerName || "") !==
-            String(stoneTable[i].dealerName || "")
+          String(stoneTable[i].dealerName || "")
         ) {
           isSame = false;
         }
@@ -661,7 +680,11 @@ module.exports.stockImageEditPage = async function (req, res) {
       purityTable,
       stockTypeTable,
       stoneDealerTable,
-      stoneTypeTable
+      stoneTypeTable,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Inventory", href: "/inventory" },
+        { label: "Edit Images" }
+      ])
     });
   } catch (err) {
     console.log("Error in Stock Edit Page!", err);
@@ -672,7 +695,7 @@ module.exports.stockImageEditPage = async function (req, res) {
 module.exports.stockImageEditForm = async function (req, res) {
   try {
     req.fileCounter = 0;
-    Stock.uploadedAvatar(req, res, async function (err) {
+    Stock.uploadImage(req, res, async function (err) {
       if (err) {
         console.log("************Multer Error", err);
         req.flash("error", "File Type Not Correct!");
@@ -680,17 +703,17 @@ module.exports.stockImageEditForm = async function (req, res) {
       }
       let env = require("../config/environment");
       let path = require("path");
-      let STOCK_PATH = path.join(env.assetPath);
+      let imagePath = Stock.imagePath;
       let fs = require("fs");
       for (
         let i = 0;
         await fs.existsSync(
-          path.join(STOCK_PATH, req.body.index + "-" + (i + 1) + ".png")
+          path.join(imagePath, req.body.index + "-" + (i + 1) + ".png")
         );
         i++
       ) {
         await fs.unlinkSync(
-          path.join(STOCK_PATH, req.body.index + "-" + (i + 1) + ".png")
+          path.join(imagePath, req.body.index + "-" + (i + 1) + ".png")
         );
       }
       let tempStock = await Stock.findOne({
@@ -699,20 +722,20 @@ module.exports.stockImageEditForm = async function (req, res) {
       for (let i = 0; i < tempStock.stockImage.length; i++) {
         if (
           await fs.existsSync(
-            path.join(STOCK_PATH, tempStock.stockImage[i].fileName)
+            path.join(imagePath, tempStock.stockImage[i].fileName)
           )
         ) {
           await fs.unlinkSync(
-            path.join(STOCK_PATH, tempStock.stockImage[i].fileName)
+            path.join(imagePath, tempStock.stockImage[i].fileName)
           );
         }
       }
       for (let i = 0; i < req.files.length; i++) {
         let dest = path.join(
-          STOCK_PATH,
+          imagePath,
           req.body.index + "-" + (i + 1) + ".png"
         );
-        await fs.writeFile(dest, req.files[i].buffer, () => {});
+        await fs.writeFile(dest, req.files[i].buffer, () => { });
         req.files[i].filename = path.join(
           req.body.index + "-" + (i + 1) + ".png"
         );
@@ -766,9 +789,14 @@ module.exports.editMultipleStock = async function (req, res) {
     });
     return res.render("stock_edit_multiple", {
       title: "Edit Multiple",
+      activeNav: "inventory",
       stockTable,
       stockTypeTable,
-      kaarigarTable
+      kaarigarTable,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Cart", href: "/cart" },
+        { label: "Edit Multiple" }
+      ])
     });
   } catch (err) {
     console.log("Error in Multiple Stock Edit Page!", err);
@@ -845,10 +873,11 @@ module.exports.printTag = async function (req, res) {
       name: "TagName"
     });
     return res.render("tags", {
-      layout: false,
       title: "Tags",
+      activeNav: "inventory",
       stockTable,
-      tag_name: tag_name.value
+      tag_name: tag_name.value,
+      backHref: "/stock/" + stockTable[0]._id
     });
   } catch (err) {
     console.log("Error in Multiple Tags Print Page!", err);
@@ -897,10 +926,15 @@ module.exports.printMultipleTags = async function (req, res) {
       name: "TagName"
     });
     return res.render("tags", {
-      layout: false,
-      title: "Multiple Tags",
+      title: "Print Tags",
+      activeNav: "inventory",
       stockTable,
-      tag_name: tag_name.value
+      tag_name: tag_name.value,
+      backHref: "/cart",
+      breadcrumbs: breadcrumb.trail([
+        { label: "Cart", href: "/cart" },
+        { label: "Print Tags" }
+      ])
     });
   } catch (err) {
     console.log("Error in Multiple Tags Print Page!", err);

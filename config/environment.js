@@ -4,8 +4,6 @@ const development = {
   cookieTime: 7 * 24 * 60 * 60 * 1000,
   asset_path: "/assets",
   session_cookie_key: "blahsomething",
-  assetPath: path.join(__dirname, "..", "uploads"),
-  // assetPath: path.join(os.homedir() , "Jewellery", "uploads"),
   db: "Jewellery",
   smtp: {
     service: "gmail",

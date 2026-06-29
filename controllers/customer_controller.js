@@ -1,6 +1,7 @@
 const Bill = require("../models/bill");
 const Customer = require("../models/customer");
 const common_function = require("../controllers/common_function");
+const breadcrumb = require("../config/breadcrumbs");
 module.exports.CustomerPage = async function (req, res) {
   try {
     let customer = await Customer.findById(req.query.id)
@@ -26,6 +27,15 @@ module.exports.CustomerPage = async function (req, res) {
             populate: "prefix ornament purity stockType stoneTable.type"
           }
         ]
+      })
+      .populate({
+        path: "payments",
+        populate: [
+          {
+            path: "user",
+            select: "email name"
+          }
+        ]
       });
     let cashBalance = 0;
     let goldBalance = 0;
@@ -34,6 +44,7 @@ module.exports.CustomerPage = async function (req, res) {
       if (i.totalCash) {
         entries.push({
           id: i.id,
+          user: i.user,
           bill: "bill",
           type: "left",
           amount: i.totalCash,
@@ -45,6 +56,7 @@ module.exports.CustomerPage = async function (req, res) {
       } else {
         entries.push({
           id: i.id,
+          user: i.user,
           bill: "bill",
           type: "left",
           amount: i.amount,
@@ -57,6 +69,7 @@ module.exports.CustomerPage = async function (req, res) {
     for (let i of customer.approvals) {
       entries.push({
         id: i.id,
+        user: i.user,
         bill: "approval",
         type: "middle",
         amount: i.totalCash,
@@ -67,6 +80,7 @@ module.exports.CustomerPage = async function (req, res) {
       if (i.amount) {
         entries.push({
           id: i.id,
+          user: i.user,
           bill: "",
           type: i.amount > 0 ? "right" : "left",
           amount: Math.abs(i.amount),
@@ -77,6 +91,7 @@ module.exports.CustomerPage = async function (req, res) {
       } else {
         entries.push({
           id: i.id,
+          user: i.user,
           bill: "",
           type: i.gold > 0 ? "right" : "left",
           amount: 0,
@@ -88,13 +103,17 @@ module.exports.CustomerPage = async function (req, res) {
       }
     }
     entries.sort((a, b) => a.date - b.date);
-    return res.render("customer_view", {
+    return res.render("customer/customer_view", {
       title: "Customer",
       customer,
       entries,
       cashBalance,
       goldBalance,
-      convertDate: common_function.convertDate
+      convertDate: common_function.convertDate,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Customer Management", href: "/customerTable" },
+        { label: customer.name }
+      ])
     });
   } catch (err) {
     console.log("Error in Customer Page!", err);
@@ -134,10 +153,11 @@ module.exports.CustomerPageTable = async function (req, res) {
       .sort({
         createdAt: -1
       });
-    return res.render("customer_table", {
+    return res.render("customer/customer_table", {
       title: "Customer",
       customerTable,
-      convertDate: common_function.convertDate
+      convertDate: common_function.convertDate,
+      breadcrumbLabel: "Customer Management"
     });
   } catch (err) {
     console.log("Error in Customer View Page!", err);
@@ -166,7 +186,11 @@ async function checkPhoneNumber(InputPhoneList, InputID) {
 module.exports.addCustomerPage = async function (req, res) {
   try {
     return res.render("customer_add", {
-      title: "Customer"
+      title: "Customer",
+      ...breadcrumb.trail([
+        { label: "Customer Management", href: "/customerTable" },
+        { label: "Add Customer" }
+      ])
     });
   } catch (err) {
     console.log("Error in Customer Add Page!", err);
@@ -218,9 +242,14 @@ module.exports.addCustomerForm = async function (req, res) {
 module.exports.editCustomerPage = async function (req, res) {
   try {
     let customer = await Customer.findById(req.params.id);
-    return res.render("customer_edit", {
+    return res.render("customer/customer_edit", {
       title: "Customer",
-      customer
+      customer,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Customer Management", href: "/customerTable" },
+        { label: customer.name, href: "/customer?id=" + customer.id },
+        { label: "Edit Profile" }
+      ])
     });
   } catch (err) {
     console.log("Error in Customer Edit Page!", err);
@@ -260,7 +289,7 @@ module.exports.editCustomerForm = async function (req, res) {
     customer.user = req.user.id;
     await customer.save();
     req.flash("success", "Edited Customer Successfully!");
-    return res.redirect("/customer?id=" + req.body.id);
+    return res.redirect(req.body.returnUrl || "/customer?id=" + req.body.id);
   } catch (err) {
     console.log("Error in Editing Customer!", err);
     req.flash("error", "Error in Editing Customer!");
@@ -272,12 +301,14 @@ module.exports.addPaymentCustomer = async function (req, res) {
     let customer = await Customer.findById(req.body.id);
     if (req.body.amount) {
       customer.payments.push({
+        user: req.user.id,
         amount: req.body.amount,
         date: req.body.date,
         remark: req.body.remark.replace(/[^a-zA-Z0-9 ]/g, " ")
       });
     } else {
       customer.payments.push({
+        user: req.user.id,
         gold: req.body.gold,
         date: req.body.date
       });
@@ -320,6 +351,33 @@ module.exports.delBillCustomer = async function (req, res) {
     console.log("Error in Deleting Customer Bill!", err);
     req.flash("error", "Error in Deleting Customer Bill!");
     return res.redirect(req.get("Referrer") || "/");
+  }
+};
+module.exports.delCustomer = async function (req, res) {
+  try {
+    let customer = await Customer.findById(req.query.id);
+    if (!customer) {
+      req.flash("error", "Customer not found!");
+      return res.redirect(req.get("Referrer") || "/customerTable");
+    }
+    if (
+      customer.bills.length ||
+      customer.approvals.length ||
+      customer.payments.length
+    ) {
+      req.flash(
+        "error",
+        "Customer has bills, approvals, or payments. Settle first."
+      );
+      return res.redirect(req.get("Referrer") || "/customerTable");
+    }
+    await Customer.findByIdAndDelete(req.query.id);
+    req.flash("success", "Deleted Customer Successfully!");
+    return res.redirect(req.get("Referrer") || "/customerTable");
+  } catch (err) {
+    console.log("Error in Deleting Customer!", err);
+    req.flash("error", "Error in Deleting Customer!");
+    return res.redirect(req.get("Referrer") || "/customerTable");
   }
 };
 module.exports.settleCustomer = async function (req, res) {
