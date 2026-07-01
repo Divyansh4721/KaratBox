@@ -1,0 +1,76 @@
+<script>
+  const crudRoutes = <%- JSON.stringify(routes) %>;
+
+  function notify(text, type) {
+    if (typeof Noty !== 'undefined') {
+      new Noty({ theme: 'nest', text, type, layout: 'topCenter', timeout: 2000 }).show();
+    } else {
+      alert(text);
+    }
+  }
+
+  async function postForm(url, form) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(new FormData(form))
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Request failed');
+    return json;
+  }
+
+  function sortRows() {
+    allRows.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  document.querySelector('#createModal form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const json = await postForm(crudRoutes.add, e.target);
+      allRows.push({ ...json.data, stockCount: json.data.stockCount || 0 });
+      sortRows();
+      e.target.reset();
+      closeCreateModal();
+      pager.resetPage();
+      renderTable();
+      notify(json.message, 'success');
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  });
+
+  document.querySelector('#editModal form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const oldId = new FormData(e.target).get('oldname');
+      const json = await postForm(crudRoutes.edit, e.target);
+      const idx = allRows.findIndex(r => String(r._id) === String(oldId));
+      if (idx >= 0) {
+        allRows[idx] = { ...json.data, stockCount: allRows[idx].stockCount };
+      }
+      sortRows();
+      closeEditModal();
+      renderTable();
+      notify(json.message, 'success');
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  });
+
+  document.getElementById('deleteForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const id = document.getElementById('deleteId').value;
+      const json = await postForm(crudRoutes.delete, e.target);
+      const idx = allRows.findIndex(r => String(r._id) === String(id));
+      if (idx >= 0) allRows.splice(idx, 1);
+      closeDeleteModal();
+      pager.resetPage();
+      renderTable();
+      notify(json.message, 'success');
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  });
+</script>

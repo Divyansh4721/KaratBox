@@ -1,3 +1,8 @@
+<% const routes = {
+  add: '/list_master/stonetype/add-stonetype',
+  edit: '/list_master/stonetype/edit-stonetype',
+  delete: '/list_master/stonetype/delete-stonetype'
+}; %>
 <%- include('_crud_page', { options, lm: {
     entity: 'StoneType',
     tableId: 'stoneTypeTableBody',
@@ -5,7 +10,7 @@
     recordLabel: 'stone type',
     ledgerLabel: 'StoneType',
     csvFile: 'stonetype-records.csv',
-    routes: { add: '/addStoneType', edit: '/editStoneType', delete: '/delStoneType' },
+    routes,
     columns: [
         { key: 'name', label: 'StoneType Name', cell: 'primary' },
         { key: 'stockCount', label: 'Stock Count', cell: 'badge' }
@@ -23,3 +28,4 @@
         deleteSubmit: 'Delete StoneType'
     }
 }}) %>
+<%- include('_crud_ajax_script', { routes }) %>

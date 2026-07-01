@@ -8,6 +8,7 @@
     "author": "Divyansh",
     "license": "ISC",
     "dependencies": {
+        "archiver": "^8.0.0",
         "axios": "^1.17.0",
         "body-parser": "^2.2.2",
         "connect-flash": "^0.1.1",

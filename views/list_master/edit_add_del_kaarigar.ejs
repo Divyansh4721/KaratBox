@@ -1,3 +1,8 @@
+<% const routes = {
+  add: '/list_master/kaarigar/add-kaarigar',
+  edit: '/list_master/kaarigar/edit-kaarigar',
+  delete: '/list_master/kaarigar/delete-kaarigar'
+}; %>
 <%- include('_crud_page', { options, lm: {
     entity: 'Kaarigar',
     tableId: 'kaarigarTableBody',
@@ -5,7 +10,7 @@
     recordLabel: 'kaarigar',
     ledgerLabel: 'Kaarigar',
     csvFile: 'kaarigar-records.csv',
-    routes: { add: '/addKaarigar', edit: '/editKaarigar', delete: '/delKaarigar' },
+    routes,
     columns: [
         { key: 'name', label: 'Kaarigar Name', cell: 'primary' },
         { key: 'stockCount', label: 'Stock Count', cell: 'badge' }
@@ -23,3 +28,4 @@
         deleteSubmit: 'Delete Kaarigar'
     }
 }}) %>
+<%- include('_crud_ajax_script', { routes }) %>

@@ -3,6 +3,8 @@ const KhataBookClient = require("../models/khatabook/client");
 const KhataBookEntry = require("../models/khatabook/entry");
 const common_function = require("./common_function");
 const breadcrumb = require("../config/breadcrumbs");
+const fs = require("fs");
+const path = require("path");
 module.exports.allBooksPage = async function (req, res) {
   try {
     let books = await KhataBook.find().sort({ createdAt: -1 });
@@ -10,7 +12,7 @@ module.exports.allBooksPage = async function (req, res) {
       title: "Books List",
       books,
       convertDate: common_function.convertDate,
-      breadcrumbLabel: "KhataBook Management"
+      breadcrumbLabel: "Books"
     });
   } catch (err) {
     console.log("Error in All Books Page!", err);
@@ -112,14 +114,45 @@ module.exports.delBookApi = async function (req, res) {
 };
 module.exports.allClientsPage = async function (req, res) {
   try {
-    let clients = await KhataBookClient.find()
+    let clients = await KhataBookClient.find({ book: req.query.book })
       .populate("book")
       .sort({ name: 1 });
+    let clientsWithBalances = await Promise.all(
+      clients.map(async (client) => {
+        let entries = await KhataBookEntry.find({ client: client._id });
+        let netBalance = 0;
+        let netWeight = 0;
+        for (let i of entries) {
+          if (i.amount !== undefined && i.amount !== null) {
+            if (i.type === "credit") {
+              netBalance += i.amount * 1;
+            } else if (i.type === "debit") {
+              netBalance -= i.amount * 1;
+            }
+          } else if (i.weight !== undefined && i.weight !== null) {
+            if (i.type === "credit") {
+              netWeight += i.weight * 1;
+            } else if (i.type === "debit") {
+              netWeight -= i.weight * 1;
+            }
+          }
+        }
+        return {
+          ...client.toObject(),
+          netBalance,
+          netWeight
+        };
+      })
+    );
+
     return res.render("khatabook/clients_table", {
       title: "Clients List",
-      clients,
+      clients: clientsWithBalances,
       convertDate: common_function.convertDate,
-      breadcrumbLabel: "Client Management"
+      breadcrumbs: breadcrumb.trail([
+        { label: "Books", href: "/khatabook" },
+        { label: clients[0]?.book?.name || "Clients" }
+      ])
     });
   } catch (err) {
     console.log("Error in All Clients Page!", err);
@@ -241,20 +274,30 @@ module.exports.allEntriesPage = async function (req, res) {
   try {
     let client = await KhataBookClient.findById(req.query.id).populate("book");
     let rawEntries = await KhataBookEntry.find({ client: req.query.id }).sort({
-      createdAt: 1
+      createdAt: -1
     });
     let netBalance = 0;
+    let netWeight = 0;
     let entries = [];
     for (let i of rawEntries) {
-      if (i.type === "credit") {
-        netBalance += (i.amount || 0) * 1;
-      } else if (i.type === "debit") {
-        netBalance -= (i.amount || 0) * 1;
+      if (i.amount !== undefined && i.amount !== null) {
+        if (i.type === "credit") {
+          netBalance += i.amount * 1;
+        } else if (i.type === "debit") {
+          netBalance -= i.amount * 1;
+        }
+      } else if (i.weight !== undefined && i.weight !== null) {
+        if (i.type === "credit") {
+          netWeight += i.weight * 1;
+        } else if (i.type === "debit") {
+          netWeight -= i.weight * 1;
+        }
       }
       entries.push({
         id: i.id,
         type: i.type,
         amount: i.amount,
+        weight: i.weight,
         remark: i.remark,
         image: i.image,
         date: i.createdAt
@@ -265,9 +308,11 @@ module.exports.allEntriesPage = async function (req, res) {
       client,
       entries,
       netBalance,
+      netWeight,
       convertDate: common_function.convertDate,
       breadcrumbs: breadcrumb.trail([
-        { label: "KhataBook Management", href: "/khatabookTable" },
+        { label: "Books", href: "/khatabook" },
+        { label: client.book.name, href: "/khatabook/clients?book=" + client.book._id },
         { label: client.name }
       ])
     });
@@ -288,11 +333,20 @@ module.exports.addEntryApi = async function (req, res) {
         });
       }
       try {
-        if (req.file && (req.body.type || req.body.amount)) {
+        let provideCount = 0;
+        if (req.file) provideCount++;
+        if (req.body.amount !== undefined && req.body.amount !== "") provideCount++;
+        if (req.body.weight !== undefined && req.body.weight !== "") provideCount++;
+        if (provideCount !== 1) {
           return res.status(400).json({
             success: false,
-            message:
-              "An Entry cannot have both an image upload and accounting balance fields!"
+            message: "An Entry must contain exactly ONE field: either Amount, Weight, or an Image upload!"
+          });
+        }
+        if ((req.body.amount || req.body.weight) && !req.body.type) {
+          return res.status(400).json({
+            success: false,
+            message: "Transaction type (debit/credit) is required for Amount or Weight entries!"
           });
         }
         let entryData = {
@@ -302,17 +356,21 @@ module.exports.addEntryApi = async function (req, res) {
             : ""
         };
         if (req.file) {
-          entryData.image =
-            KhataBookEntry.imagePath +
-            "/" +
-            Date.now() +
-            "_" +
-            req.file.originalname;
+          let imageName = Date.now() + "." + req.file.originalname.split(".").pop();
+          entryData.image = path.join(KhataBookEntry.imagePath, imageName);
+          await fs.promises.writeFile(path.join(KhataBookEntry.imageFullPath, imageName), req.file.buffer);
           entryData.type = undefined;
           entryData.amount = undefined;
-        } else {
+          entryData.weight = undefined;
+        } else if (req.body.amount) {
           entryData.type = req.body.type;
           entryData.amount = req.body.amount * 1;
+          entryData.weight = undefined;
+          entryData.image = undefined;
+        } else if (req.body.weight) {
+          entryData.type = req.body.type;
+          entryData.weight = req.body.weight * 1;
+          entryData.amount = undefined;
           entryData.image = undefined;
         }
         let entry = await KhataBookEntry.create(entryData);
@@ -353,28 +411,41 @@ module.exports.editEntryApi = async function (req, res) {
             .status(444)
             .json({ success: false, message: "Transaction entry not found!" });
         }
-        if (req.file && (req.body.type || req.body.amount)) {
+        let provideCount = 0;
+        if (req.file) provideCount++;
+        if (req.body.amount !== undefined && req.body.amount !== "") provideCount++;
+        if (req.body.weight !== undefined && req.body.weight !== "") provideCount++;
+        if (provideCount !== 1) {
           return res.status(400).json({
             success: false,
-            message:
-              "An Entry cannot have both an image upload and accounting balance fields!"
+            message: "An Entry must contain exactly ONE field: either Amount, Weight, or an Image upload!"
+          });
+        }
+        if ((req.body.amount || req.body.weight) && !req.body.type) {
+          return res.status(400).json({
+            success: false,
+            message: "Transaction type (debit/credit) is required for Amount or Weight entries!"
           });
         }
         entry.remark = req.body.remark
           ? req.body.remark.replace(/[^a-zA-Z0-9 ]/g, " ")
           : "";
         if (req.file) {
-          entry.image =
-            KhataBookEntry.imagePath +
-            "/" +
-            Date.now() +
-            "_" +
-            req.file.originalname;
+          let imageName = Date.now() + "." + req.file.originalname.split(".").pop();
+          entry.image = path.join(KhataBookEntry.imagePath, imageName);
+          await fs.promises.writeFile(path.join(KhataBookEntry.imageFullPath, imageName), req.file.buffer);
           entry.type = undefined;
           entry.amount = undefined;
-        } else {
+          entry.weight = undefined;
+        } else if (req.body.amount) {
           entry.type = req.body.type;
           entry.amount = req.body.amount * 1;
+          entry.weight = undefined;
+          entry.image = undefined;
+        } else if (req.body.weight) {
+          entry.type = req.body.type;
+          entry.weight = req.body.weight * 1;
+          entry.amount = undefined;
           entry.image = undefined;
         }
         await entry.save();

@@ -10,7 +10,6 @@ const app = express();
 const PORT = 8002;
 const DATABASE_URL = `mongodb://localhost/${env.db}`;
 require("./config/passport_google_oauth2_strategy");
-require("./config/view-helper")(app);
 const connectDB = async () => {
   try {
     await mongoose.connect(DATABASE_URL);
@@ -62,22 +61,7 @@ app.use(
 );
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-// SASS middleware comes BEFORE static files
-const sassMiddleware = require("express-dart-sass");
-app.use(
-  sassMiddleware({
-    src: path.join(__dirname, env.asset_path, "/scss"),
-    dest: path.join(__dirname, env.asset_path, "/css"),
-    outputStyle: "compressed",
-    prefix: "/assets/css",
-    force: true
-  })
-);
-// Static files come AFTER SASS middleware
-app.use(
-  env.asset_path,
-  express.static(path.join(__dirname, env.asset_path.substring(1)))
-);
+app.use("/assets", express.static(__dirname + "/assets"));
 app.use("/uploads", express.static(__dirname + "/uploads"));
 const expressLayouts = require("express-ejs-layouts");
 app.use(expressLayouts);

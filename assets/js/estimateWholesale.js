@@ -324,7 +324,7 @@ function buildTable() {
             data[i].Total = "₹ " + new Intl.NumberFormat('en-IN').format((data[i].Total * 1).toFixed(0));
             let row = returnRow([
                 k++,
-                `<img id="tableImage" src="${"/uploads/" + data[i].index + "-1.png"}">`,
+                `<img id="tableImage" src="${"/uploads/stock/" + data[i].index + "-1.png"}">`,
                 data[i].index === undefined || data[i].index === "undefined" ? "" : data[i].index,
                 data[i].prefix + " " + data[i].ornament + (data[i].tag ? (" - " + data[i].tag) : ""),
                 data[i].purity.split("$")[0],

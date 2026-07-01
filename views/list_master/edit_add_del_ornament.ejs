@@ -1,3 +1,8 @@
+<% const routes = {
+  add: '/list_master/ornament/add-ornament',
+  edit: '/list_master/ornament/edit-ornament',
+  delete: '/list_master/ornament/delete-ornament'
+}; %>
 <%- include('_crud_page', { options, lm: {
     entity: 'Ornament',
     tableId: 'ornamentTableBody',
@@ -5,7 +10,7 @@
     recordLabel: 'ornament',
     ledgerLabel: 'Ornament',
     csvFile: 'ornament-records.csv',
-    routes: { add: '/addOrnament', edit: '/editOrnament', delete: '/delOrnament' },
+    routes,
     columns: [
         { key: 'name', label: 'Ornament Name', cell: 'primary' },
         { key: 'stockCount', label: 'Stock Count', cell: 'badge' }
@@ -23,3 +28,4 @@
         deleteSubmit: 'Delete Ornament'
     }
 }}) %>
+<%- include('_crud_ajax_script', { routes }) %>

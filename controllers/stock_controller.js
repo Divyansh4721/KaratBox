@@ -59,7 +59,7 @@ module.exports.stockAddPage = async function (req, res) {
     return res.redirect(req.get("Referrer") || "/");
   }
 };
-module.exports.stockAddForm = async function (req, res) {
+module.exports.addStockApi = async function (req, res) {
   try {
     let envVar = await Index.findOne({
       name: "index"
@@ -308,334 +308,182 @@ module.exports.stockEditPage = async function (req, res) {
     return res.redirect(req.get("Referrer") || "/");
   }
 };
-module.exports.stockEditForm = async function (req, res) {
+module.exports.editStockApi = async function (req, res) {
   try {
     req.fileCounter = 0;
     Stock.uploadImage(req, res, async function (err) {
       if (err) {
-        console.log("************Multer Error", err);
+        console.error("Multer Processing Error:", err);
         req.flash("error", "File Type Not Correct!");
         return res.redirect(req.get("Referrer") || "/");
       }
-      let env = require("../config/environment");
-      let path = require("path");
-      let imagePath = Stock.imagePath;
-      let fs = require("fs");
-      for (
-        let i = 0;
-        await fs.existsSync(
-          path.join(imagePath, req.body.index + "-" + (i + 1) + ".png")
-        );
-        i++
-      ) {
-        await fs.unlinkSync(
-          path.join(imagePath, req.body.index + "-" + (i + 1) + ".png")
-        );
+      const imagePath = Stock.imagePath;
+      // 1. Locate current stock object state
+      let tempStock = await Stock.findOne({ index: req.body.index })
+        .populate("prefix ornament purity kaarigar stockType stoneTable.type stoneTable.dealerName");
+      if (!tempStock) {
+        req.flash("error", "Stock item not found.");
+        return res.redirect("/");
       }
-      let tempStock = await Stock.findOne({
-        index: req.body.index
-      });
-      for (let i = 0; i < tempStock.stockImage.length; i++) {
-        if (
-          await fs.existsSync(
-            path.join(imagePath, tempStock.stockImage[i].fileName)
-          )
-        ) {
-          await fs.unlinkSync(
-            path.join(imagePath, tempStock.stockImage[i].fileName)
-          );
+      // 2. Clean old image physical assets safely via Async/Await
+      let indexCounter = 1;
+      while (true) {
+        let oldImgFile = path.join(imagePath, `${req.body.index}-${indexCounter}.png`);
+        try {
+          await fs.access(oldImgFile);
+          await fs.unlink(oldImgFile);
+          indexCounter++;
+        } catch {
+          break; // File doesn't exist, stop looking loop
         }
       }
-      for (let i = 0; i < req.files.length; i++) {
-        let dest = path.join(
-          imagePath,
-          req.body.index + "-" + (i + 1) + ".png"
-        );
-        await fs.writeFile(dest, req.files[i].buffer, () => { });
-        req.files[i].filename = path.join(
-          req.body.index + "-" + (i + 1) + ".png"
-        );
+      for (let img of tempStock.stockImage) {
+        try {
+          await fs.unlink(path.join(imagePath, img.fileName));
+        } catch (_) { }
       }
-      let tag = 0;
-      // for tag
-      if (
-        tempStock.prefix.toString() === req.body.prefix &&
-        tempStock.ornament.toString() === req.body.ornament
-      ) {
-        console.log("Tag same!");
-        tag = tempStock.tag;
-      } else {
-        let oldIndex = await Index.findOne({
-          prefix: tempStock.prefix,
-          ornament: tempStock.ornament
-        });
-        oldIndex.available = oldIndex.available.filter(
-          (obj) => obj != tempStock.tag
-        );
-        await oldIndex.save();
-        let newIndex = await Index.findOne({
-          prefix: req.body.prefix,
-          ornament: req.body.ornament
-        });
-        let availableArr = newIndex.available;
-
-        tag = availableArr.length + 1;
-        if (availableArr.length) {
-          availableArr.sort((a, b) => a - b);
-          for (let i = 1; i <= availableArr.length; i++) {
-            if (availableArr[i - 1] !== i) {
-              tag = i;
-              break;
+      // 3. Process new images
+      let stockImage = [];
+      if (req.files && req.files.length > 0) {
+        for (let i = 0; i < req.files.length; i++) {
+          let fileName = `${req.body.index}-${i + 1}.png`;
+          let dest = path.join(imagePath, fileName);
+          await fs.writeFile(dest, req.files[i].buffer);
+          stockImage.push({ fileName: fileName });
+        }
+      }
+      // 4. Recalculate prefix index tagging sequences if changed
+      let tag = tempStock.tag;
+      if (tempStock.prefix.toString() !== req.body.prefix || tempStock.ornament.toString() !== req.body.ornament) {
+        let oldIndex = await Index.findOne({ prefix: tempStock.prefix._id, ornament: tempStock.ornament._id });
+        if (oldIndex) {
+          oldIndex.available = oldIndex.available.filter(obj => obj != tempStock.tag);
+          await oldIndex.save();
+        }
+        let newIndex = await Index.findOne({ prefix: req.body.prefix, ornament: req.body.ornament });
+        if (newIndex) {
+          let availableArr = newIndex.available;
+          tag = availableArr.length + 1;
+          if (availableArr.length) {
+            availableArr.sort((a, b) => a - b);
+            for (let i = 1; i <= availableArr.length; i++) {
+              if (availableArr[i - 1] !== i) {
+                tag = i;
+                break;
+              }
             }
           }
+          newIndex.available.push(Number(tag));
+          await newIndex.save();
         }
-        index = await Index.findOne({
-          prefix: req.body.prefix,
-          ornament: req.body.ornament
-        });
-        index.available.push(tag * 1);
-        await index.save();
       }
-      let prefix = req.body.prefix;
-      let ornament = req.body.ornament;
-      let grossWt = (req.body.grossWt * 1).toFixed(3);
-      let netWt = (req.body.netWt * 1).toFixed(3);
-      let stoneWt = (req.body.stoneWt * 1).toFixed(3);
-      // let costPurity = (req.body.costPurity * 1).toFixed(2);
-      let kaarigar = req.body.kaarigar;
-      let stockType = req.body.stockType;
-      let HUID = req.body.huid.replace(/[^a-zA-Z0-9 ]/g, " ");
-      let remark = req.body.remark.replace(/[^a-zA-Z0-9 ]/g, " ");
-      let purity = req.body.purity;
-      let isKDM = req.body.isKDM !== undefined;
+      // 5. Build incoming metrics and structures
+      const normalizedInputs = {
+        tag: Number(tag),
+        prefix: req.body.prefix,
+        ornament: req.body.ornament,
+        grossWt: Number(Number(req.body.grossWt).toFixed(3)),
+        netWt: Number(Number(req.body.netWt).toFixed(3)),
+        stoneWt: Number(Number(req.body.stoneWt).toFixed(3)),
+        kaarigar: req.body.kaarigar || undefined,
+        stockType: req.body.stockType,
+        purity: req.body.purity,
+        isKDM: req.body.isKDM !== undefined,
+        HUID: req.body.huid ? req.body.huid.replace(/[^a-zA-Z0-9 ]/g, " ").trim() : "",
+        remark: req.body.remark ? req.body.remark.replace(/[^a-zA-Z0-9 ]/g, " ").trim() : ""
+      };
       let stoneTable = [];
       if (req.body.stoneType) {
         for (let i = 0; i < req.body.stoneType.length; i++) {
-          let temp = {
+          stoneTable.push({
             type: req.body.stoneType[i],
-            ctWeight: (req.body.stoneWeight[i] * 1).toFixed(3),
-            gmWeight: (req.body.stoneWeight[i] / 5).toFixed(3),
-            purchaseRate: (req.body.purchaseRate[i] * 1).toFixed(0),
-            sellRate: (req.body.sellRate[i] * 1).toFixed(0),
-            dealerName: req.body.stoneDealer[i]
-              ? req.body.stoneDealer[i]
-              : undefined
-          };
-          stoneTable.push(temp);
+            ctWeight: Number(Number(req.body.stoneWeight[i]).toFixed(3)),
+            gmWeight: Number((Number(req.body.stoneWeight[i]) / 5).toFixed(3)),
+            purchaseRate: Number(Number(req.body.purchaseRate[i]).toFixed(0)),
+            sellRate: Number(Number(req.body.sellRate[i]).toFixed(0)),
+            dealerName: req.body.stoneDealer[i] || undefined
+          });
         }
       }
-      let stockImage = [];
-      if (req.files) {
-        for (let i = 0; i < req.files.length; i++) {
-          let temp = {
-            fileName: req.files[i].filename
-          };
-          stockImage.push(temp);
+      // 6. Compute updates dynamically and compose standard logs
+      let changesTracked = [];
+      // Array Mapping for human-readable relational strings
+      const modelMap = { prefix: Prefix, ornament: Ornament, purity: Purity, stockType: StockType, kaarigar: Kaarigar };
+      for (let key in normalizedInputs) {
+        let oldVal = tempStock[key];
+        let newVal = normalizedInputs[key];
+        // Scenario A: DB Object References
+        if (oldVal && oldVal._id) {
+          if (oldVal._id.toString() !== String(newVal)) {
+            let targetRefModel = modelMap[key];
+            let newDocName = "N/A";
+            if (targetRefModel && newVal) {
+              let fetchedDoc = await targetRefModel.findById(newVal);
+              if (fetchedDoc) newDocName = fetchedDoc.name || fetchedDoc.prefix;
+            }
+            changesTracked.push({
+              field: key,
+              oldValue: oldVal.name || oldVal.prefix || oldVal._id.toString(),
+              newValue: newDocName
+            });
+            tempStock[key] = newVal;
+          }
+        }
+        // Scenario B: Primitive configuration variables
+        else if (String(oldVal || "") !== String(newVal || "")) {
+          changesTracked.push({
+            field: key,
+            oldValue: oldVal === undefined ? "" : oldVal,
+            newValue: newVal === undefined ? "" : newVal
+          });
+          tempStock[key] = newVal;
         }
       }
-      let tempValStock = await Stock.findOne({
-        index: req.body.index
-      })
-        .populate(
-          "prefix ornament purity kaarigar stockType approveTable stoneTable.type stoneTable.dealerName"
-        )
-        .populate("createdBy", "email name")
-        .populate("deletedBy", "email name")
-        .populate("updatedTable.user", "email name");
-      tempStock.updatedTable.push({
-        user: req.user.id,
-        date: new Date(),
-        remark: "** Last Updated By **"
-      });
-      let AddRemark = (tempStock, msg, oldI, newI) => {
-        tempStock.updatedTable.push({
-          user: req.user.id,
-          date: new Date(),
-          remark: msg + " old: " + oldI + " new: " + newI
+      // Check for array deep deviations (stoneTable tracking changes)
+      let isStoneSame = tempStock.stoneTable.length === stoneTable.length;
+      if (isStoneSame) {
+        for (let i = 0; i < stoneTable.length; i++) {
+          if (
+            String(tempStock.stoneTable[i].type?._id || tempStock.stoneTable[i].type) !== String(stoneTable[i].type) ||
+            Number(tempStock.stoneTable[i].ctWeight) !== Number(stoneTable[i].ctWeight) ||
+            Number(tempStock.stoneTable[i].purchaseRate || 0) !== Number(stoneTable[i].purchaseRate || 0) ||
+            Number(tempStock.stoneTable[i].sellRate || 0) !== Number(stoneTable[i].sellRate || 0) ||
+            String(tempStock.stoneTable[i].dealerName?._id || tempStock.stoneTable[i].dealerName || "") !== String(stoneTable[i].dealerName || "")
+          ) {
+            isStoneSame = false;
+            break;
+          }
+        }
+      }
+      if (!isStoneSame) {
+        changesTracked.push({
+          field: "stoneTable",
+          oldValue: "Previous Table Layout",
+          newValue: "Modified Table Layout"
         });
-      };
-      if (tempStock.tag.toString() !== tag.toString()) {
-        AddRemark(tempStock, "tag", tempStock.tag, tag);
-        tempStock.tag = tag;
-      }
-      if (tempStock.prefix.toString() !== prefix.toString()) {
-        let temp = await Prefix.findById(prefix);
-        AddRemark(tempStock, "prefix", tempValStock.prefix.name, temp.name);
-        tempStock.prefix = prefix;
-      }
-      if (tempStock.ornament.toString() !== ornament.toString()) {
-        let temp = await Ornament.findById(ornament);
-        AddRemark(tempStock, "ornament", tempValStock.ornament.name, temp.name);
-        tempStock.ornament = ornament;
-      }
-      if (
-        (tempStock.grossWt * 1).toFixed(3).toString() !==
-        (grossWt * 1).toFixed(3).toString()
-      ) {
-        AddRemark(tempStock, "grossWt", tempStock.grossWt, grossWt);
-        tempStock.grossWt = grossWt;
-      }
-      if (
-        (tempStock.netWt * 1).toFixed(3).toString() !==
-        (netWt * 1).toFixed(3).toString()
-      ) {
-        AddRemark(tempStock, "netWt", tempStock.netWt, netWt);
-        tempStock.netWt = netWt;
-      }
-      if (
-        (tempStock.stoneWt * 1).toFixed(3).toString() !==
-        (stoneWt * 1).toFixed(3).toString()
-      ) {
-        AddRemark(tempStock, "stoneWt", tempStock.stoneWt, stoneWt);
-        tempStock.stoneWt = stoneWt;
-      }
-      if (tempStock.stockType.toString() !== stockType.toString()) {
-        let temp = await StockType.findById(stockType);
-        AddRemark(
-          tempStock,
-          "stockType",
-          tempValStock.stockType.name,
-          temp.name
-        );
-        tempStock.stockType = stockType;
-      }
-      if (tempStock.purity.toString() !== purity.toString()) {
-        let temp = await Purity.findById(purity);
-        AddRemark(tempStock, "purity", tempValStock.purity.name, temp.name);
-        tempStock.purity = purity;
-      }
-      if (tempStock.isKDM.toString() !== isKDM.toString()) {
-        AddRemark(tempStock, "isKDM", tempStock.isKDM, isKDM);
-        tempStock.isKDM = isKDM;
-      }
-      // Array Items
-      let isSame = tempStock.stoneTable.length === stoneTable.length;
-      for (let i = 0; isSame && i < stoneTable.length; i++) {
-        if (
-          String(tempStock.stoneTable[i].type) !== String(stoneTable[i].type) ||
-          Number(tempStock.stoneTable[i].ctWeight) !==
-          Number(stoneTable[i].ctWeight) ||
-          Number(tempStock.stoneTable[i].gmWeight) !==
-          Number(stoneTable[i].gmWeight) ||
-          Number(tempStock.stoneTable[i].sellRate || "") !==
-          Number(stoneTable[i].sellRate || "") ||
-          Number(tempStock.stoneTable[i].purchaseRate || "") !==
-          Number(stoneTable[i].purchaseRate || "") ||
-          String(tempStock.stoneTable[i].dealerName || "") !==
-          String(stoneTable[i].dealerName || "")
-        ) {
-          isSame = false;
-        }
-        if (
-          String(tempStock.stoneTable[i].type) !== String(stoneTable[i].type)
-        ) {
-          let temp1 = await StoneType.findById(tempStock.stoneTable[i].type);
-          let temp2 = await StoneType.findById(stoneTable[i].type);
-          AddRemark(tempStock, "StoneTable type", temp1.name, temp2.name);
-        }
-        if (
-          Number(tempStock.stoneTable[i].ctWeight) !==
-          Number(stoneTable[i].ctWeight)
-        ) {
-          AddRemark(
-            tempStock,
-            "StoneTable ctWeight",
-            tempStock.stoneTable[i].ctWeight,
-            stoneTable[i].ctWeight
-          );
-        }
-        if (
-          Number(tempStock.stoneTable[i].gmWeight) !==
-          Number(stoneTable[i].gmWeight)
-        ) {
-          AddRemark(
-            tempStock,
-            "StoneTable gmWeight",
-            tempStock.stoneTable[i].gmWeight,
-            stoneTable[i].gmWeight
-          );
-        }
-        if (
-          Number(tempStock.stoneTable[i].sellRate || "") !==
-          Number(stoneTable[i].sellRate || "")
-        ) {
-          AddRemark(
-            tempStock,
-            "StoneTable sellRate",
-            tempStock.stoneTable[i].sellRate,
-            stoneTable[i].sellRate
-          );
-        }
-        if (
-          Number(tempStock.stoneTable[i].purchaseRate || "") !==
-          Number(stoneTable[i].purchaseRate || "")
-        ) {
-          AddRemark(
-            tempStock,
-            "StoneTable purchaseRate",
-            tempStock.stoneTable[i].purchaseRate,
-            stoneTable[i].purchaseRate
-          );
-        }
-        if (
-          String(tempStock.stoneTable[i].dealerName || "") !==
-          String(stoneTable[i].dealerName || "")
-        ) {
-          let temp1 = tempStock.stoneTable[i].dealerName
-            ? await StoneDealer.findById(tempStock.stoneTable[i].dealerName)
-            : "";
-          let temp2 = stoneTable[i].dealerName
-            ? await StoneDealer.findById(stoneTable[i].dealerName)
-            : "";
-          AddRemark(
-            tempStock,
-            "StoneTable dealerName",
-            temp1 ? temp1.name : "",
-            temp2 ? temp2.name : ""
-          );
-        }
-      }
-      if (!isSame) {
         tempStock.stoneTable = stoneTable;
-        AddRemark(tempStock, "StoneTable", "", "");
       }
+      // Save asset image mappings
       tempStock.stockImage = stockImage;
-      // Optional Items
-      // if (((tempStock.costPurity * 1).toFixed(2)).toString() !== ((costPurity * 1).toFixed(2)).toString()) {
-      //     AddRemark(tempStock, "costPurity", tempStock.costPurity, costPurity);
-      //     tempStock.costPurity = costPurity;
-      // }
-      if (
-        (tempStock.kaarigar && !kaarigar) ||
-        (!tempStock.kaarigar && kaarigar) ||
-        (tempStock.kaarigar &&
-          kaarigar &&
-          tempStock.kaarigar.toString() !== kaarigar.toString())
-      ) {
-        let temp = "";
-        if (kaarigar) temp = await Kaarigar.findById(kaarigar);
-        AddRemark(
-          tempStock,
-          "kaarigar",
-          tempValStock.kaarigar ? tempValStock.kaarigar.name : "",
-          temp ? temp.name : ""
-        );
-        tempStock.kaarigar = kaarigar ? kaarigar : undefined;
-      }
-      if (tempStock.HUID.toString() !== HUID.toString()) {
-        AddRemark(tempStock, "HUID", tempStock.HUID, HUID);
-        tempStock.HUID = HUID;
-      }
-      if (tempStock.remark.toString() !== remark.toString()) {
-        AddRemark(tempStock, "remark", tempStock.remark, remark);
-        tempStock.remark = remark;
-      }
+      // 7. Persist changes inside database
       await tempStock.save();
+      // 8. Generate operational AuditLog entry if changes exist
+      if (changesTracked.length > 0) {
+        await AuditLog.create({
+          user: req.user.id,
+          action: "UPDATE",
+          targetModel: "Stock",
+          targetId: tempStock._id,
+          targetIdentifier: `Index: ${tempStock.index} | Tag: ${tempStock.tag}`,
+          changes: changesTracked,
+          remark: "Stock configuration parameters modified cleanly via control panel grid interface"
+        });
+      }
       req.flash("success", "Stock Edited Successfully!");
-      return res.redirect("/stock/" + tempStock.id);
+      return res.redirect(`/stock/${tempStock.id}`);
     });
   } catch (err) {
-    console.log("Error in Editing New Stock!", err);
+    console.error("Critical System Failure updating stock item:", err);
     req.flash("error", "Error in Editing New Stock!");
     return res.redirect(req.get("Referrer") || "/");
   }
@@ -692,7 +540,7 @@ module.exports.stockImageEditPage = async function (req, res) {
     return res.redirect(req.get("Referrer") || "/");
   }
 };
-module.exports.stockImageEditForm = async function (req, res) {
+module.exports.editStockImageApi = async function (req, res) {
   try {
     req.fileCounter = 0;
     Stock.uploadImage(req, res, async function (err) {
@@ -765,7 +613,7 @@ module.exports.stockImageEditForm = async function (req, res) {
     return res.redirect(req.get("Referrer") || "/");
   }
 };
-module.exports.editMultipleStock = async function (req, res) {
+module.exports.stockTransferPage = async function (req, res) {
   try {
     let user = await User.findById(req.user);
     let stockTable = user.cart;
@@ -804,7 +652,7 @@ module.exports.editMultipleStock = async function (req, res) {
     return res.redirect(req.get("Referrer") || "/");
   }
 };
-module.exports.editMultipleStockForm = async function (req, res) {
+module.exports.stockTransferApi = async function (req, res) {
   try {
     let user = await User.findById(req.user).populate("cart");
     let stockTable = user.cart;
@@ -842,7 +690,7 @@ module.exports.editMultipleStockForm = async function (req, res) {
     return res.redirect(req.get("Referrer") || "/");
   }
 };
-module.exports.printTag = async function (req, res) {
+module.exports.printTagPage = async function (req, res) {
   try {
     let stockTable = await Stock.find({
       _id: req.query.id
@@ -885,7 +733,7 @@ module.exports.printTag = async function (req, res) {
     return res.redirect(req.get("Referrer") || "/");
   }
 };
-module.exports.printMultipleTags = async function (req, res) {
+module.exports.printMultipleTagsPage = async function (req, res) {
   try {
     let user = await User.findById(req.user);
     let stockTable = user.cart;

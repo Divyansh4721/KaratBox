@@ -1,3 +1,8 @@
+<% const routes = {
+  add: '/list_master/stonedealer/add-stonedealer',
+  edit: '/list_master/stonedealer/edit-stonedealer',
+  delete: '/list_master/stonedealer/delete-stonedealer'
+}; %>
 <%- include('_crud_page', { options, lm: {
     entity: 'StoneDealer',
     tableId: 'stoneDealerTableBody',
@@ -5,7 +10,7 @@
     recordLabel: 'stone dealer',
     ledgerLabel: 'StoneDealer',
     csvFile: 'stonedealer-records.csv',
-    routes: { add: '/addStoneDealer', edit: '/editStoneDealer', delete: '/delStoneDealer' },
+    routes,
     columns: [
         { key: 'name', label: 'StoneDealer Name', cell: 'primary' },
         { key: 'stockCount', label: 'Stock Count', cell: 'badge' }
@@ -23,3 +28,4 @@
         deleteSubmit: 'Delete StoneDealer'
     }
 }}) %>
+<%- include('_crud_ajax_script', { routes }) %>

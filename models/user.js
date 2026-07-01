@@ -36,10 +36,14 @@ const UserSchema = new mongoose.Schema({
     }
   ]
 });
-const env = require("../../config/environment");
+const env = require("../config/environment");
 const multer = require("multer");
 const path = require("path");
 const imagePath = path.join(
+  "uploads",
+  "avatar"
+);
+const imageFullPath = path.join(
   __dirname,
   "..",
   "uploads",
@@ -61,5 +65,6 @@ UserSchema.statics.uploadImage = multer({
   }
 }).single("image");
 UserSchema.statics.imagePath = imagePath;
+UserSchema.statics.imageFullPath = imageFullPath;
 const User = mongoose.model("User", UserSchema);
 module.exports = User;

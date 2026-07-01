@@ -1,3 +1,8 @@
+<% const routes = {
+  add: '/list_master/purity/add-purity',
+  edit: '/list_master/purity/edit-purity',
+  delete: '/list_master/purity/delete-purity'
+}; %>
 <%- include('_crud_page', { options, lm: {
     entity: 'Purity',
     tableId: 'purityTableBody',
@@ -6,7 +11,7 @@
     summaryPrefix: 'standard purity',
     ledgerLabel: 'Purity',
     csvFile: 'purity-records.csv',
-    routes: { add: '/addPurity', edit: '/editPurity', delete: '/delPurity' },
+    routes,
     columns: [
         { key: 'name', label: 'Purity Name', cell: 'primary' },
         { key: 'wholesaleMultiplier', label: 'Wholesale Multiplier', cell: 'number' },
@@ -30,3 +35,4 @@
         deleteSubmit: 'Delete'
     }
 }}) %>
+<%- include('_crud_ajax_script', { routes }) %>

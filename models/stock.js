@@ -127,22 +127,6 @@ const StockSchema = new mongoose.Schema(
         required: true
       }
     ],
-    updatedTable: [
-      {
-        user: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
-          required: true
-        },
-        date: {
-          type: Date,
-          default: Date.now
-        },
-        remark: {
-          type: String
-        }
-      }
-    ],
     stockImage: [
       {
         fileName: {
@@ -160,6 +144,10 @@ const env = require("../config/environment");
 const multer = require("multer");
 const path = require("path");
 const imagePath = path.join(
+  "uploads",
+  "stock"
+);
+const imageFullPath = path.join(
   __dirname,
   "..",
   "uploads",
@@ -180,6 +168,7 @@ StockSchema.statics.uploadImage = multer({
     }
   }
 }).array("stockImage", 10);
-StockSchema.statics.stockPath = imagePath;
+StockSchema.statics.imagePath = imagePath;
+StockSchema.statics.imageFullPath = imageFullPath;
 const Stock = mongoose.model("Stock", StockSchema);
 module.exports = Stock;

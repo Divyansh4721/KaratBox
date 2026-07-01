@@ -12,6 +12,9 @@ const EntrySchema = new mongoose.Schema({
   amount: {
     type: Number
   },
+  weight: {
+    type: Number
+  },
   image: {
     type: String
   },
@@ -27,11 +30,14 @@ const env = require("../../config/environment");
 const multer = require("multer");
 const path = require("path");
 const imagePath = path.join(
+  "uploads",
+  "khatabook"
+);
+const imageFullPath = path.join(
   __dirname,
   "..",
   "..",
-  "uploads",
-  "khatabook"
+  imagePath
 );
 EntrySchema.statics.uploadImage = multer({
   storage: multer.memoryStorage(),
@@ -49,5 +55,6 @@ EntrySchema.statics.uploadImage = multer({
   }
 }).single("image");
 EntrySchema.statics.imagePath = imagePath;
+EntrySchema.statics.imageFullPath = imageFullPath;
 const Entry = mongoose.model("Entry", EntrySchema);
 module.exports = Entry;

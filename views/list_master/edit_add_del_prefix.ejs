@@ -1,3 +1,8 @@
+<% const routes = {
+  add: '/list_master/prefix/add-prefix',
+  edit: '/list_master/prefix/edit-prefix',
+  delete: '/list_master/prefix/delete-prefix'
+}; %>
 <%- include('_crud_page', { options, lm: {
     entity: 'Prefix',
     tableId: 'prefixTableBody',
@@ -5,7 +10,7 @@
     recordLabel: 'prefix',
     ledgerLabel: 'Prefix',
     csvFile: 'prefix-records.csv',
-    routes: { add: '/addPrefix', edit: '/editPrefix', delete: '/delPrefix' },
+    routes,
     columns: [
         { key: 'name', label: 'Prefix Name', cell: 'primary' },
         { key: 'stockCount', label: 'Stock Count', cell: 'badge' }
@@ -23,3 +28,4 @@
         deleteSubmit: 'Delete Prefix'
     }
 }}) %>
+<%- include('_crud_ajax_script', { routes }) %>

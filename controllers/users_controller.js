@@ -67,7 +67,6 @@ module.exports.profileForm = async function (req, res) {
     try {
       const user = await User.findById(req.user.id);
       user.name = req.body.name.replace(/[^a-zA-Z0-9 ]/g, " ");
-
       const avatarAction = req.body.avatarAction || "";
       if (avatarAction === "google" && user.googleAvatar) {
         user.useGoogleAvatar = true;
@@ -77,12 +76,10 @@ module.exports.profileForm = async function (req, res) {
         user.avatar = "";
       } else if (req.file) {
         const fileName = "profile-" + user.id + ".png";
-        const dest = User.imagePath + "/" + fileName;
-        await fs.promises.writeFile(dest, req.file.buffer);
+        await fs.promises.writeFile(User.imageFullPath + "/" + fileName, req.file.buffer);
         user.useGoogleAvatar = false;
-        user.avatar = dest;
+        user.avatar = User.imagePath + "/" + fileName;
       }
-
       await user.save();
       req.flash("success", "Profile Updated Successfully!");
       return res.redirect("/user_profile");

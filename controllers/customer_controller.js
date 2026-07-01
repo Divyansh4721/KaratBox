@@ -2,6 +2,24 @@ const Bill = require("../models/bill");
 const Customer = require("../models/customer");
 const common_function = require("../controllers/common_function");
 const breadcrumb = require("../config/breadcrumbs");
+async function checkPhoneNumber(InputPhoneList, InputID) {
+  let CheckList = [];
+  let customers = await Customer.find();
+  for (let item of customers)
+    for (let eachNum of item.phNum)
+      CheckList.push({
+        id: item.id,
+        phNum: eachNum
+      });
+  for (let eachNum of InputPhoneList) {
+    let temp = CheckList.find((item) => Number(item.phNum) === Number(eachNum));
+    if (temp) {
+      if (temp.id === InputID) continue;
+      return temp.id;
+    }
+  }
+  return false;
+}
 module.exports.CustomerPage = async function (req, res) {
   try {
     let customer = await Customer.findById(req.query.id)
@@ -9,10 +27,7 @@ module.exports.CustomerPage = async function (req, res) {
       .populate({
         path: "bills",
         populate: [
-          {
-            path: "user",
-            select: "email name"
-          },
+          { path: "user", select: "email name" },
           {
             path: "cart",
             populate: "prefix ornament purity stockType stoneTable.type"
@@ -30,12 +45,7 @@ module.exports.CustomerPage = async function (req, res) {
       })
       .populate({
         path: "payments",
-        populate: [
-          {
-            path: "user",
-            select: "email name"
-          }
-        ]
+        populate: [{ path: "user", select: "email name" }]
       });
     let cashBalance = 0;
     let goldBalance = 0;
@@ -123,9 +133,7 @@ module.exports.CustomerPage = async function (req, res) {
 };
 module.exports.CustomerPageForm = async function (req, res) {
   try {
-    let customerTable = await Customer.find().sort({
-      name: 1
-    });
+    let customerTable = await Customer.find().sort({ name: 1 });
     for (let i = 0; i < customerTable.length; i++) {
       customerTable[i].searchStr =
         customerTable[i].name +
@@ -150,9 +158,7 @@ module.exports.CustomerPageTable = async function (req, res) {
   try {
     let customerTable = await Customer.find()
       .populate("user", "email name")
-      .sort({
-        createdAt: -1
-      });
+      .sort({ createdAt: -1 });
     return res.render("customer/customer_table", {
       title: "Customer",
       customerTable,
@@ -165,49 +171,18 @@ module.exports.CustomerPageTable = async function (req, res) {
     return res.redirect(req.get("Referrer") || "/");
   }
 };
-async function checkPhoneNumber(InputPhoneList, InputID) {
-  let CheckList = [];
-  let customers = await Customer.find();
-  for (let item of customers)
-    for (let eachNum of item.phNum)
-      CheckList.push({
-        id: item.id,
-        phNum: eachNum
-      });
-  for (let eachNum of InputPhoneList) {
-    let temp = CheckList.find((item) => Number(item.phNum) === Number(eachNum));
-    if (temp) {
-      if (temp.id === InputID) continue;
-      return temp.id;
-    }
-  }
-  return false;
-}
-module.exports.addCustomerPage = async function (req, res) {
-  try {
-    return res.render("customer_add", {
-      title: "Customer",
-      ...breadcrumb.trail([
-        { label: "Customer Management", href: "/customerTable" },
-        { label: "Add Customer" }
-      ])
-    });
-  } catch (err) {
-    console.log("Error in Customer Add Page!", err);
-    req.flash("error", "Error in Customer Add Page!");
-    return res.redirect(req.get("Referrer") || "/");
-  }
-};
-module.exports.addCustomerForm = async function (req, res) {
+module.exports.addCustomerApi = async function (req, res) {
   try {
     if (!req.body.phNum || !req.body.phNum.length) {
-      req.flash("error", "Phone Number not Added!");
-      return res.redirect(req.get("Referrer") || "/");
+      return res.status(400).json({ success: false, message: "Phone Number not Added!" });
     }
     let check = await checkPhoneNumber(req.body.phNum, "");
     if (check) {
-      req.flash("error", "Phone Number already Exists!");
-      return res.redirect("/customer?id=" + check);
+      return res.status(409).json({
+        success: false,
+        message: "Phone Number already Exists!",
+        customerId: check
+      });
     }
     let impDates = [];
     for (let i = 0; req.body.impDates && i < req.body.impDates.length; i++) {
@@ -231,44 +206,28 @@ module.exports.addCustomerForm = async function (req, res) {
       payments: [],
       approvals: []
     });
-    req.flash("success", "Added Customer Successfully!");
-    return res.redirect("/customer?id=" + customer.id);
-  } catch (err) {
-    console.log("Error in Adding Customer!", err);
-    req.flash("error", "Error in Adding Customer!");
-    return res.redirect(req.get("Referrer") || "/");
-  }
-};
-module.exports.editCustomerPage = async function (req, res) {
-  try {
-    let customer = await Customer.findById(req.params.id);
-    return res.render("customer/customer_edit", {
-      title: "Customer",
-      customer,
-      breadcrumbs: breadcrumb.trail([
-        { label: "Customer Management", href: "/customerTable" },
-        { label: customer.name, href: "/customer?id=" + customer.id },
-        { label: "Edit Profile" }
-      ])
+    return res.status(201).json({
+      success: true,
+      message: "Added Customer Successfully!",
+      data: customer
     });
   } catch (err) {
-    console.log("Error in Customer Edit Page!", err);
-    req.flash("error", "Error in Customer Edit Page!");
-    return res.redirect(req.get("Referrer") || "/");
+    console.log("Error in Adding Customer API!", err);
+    return res.status(500).json({ success: false, message: "Error in Adding Customer!" });
   }
 };
-module.exports.editCustomerForm = async function (req, res) {
+module.exports.editCustomerApi = async function (req, res) {
   try {
     if (!req.body.phNum || !req.body.phNum.length) {
-      req.flash("error", "Phone Number not Added!");
-      return res.redirect(req.get("Referrer") || "/");
+      return res.status(400).json({ success: false, message: "Phone Number not Added!" });
     }
     let customer = await Customer.findById(req.body.id);
+    if (!customer) {
+      return res.status(404).json({ success: false, message: "Customer not found!" });
+    }
     let check = await checkPhoneNumber(req.body.phNum, req.body.id);
-    console.log(check);
     if (check) {
-      req.flash("error", "Phone Number already Exists!");
-      return res.redirect(req.get("Referrer") || "/");
+      return res.status(409).json({ success: false, message: "Phone Number already Exists!" });
     }
     let impDates = [];
     for (let i = 0; req.body.impDates && i < req.body.impDates.length; i++) {
@@ -288,17 +247,22 @@ module.exports.editCustomerForm = async function (req, res) {
     customer.impDates = impDates;
     customer.user = req.user.id;
     await customer.save();
-    req.flash("success", "Edited Customer Successfully!");
-    return res.redirect(req.body.returnUrl || "/customer?id=" + req.body.id);
+    return res.status(200).json({
+      success: true,
+      message: "Edited Customer Successfully!",
+      data: customer
+    });
   } catch (err) {
-    console.log("Error in Editing Customer!", err);
-    req.flash("error", "Error in Editing Customer!");
-    return res.redirect(req.get("Referrer") || "/");
+    console.log("Error in Editing Customer API!", err);
+    return res.status(500).json({ success: false, message: "Error in Editing Customer!" });
   }
 };
-module.exports.addPaymentCustomer = async function (req, res) {
+module.exports.addPaymentCustomerApi = async function (req, res) {
   try {
     let customer = await Customer.findById(req.body.id);
+    if (!customer) {
+      return res.status(404).json({ success: false, message: "Customer not found!" });
+    }
     if (req.body.amount) {
       customer.payments.push({
         user: req.user.id,
@@ -314,75 +278,76 @@ module.exports.addPaymentCustomer = async function (req, res) {
       });
     }
     await customer.save();
-    req.flash("success", "Added Payment Successfully!");
-    return res.redirect(req.get("Referrer") || "/");
+    return res.status(200).json({ success: true, message: "Added Payment Successfully!" });
   } catch (err) {
-    console.log("Error in Adding Customer Payment!", err);
-    req.flash("error", "Error in Adding Customer Payment!");
-    return res.redirect(req.get("Referrer") || "/");
+    console.log("Error in Adding Customer Payment API!", err);
+    return res.status(500).json({ success: false, message: "Error in Adding Customer Payment!" });
   }
 };
-module.exports.delPaymentCustomer = async function (req, res) {
+module.exports.delPaymentCustomerApi = async function (req, res) {
   try {
-    let customer = await Customer.findById(req.query.customer);
+    let customer = await Customer.findById(req.body.customerId);
+    if (!customer) {
+      return res.status(404).json({ success: false, message: "Customer not found!" });
+    }
     customer.payments = customer.payments.filter(
-      (obj) => obj.id != req.query.id
+      (obj) => obj.id != req.body.paymentId
     );
     await customer.save();
-    req.flash("success", "Deleted Payment Successfully!");
-    return res.redirect(req.get("Referrer") || "/");
+    return res.status(200).json({ success: true, message: "Deleted Payment Successfully!" });
   } catch (err) {
-    console.log("Error in Deleting Customer Payment!", err);
-    req.flash("error", "Error in Deleting Customer Payment!");
-    return res.redirect(req.get("Referrer") || "/");
+    console.log("Error in Deleting Customer Payment API!", err);
+    return res.status(500).json({ success: false, message: "Error in Deleting Customer Payment!" });
   }
 };
-module.exports.delBillCustomer = async function (req, res) {
+module.exports.delBillCustomerApi = async function (req, res) {
   try {
-    let bill = await Bill.findById(req.query.id);
-    bill.customer = undefined;
-    await bill.save();
-    let customer = await Customer.findById(req.query.customer);
-    customer.bills = customer.bills.filter((obj) => obj != req.query.id);
-    await customer.save();
-    req.flash("success", "Deleted Bill Successfully!");
-    return res.redirect(req.get("Referrer") || "/");
-  } catch (err) {
-    console.log("Error in Deleting Customer Bill!", err);
-    req.flash("error", "Error in Deleting Customer Bill!");
-    return res.redirect(req.get("Referrer") || "/");
-  }
-};
-module.exports.delCustomer = async function (req, res) {
-  try {
-    let customer = await Customer.findById(req.query.id);
+    let bill = await Bill.findById(req.body.billId);
+    if (bill) {
+      bill.customer = undefined;
+      await bill.save();
+    }
+    let customer = await Customer.findById(req.body.customerId);
     if (!customer) {
-      req.flash("error", "Customer not found!");
-      return res.redirect(req.get("Referrer") || "/customerTable");
+      return res.status(404).json({ success: false, message: "Customer not found!" });
+    }
+    customer.bills = customer.bills.filter((obj) => obj != req.body.billId);
+    await customer.save();
+    return res.status(200).json({ success: true, message: "Deleted Bill Successfully!" });
+  } catch (err) {
+    console.log("Error in Deleting Customer Bill API!", err);
+    return res.status(500).json({ success: false, message: "Error in Deleting Customer Bill!" });
+  }
+};
+module.exports.delCustomerApi = async function (req, res) {
+  try {
+    let customer = await Customer.findById(req.body.id);
+    if (!customer) {
+      return res.status(404).json({ success: false, message: "Customer not found!" });
     }
     if (
       customer.bills.length ||
       customer.approvals.length ||
       customer.payments.length
     ) {
-      req.flash(
-        "error",
-        "Customer has bills, approvals, or payments. Settle first."
-      );
-      return res.redirect(req.get("Referrer") || "/customerTable");
+      return res.status(400).json({
+        success: false,
+        message: "Customer has bills, approvals, or payments. Settle first."
+      });
     }
-    await Customer.findByIdAndDelete(req.query.id);
-    req.flash("success", "Deleted Customer Successfully!");
-    return res.redirect(req.get("Referrer") || "/customerTable");
+    await Customer.findByIdAndDelete(req.body.id);
+    return res.status(200).json({ success: true, message: "Deleted Customer Successfully!" });
   } catch (err) {
-    console.log("Error in Deleting Customer!", err);
-    req.flash("error", "Error in Deleting Customer!");
-    return res.redirect(req.get("Referrer") || "/customerTable");
+    console.log("Error in Deleting Customer API!", err);
+    return res.status(500).json({ success: false, message: "Error in Deleting Customer!" });
   }
 };
-module.exports.settleCustomer = async function (req, res) {
+module.exports.settleCustomerApi = async function (req, res) {
   try {
-    let customer = await Customer.findById(req.params.id).populate("bills");
+    let customer = await Customer.findById(req.body.id).populate("bills");
+    if (!customer) {
+      return res.status(404).json({ success: false, message: "Customer not found!" });
+    }
     for (let eachBill of customer.bills) {
       eachBill.customer = undefined;
       await eachBill.save();
@@ -390,11 +355,9 @@ module.exports.settleCustomer = async function (req, res) {
     customer.bills = [];
     customer.payments = [];
     await customer.save();
-    req.flash("success", "Customer Settled Successfully!");
-    return res.redirect(req.get("Referrer") || "/");
+    return res.status(200).json({ success: true, message: "Customer Settled Successfully!" });
   } catch (err) {
-    console.log("Error in Settling Customer!", err);
-    req.flash("error", "Error in Settling Customer!");
-    return res.redirect(req.get("Referrer") || "/");
+    console.log("Error in Settling Customer API!", err);
+    return res.status(500).json({ success: false, message: "Error in Settling Customer!" });
   }
 };

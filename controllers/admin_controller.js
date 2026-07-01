@@ -5,9 +5,8 @@ const Env_Variable = require("../models/env_variable");
 const mongoose = require("mongoose");
 const common_function = require("../controllers/common_function");
 const breadcrumb = require("../config/breadcrumbs");
-const { use } = require("passport");
 const db = mongoose.connection;
-module.exports.DeveloperConsole = async function (req, res) {
+module.exports.DeveloperConsolePage = async function (req, res) {
   try {
     return res.render("admin_developerConsole", {
       title: "Developer Console"
@@ -18,7 +17,7 @@ module.exports.DeveloperConsole = async function (req, res) {
     return res.redirect(req.get("Referrer") || "/");
   }
 };
-module.exports.environment = async function (req, res) {
+module.exports.settingsPage = async function (req, res) {
   try {
     let envVariables = `[
             { "nickname": "App Name", "name": "AppName", "defaultValue": "Jewellery", "disabled":false },
@@ -39,9 +38,7 @@ module.exports.environment = async function (req, res) {
     envVariables = JSON.parse(envVariables);
     let variables = await Promise.all(
       envVariables.map(async (tempEnv) => {
-        let variable = await Env_Variable.findOne({
-          name: tempEnv.name
-        });
+        let variable = await Env_Variable.findOne({ name: tempEnv.name });
         if (!variable) {
           variable = await Env_Variable.create({
             name: tempEnv.name,
@@ -55,59 +52,15 @@ module.exports.environment = async function (req, res) {
     );
     let daysAllowedVar = variables.find((v) => v.name === "daysAllowed");
     let daysAllowed = daysAllowedVar.value.split(" ").map((i) => i === "true");
-    variables.splice(
-      variables.findIndex((v) => v.name === "daysAllowed"),
-      1
-    );
+    variables.splice(variables.findIndex((v) => v.name === "daysAllowed"), 1);
     return res.render("admin/admin_environment", {
       title: "Settings",
       variables,
       daysAllowed
     });
   } catch (err) {
-    console.log("Error in Environment Page!", err);
-    req.flash("error", "Error in Environment Page!");
-    return res.redirect(req.get("Referrer") || "/");
-  }
-};
-module.exports.environmentForm = async function (req, res) {
-  try {
-    let envVariables = [
-      "AppName",
-      "TagName",
-      "goldPrice",
-      "XDaysToDelete",
-      "startHour",
-      "endHour",
-      "daysAllowed",
-      "mailUser",
-      "mailPassword",
-      "mailFrom",
-      "backUpMail",
-      "google_clientID",
-      "google_clientSecret",
-      "google_callbackURL"
-    ];
-    await Promise.all(
-      envVariables.map(async (name) => {
-        let variable = await Env_Variable.findOne({
-          name
-        });
-        if (name === "daysAllowed") {
-          variable.value = req.body[name]
-            .map((value) => value === "on")
-            .join(" ");
-        } else {
-          variable.value = req.body[name];
-        }
-        await variable.save();
-      })
-    );
-    req.flash("success", "Updated Environment Form Successfully!");
-    return res.redirect(req.get("Referrer") || "/");
-  } catch (err) {
-    console.log("Error in Environment Form!", err);
-    req.flash("error", "Error in Environment Form!");
+    console.log("Error in Settings Page!", err);
+    req.flash("error", "Error in Settings Page!");
     return res.redirect(req.get("Referrer") || "/");
   }
 };
@@ -130,9 +83,7 @@ module.exports.sessionPage = async function (req, res) {
     }
     newSession.sort((a, b) => b.expires - a.expires);
     for (let i = 0; i < newSession.length; i++) {
-      newSession[i].expires = common_function.convertTime(
-        newSession[i].expires
-      );
+      newSession[i].expires = common_function.convertTime(newSession[i].expires);
     }
     return res.render("admin/admin_session", {
       title: "Session Page",
@@ -149,145 +100,159 @@ module.exports.sessionPage = async function (req, res) {
     return res.redirect(req.get("Referrer") || "/");
   }
 };
-module.exports.sessionDelete = async function (req, res) {
+module.exports.updateSettingsApi = async function (req, res) {
   try {
-    if (req.params.id === "all") {
+    let envVariables = [
+      "AppName", "TagName", "goldPrice", "XDaysToDelete", "startHour", "endHour",
+      "daysAllowed", "mailUser", "mailPassword", "mailFrom", "backUpMail",
+      "google_clientID", "google_clientSecret", "google_callbackURL"
+    ];
+    await Promise.all(
+      envVariables.map(async (name) => {
+        let variable = await Env_Variable.findOne({ name });
+        if (name === "daysAllowed") {
+          variable.value = req.body[name].map((value) => value === "on").join(" ");
+        } else {
+          variable.value = req.body[name];
+        }
+        await variable.save();
+      })
+    );
+    return res.status(200).json({ success: true, message: "Settings updated successfully!" });
+  } catch (err) {
+    console.log("Error in Update Settings API!", err);
+    return res.status(500).json({ success: false, message: "Internal Server Error while updating settings." });
+  }
+};
+module.exports.deleteSessionApi = async function (req, res) {
+  try {
+    if (req.body.id === "all") {
       await db.collection("sessions").deleteMany({});
     } else {
-      await db.collection("sessions").findOneAndDelete({
-        _id: req.params.id
-      });
+      await db.collection("sessions").findOneAndDelete({ _id: req.body.id });
     }
-    req.flash("success", "Session Deleted Successfully!");
-    return res.redirect(req.get("Referrer") || "/");
+    return res.status(200).json({ success: true, message: "Session(s) deleted successfully!" });
   } catch (err) {
-    console.log("Error in Deleting Session!", err);
-    req.flash("error", "Error in Deleting Session!");
-    return res.redirect(req.get("Referrer") || "/");
+    console.log("Error in Deleting Session API!", err);
+    return res.status(500).json({ success: false, message: "Error in deleting session metadata." });
   }
 };
-module.exports.permissionPage = async function (req, res) {
+module.exports.createUserApi = async function (req, res) {
   try {
-    let user = await User.find({});
-    user.sort(common_function.sortByProperty("name", 1));
-    return res.render("admin/admin_permission", {
-      title: "Staff Management",
-      breadcrumbLabel: "Staff Management",
-      userlist: user
-    });
-  } catch (err) {
-    console.log("Error in Permission Page!", err);
-    req.flash("error", "Error in Permission Page!");
-    return res.redirect(req.get("Referrer") || "/");
-  }
-};
-module.exports.permissionPage_UserButton = async function (req, res) {
-  try {
-    let user = await User.findById(req.params.id);
-    let permission = await Permission.find({});
-    permission = permission.filter((obj) => obj.listname !== "admin");
-    for (let i = 0; i < permission.length; i++) {
-      permission[i].available = permission[i].users.includes(req.params.id);
-    }
-    permission.sort(common_function.sortByProperty("nickname", 1));
-    return res.render("admin/admin_permission_user", {
-      title: "User Permission",
-      userlist: user,
-      breadcrumbs: breadcrumb.trail([
-        { label: "Staff Management", href: "/permission" },
-        { label: user.name }
-      ])
-    });
-  } catch (err) {
-    console.log("Error in User Permission Page!", err);
-    req.flash("error", "Error in User Permission Page!");
-    return res.redirect(req.get("Referrer") || "/");
-  }
-};
-module.exports.permissionPage_TempPermission = async function (req, res) {
-  try {
-    let user = await User.findById(req.params.id);
-    user.adminPermissionTemp = !user.adminPermissionTemp;
-    await user.save();
-    return res.redirect(req.get("Referrer") || "/");
-  } catch (err) {
-    console.log("Error in Giving User Temporary Permission!", err);
-    req.flash("error", "Error in Giving User Temporary Permission!");
-    return res.redirect(req.get("Referrer") || "/");
-  }
-};
-module.exports.permissionPage_UserCreatePage = async function (req, res) {
-  try {
-    return res.render("admin_new_user", {
-      title: "Create User"
-    });
-  } catch (err) {
-    console.log("Error in User Create Page!", err);
-    req.flash("error", "Error in User Create Page!");
-    return res.redirect(req.get("Referrer") || "/");
-  }
-};
-module.exports.permissionPage_UserCreateForm = async function (req, res) {
-  try {
-    let temp = await User.find({
-      email: req.body.email
-    });
+    let temp = await User.find({ email: req.body.email });
     if (temp.length != 0) {
-      req.flash("error", "User Already Exists!");
-      return res.redirect(req.get("Referrer") || "/");
+      return res.status(409).json({ success: false, message: "User identity already exists!" });
     }
-    await User.create({
+    let newUser = await User.create({
       name: req.body.name,
       email: req.body.email,
       adminPermissionTemp: false,
       adminPermissionPerm: false,
       cart: []
     });
-    req.flash("success", "User Created Successfully!");
-    return res.redirect(req.get("Referrer") || "/");
+    return res.status(201).json({ success: true, message: "User created successfully!", data: newUser });
   } catch (err) {
-    console.log("Error in Creating User!", err);
-    req.flash("error", "Error in Creating User!");
-    return res.redirect(req.get("Referrer") || "/");
+    console.log("Error in Creating User API!", err);
+    return res.status(500).json({ success: false, message: "Internal server error during user creation." });
   }
 };
-module.exports.permissionPage_UserForm = async function (req, res) {
+module.exports.updateUserApi = async function (req, res) {
   try {
-    let user = await User.findById(req.params.id);
-    let permission = await Permission.find({});
-    if (user.email === req.body.email) {
-    } else {
-      let temp = await User.find({
-        email: req.body.email
-      });
+    let user = await User.findById(req.body.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Target user not found." });
+    }
+    if (user.email !== req.body.email) {
+      let temp = await User.find({ email: req.body.email });
       if (temp.length != 0) {
-        req.flash("error", "Username Already Exists!");
-        return res.redirect(req.get("Referrer") || "/");
+        return res.status(409).json({ success: false, message: "Username/Email already explicitly in use!" });
       }
     }
     user.name = req.body.name;
     user.email = req.body.email;
+    await user.save();
+    return res.status(200).json({ success: true, message: "User details altered successfully!", data: user });
+  } catch (err) {
+    console.log("Error in updating core user values!", err);
+    return res.status(500).json({ success: false, message: "Failure updating core user profile data." });
+  }
+};
+module.exports.deleteUserApi = async function (req, res) {
+  try {
+    let user = await User.findById(req.body.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Target user entity not found." });
+    }
+    await User.findByIdAndDelete(req.body.id);
+    return res.status(200).json({ success: true, message: "User removed successfully!" });
+  } catch (err) {
+    console.log("Error inside delete user route!", err);
+    return res.status(500).json({ success: false, message: "Internal failure dropping user item." });
+  }
+};
+module.exports.getUserPermissionsApi = async function (req, res) {
+  try {
+    let user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found!" });
+    }
+    let permission = await Permission.find({});
+    permission = permission.filter((obj) => obj.listname !== "admin");
+    for (let i = 0; i < permission.length; i++) {
+      permission[i].available = permission[i].users.includes(req.params.id);
+    }
+    permission.sort(common_function.sortByProperty("nickname", 1));
+    return res.status(200).json({
+      success: true,
+      data: { user, permission }
+    });
+  } catch (err) {
+    console.log("Error retrieving user permission manifest mapping!", err);
+    return res.status(500).json({ success: false, message: "Error processing contextual mapping rules safely." });
+  }
+};
+module.exports.updateUserPermissionsApi = async function (req, res) {
+  try {
+    let user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User identity block not resolved." });
+    }
+    let permission = await Permission.find({});
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
     user.adminPermissionTemp = req.body.adminPermissionTemp ? true : false;
     user.adminPermissionPerm = req.body.adminPermissionPerm ? true : false;
     await user.save();
-    permission.forEach(async (p) => {
-      if (req.body.permission === undefined) p.users.pull(user.id);
-      else if (req.body.permission === p.id && !p.users.includes(user.id))
-        p.users.push(user.id);
-      else if (req.body.permission.includes(p.id) && !p.users.includes(user.id))
-        p.users.push(user.id);
-      else if (
-        req.body.permission === p.id ||
-        req.body.permission.includes(p.id)
-      ) {
-      } else p.users.pull(user.id);
+    const chosenPermissions = req.body.permission === undefined ? [] : [].concat(req.body.permission);
+    for (let p of permission) {
+      if (chosenPermissions.includes(p.id)) {
+        if (!p.users.includes(user.id)) p.users.push(user.id);
+      } else {
+        p.users.pull(user.id);
+      }
       await p.save();
-    });
-    req.flash("success", "User permissions updated successfully!");
-    return res.redirect("/permission_user/" + user.id);
+    }
+    return res.status(200).json({ success: true, message: "User context and rules modified perfectly!" });
   } catch (err) {
-    console.log("Error in Updating User Permission!", err);
-    req.flash("error", "Error in Updating User Permission!");
-    return res.redirect(req.get("Referrer") || "/");
+    console.log("Error processing batch permission payload sync loops!", err);
+    return res.status(500).json({ success: false, message: "Error mapping updated access structures cleanly." });
+  }
+};
+module.exports.toggleUserPermissionApi = async function (req, res) {
+  try {
+    let user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User entity context not resolved." });
+    }
+    user.adminPermissionTemp = !user.adminPermissionTemp;
+    await user.save();
+    return res.status(200).json({
+      success: true,
+      message: `Temporary Admin permission changed to: ${user.adminPermissionTemp}`,
+      adminPermissionTemp: user.adminPermissionTemp
+    });
+  } catch (err) {
+    console.log("Error structural toggling permission variable flags!", err);
+    return res.status(500).json({ success: false, message: "Internal database switch flag assignment errors." });
   }
 };

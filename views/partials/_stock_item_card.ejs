@@ -16,7 +16,10 @@ if (item.stoneTable && item.stoneTable.length) {
   const total = item.stoneTable.reduce((sum, row) => sum + (row.ctWeight || 0), 0);
   stoneCt = total > 0 ? total.toFixed(2) : null;
 }
-const img = item.stockImage && item.stockImage[0] ? '/uploads/' + item.stockImage[0].fileName : '';
+const imageFiles = (item.stockImage || []).map((i) => i && i.fileName).filter(Boolean);
+const imageUrls = imageFiles.map((f) => '/uploads/stock/' + f);
+const img = imageUrls[0] || '';
+const hasSlideshow = imageUrls.length > 1;
 const tagName = generateTagName(item);
 const purity = formatPurity(item.purity ? item.purity.name : '');
 const itemId = item.index || item.tag || '-';
@@ -32,7 +35,16 @@ const canRemove = item.isInStock !== false;
 <article class="h-full flex flex-col bg-surface-container-lowest dark:bg-dark-container rounded-xl sm:rounded-2xl border border-surface-container dark:border-white/10 shadow-whisper overflow-hidden group hover:shadow-card transition-shadow duration-300">
   <a href="/stock/<%= item._id %>" class="block p-2 pb-0 sm:p-4 sm:pb-0">
     <div class="relative aspect-square rounded-lg sm:rounded-xl bg-brand-almond overflow-hidden">
-      <% if (img) { %>
+      <% if (hasSlideshow) { %>
+      <div class="card-slideshow relative w-full h-full" data-card-slideshow data-images='<%= JSON.stringify(imageUrls) %>'>
+        <img src="<%= imageUrls[0] %>" alt="<%= tagName %>" class="card-slideshow-img w-full h-full object-cover transition-opacity duration-300">
+        <div class="card-slideshow-dots absolute bottom-1.5 sm:bottom-2 left-0 right-0 flex justify-center gap-1 sm:gap-1.5 pointer-events-none z-[1]">
+          <% imageUrls.forEach((_, i) => { %>
+          <span class="card-slideshow-dot w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shadow-sm <%= i === 0 ? 'bg-white' : 'bg-white/50' %>" aria-hidden="true"></span>
+          <% }) %>
+        </div>
+      </div>
+      <% } else if (img) { %>
       <img src="<%= img %>" alt="<%= tagName %>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
       <% } else { %>
       <div class="w-full h-full flex items-center justify-center"><i class="fas fa-gem text-2xl sm:text-4xl text-secondary/20"></i></div>
