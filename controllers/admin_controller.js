@@ -190,21 +190,44 @@ module.exports.deleteUserApi = async function (req, res) {
     return res.status(500).json({ success: false, message: "Internal failure dropping user item." });
   }
 };
-module.exports.getUserPermissionsApi = async function (req, res) {
+module.exports.permissionsPage = async function (req, res) {
   try {
-    let user = await User.findById(req.params.id);
+    let user = await User.find({});
+    user.sort(common_function.sortByProperty("name", 1));
+    return res.render("admin/admin_permission", {
+      title: "Staff Management",
+      breadcrumbLabel: "Staff Management",
+      userlist: user
+    });
+  } catch (err) {
+    console.log("Error in Permission Page!", err);
+    req.flash("error", "Error in Permission Page!");
+    return res.redirect(req.get("Referrer") || "/");
+  }
+};
+module.exports.userPermissionsPage = async function (req, res) {
+  try {
+    let user = await User.findById(req.query.id);
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found!" });
     }
     let permission = await Permission.find({});
-    permission = permission.filter((obj) => obj.listname !== "admin");
     for (let i = 0; i < permission.length; i++) {
-      permission[i].available = permission[i].users.includes(req.params.id);
+      permission[i].available = permission[i].users.includes(req.query.id);
     }
     permission.sort(common_function.sortByProperty("nickname", 1));
-    return res.status(200).json({
-      success: true,
-      data: { user, permission }
+    permission = JSON.parse(JSON.stringify(permission));
+    for (let i = 0; i < permission.length; i++) {
+      permission[i].isEnabled = permission[i].users.includes(req.query.id);
+    }
+    return res.render("admin/admin_permission_user", {
+      title: "User Permission",
+      user: user,
+      permissionlist: permission,
+      breadcrumbs: breadcrumb.trail([
+        { label: "Staff Management", href: "/admin/permission" },
+        { label: user.name }
+      ])
     });
   } catch (err) {
     console.log("Error retrieving user permission manifest mapping!", err);
@@ -213,7 +236,7 @@ module.exports.getUserPermissionsApi = async function (req, res) {
 };
 module.exports.updateUserPermissionsApi = async function (req, res) {
   try {
-    let user = await User.findById(req.params.id);
+    let user = await User.findById(req.query.id);
     if (!user) {
       return res.status(404).json({ success: false, message: "User identity block not resolved." });
     }
@@ -240,7 +263,7 @@ module.exports.updateUserPermissionsApi = async function (req, res) {
 };
 module.exports.toggleUserPermissionApi = async function (req, res) {
   try {
-    let user = await User.findById(req.params.id);
+    let user = await User.findById(req.query.id);
     if (!user) {
       return res.status(404).json({ success: false, message: "User entity context not resolved." });
     }

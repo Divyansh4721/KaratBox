@@ -19,6 +19,15 @@ const IndexSchema = new mongoose.Schema({
       type: Number,
       required: true
     }
+  ],
+  lastIndex: {
+    type: Number
+  },
+  recycledGaps: [
+    {
+      type: Number,
+      required: true
+    }
   ]
 });
 const Index = mongoose.model("Index", IndexSchema);

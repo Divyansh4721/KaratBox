@@ -9,45 +9,93 @@ const StoneDealer = require("../models/list_master/stonedealer");
 const StoneType = require("../models/list_master/stonetype");
 const Stock = require("../models/stock");
 const User = require("../models/user");
+const AuditLog = require("../models/auditlog");
 const common_function = require("../controllers/common_function");
 const breadcrumb = require("../config/breadcrumbs");
+const path = require("path");
+const fs = require("fs").promises;
+async function getFilters() {
+  const [
+    kaarigarTable,
+    ornamentTable,
+    prefixTable,
+    purityTable,
+    stockTypeTable,
+    stoneDealerTable,
+    stoneTypeTable
+  ] = await Promise.all([
+    Kaarigar.find().sort({ name: 1 }),
+    Ornament.find().sort({ name: 1 }),
+    Prefix.find().sort({ name: 1 }),
+    Purity.find(),
+    StockType.find().sort({ name: 1 }),
+    StoneDealer.find().sort({ name: 1 }),
+    StoneType.find().sort({ name: 1 })
+  ]);
+  return {
+    kaarigarTable,
+    ornamentTable,
+    prefixTable,
+    purityTable,
+    stockTypeTable,
+    stoneDealerTable,
+    stoneTypeTable
+  };
+}
+async function getNextTagNumber(prefix, ornament) {
+  try {
+    if (!prefix || !ornament) return 1;
+    const entry = await Index.findOne({ prefix, ornament });
+    let nextLowestNumber = 1;
+    if (entry) {
+      if (entry.recycledGaps && entry.recycledGaps.length > 0) {
+        nextLowestNumber = Math.min(...entry.recycledGaps);
+      } else {
+        nextLowestNumber = (entry.lastIndex || 0) + 1;
+      }
+    }
+    return nextLowestNumber;
+  } catch (err) {
+    console.error("Error fetching single tag number:", err);
+    throw err;
+  }
+}
+async function getAllNextTags() {
+  try {
+    const rawIndexes = await Index.find().populate("prefix ornament");
+    const optimizedIndexTable = rawIndexes.map(doc => {
+      const plainDoc = doc.toObject();
+      if (plainDoc.name === "index") return plainDoc;
+      let lowestAvailable = 1;
+      if (plainDoc.recycledGaps && plainDoc.recycledGaps.length > 0) {
+        lowestAvailable = Math.min(...plainDoc.recycledGaps);
+      } else {
+        lowestAvailable = (plainDoc.lastIndex || 0) + 1;
+      }
+      plainDoc.nextLowestIndex = lowestAvailable;
+      delete plainDoc.recycledGaps;
+      return plainDoc;
+    });
+    return optimizedIndexTable;
+  } catch (err) {
+    console.error("Error fetching all tag numbers:", err);
+    throw err;
+  }
+}
 module.exports.stockAddPage = async function (req, res) {
   try {
-    let indexTable = await Index.find();
-    let kaarigarTable = await Kaarigar.find().sort({
-      name: 1
-    });
-    let ornamentTable = await Ornament.find().sort({
-      name: 1
-    });
-    let prefixTable = await Prefix.find().sort({
-      name: 1
-    });
-    let purityTable = await Purity.find();
-    let stockTypeTable = await StockType.find().sort({
-      name: 1
-    });
-    let stoneDealerTable = await StoneDealer.find().sort({
-      name: 1
-    });
-    let stoneTypeTable = await StoneType.find().sort({
-      name: 1
-    });
-    let envVar = await Index.findOne({
-      name: "index"
-    });
+    const [filters, indexTable, envVar] = await Promise.all([
+      getFilters(),
+      getAllNextTags(),
+      Index.findOne({ name: "index" })
+    ]);
+    const nextGlobalIndex = envVar ? (envVar.index * 1 + 1) : 1;
     return res.render("inventory/stock_add", {
       title: "Add Stock",
       activeNav: "inventory",
-      index: envVar.index * 1 + 1,
+      index: nextGlobalIndex,
       indexTable,
-      kaarigarTable,
-      ornamentTable,
-      prefixTable,
-      purityTable,
-      stockTypeTable,
-      stoneDealerTable,
-      stoneTypeTable,
+      ...filters,
       breadcrumbs: breadcrumb.trail([
         { label: "Inventory", href: "/inventory" },
         { label: "Add Stock" }
@@ -61,9 +109,7 @@ module.exports.stockAddPage = async function (req, res) {
 };
 module.exports.addStockApi = async function (req, res) {
   try {
-    let envVar = await Index.findOne({
-      name: "index"
-    });
+    let envVar = await Index.findOne({ name: "index" });
     envVar.index = envVar.index * 1 + 1;
     await envVar.save();
     req.fileCounter = 0;
@@ -78,56 +124,36 @@ module.exports.addStockApi = async function (req, res) {
         req.flash("error", "Please add at least one product image.");
         return res.redirect("/stock_add");
       }
-      let env = require("../config/environment");
-      let path = require("path");
       let imagePath = Stock.imagePath;
-      let fs = require("fs");
       for (let i = 0; i < req.files.length; i++) {
-        let dest = path.join(
-          imagePath,
-          req.body.index + "-" + (i + 1) + ".png"
-        );
-        await fs.writeFile(dest, req.files[i].buffer, () => { });
-        req.files[i].filename = path.join(
-          req.body.index + "-" + (i + 1) + ".png"
-        );
+        let dest = path.join(imagePath, req.body.index + "-" + (i + 1) + ".png");
+        await fs.writeFile(dest, req.files[i].buffer);
+        req.files[i].filename = req.body.index + "-" + (i + 1) + ".png";
       }
       let indexNo = envVar.index;
       let SKU = "";
-      let tag = 0;
-      //Tag
-      {
-        let indexTable = await Index.find();
-        let prefix = req.body.prefix;
-        let ornament = req.body.ornament;
-        let availableArr = indexTable.find(
-          (item) =>
-            item.prefix &&
-            item.prefix.toString() === prefix &&
-            item.ornament &&
-            item.ornament.toString() === ornament
-        ).available;
-        tag = availableArr.length ? availableArr.length + 1 : 1;
-        if (availableArr.length) {
-          availableArr.sort((a, b) => a - b);
-          for (let i = 1; i <= availableArr.length; i++) {
-            if (availableArr[i - 1] !== i) {
-              tag = i;
-              break;
-            }
-          }
-        }
-      }
       let prefix = req.body.prefix;
       let ornament = req.body.ornament;
+      let indexDoc = await Index.findOne({ prefix, ornament });
+      if (!indexDoc) {
+        indexDoc = await Index.create({ prefix, ornament, lastIndex: 0, recycledGaps: [] });
+      }
+      let tag = 1;
+      if (indexDoc.recycledGaps && indexDoc.recycledGaps.length > 0) {
+        tag = Math.min(...indexDoc.recycledGaps);
+        indexDoc.recycledGaps = indexDoc.recycledGaps.filter(g => g !== tag);
+      } else {
+        indexDoc.lastIndex = (indexDoc.lastIndex || 0) + 1;
+        tag = indexDoc.lastIndex;
+      }
+      await indexDoc.save();
       let grossWt = (req.body.grossWt * 1).toFixed(3);
       let netWt = (req.body.netWt * 1).toFixed(3);
       let stoneWt = (req.body.stoneWt * 1).toFixed(3);
-      // let costPurity = (req.body.costPurity * 1).toFixed(2);
       let kaarigar = req.body.kaarigar;
       let stockType = req.body.stockType;
-      let HUID = req.body.huid.replace(/[^a-zA-Z0-9 ]/g, " ");
-      let remark = req.body.remark.replace(/[^a-zA-Z0-9 ]/g, " ");
+      let HUID = req.body.huid;
+      let remark = req.body.remark;
       let purity = req.body.purity;
       let isKDM = req.body.isKDM !== undefined;
       let isInStock = true;
@@ -136,26 +162,20 @@ module.exports.addStockApi = async function (req, res) {
       let stoneTable = [];
       if (req.body.stoneType) {
         for (let i = 0; i < req.body.stoneType.length; i++) {
-          let temp = {
+          stoneTable.push({
             type: req.body.stoneType[i],
             ctWeight: (req.body.stoneWeight[i] * 1).toFixed(3),
             gmWeight: (req.body.stoneWeight[i] / 5).toFixed(3),
             purchaseRate: (req.body.purchaseRate[i] * 1).toFixed(0),
             sellRate: (req.body.sellRate[i] * 1).toFixed(0),
-            dealerName: req.body.stoneDealer[i]
-              ? req.body.stoneDealer[i]
-              : undefined
-          };
-          stoneTable.push(temp);
+            dealerName: req.body.stoneDealer[i] || undefined
+          });
         }
       }
       let stockImage = [];
       if (req.files) {
         for (let i = 0; i < req.files.length; i++) {
-          let temp = {
-            fileName: req.files[i].filename
-          };
-          stockImage.push(temp);
+          stockImage.push({ fileName: req.files[i].filename });
         }
       }
       let tempStock = await Stock.create({
@@ -176,25 +196,22 @@ module.exports.addStockApi = async function (req, res) {
         stoneTable,
         stockImage
       });
-      // tempStock.costPurity = costPurity ? costPurity : 0;
-      tempStock.kaarigar = kaarigar ? kaarigar : undefined;
-      tempStock.HUID = HUID ? HUID : "";
-      tempStock.remark = remark ? remark : "";
+      tempStock.kaarigar = kaarigar || undefined;
+      tempStock.HUID = HUID;
+      tempStock.remark = remark;
       await tempStock.save();
-      let index = await Index.findOne({
-        prefix,
-        ornament
+      await AuditLog.create({
+        user: req.user.id,
+        action: "CREATE",
+        targetModel: "Stock",
+        targetId: tempStock._id,
+        targetIdentifier: `Index: ${tempStock.index} | Tag: ${tempStock.tag}`,
+        changes: [],
+        remark: "Initial entry generated successfully"
       });
-      index.available.push(tag * 1);
-      await index.save();
-      // index = await Index.findOne({
-      //     name: "sku"
-      // });
-      // index.available.push(SKU * 1);
-      // await index.save();
+      req.flash("success", "Stock Created Successfully!");
+      return res.redirect(req.get("Referrer") || "/");
     });
-    req.flash("success", "Stock Created Successfully!");
-    return res.redirect(req.get("Referrer") || "/");
   } catch (err) {
     console.log("Error in Creating New Stock!", err);
     req.flash("error", "Error in Creating New Stock!");
@@ -203,40 +220,23 @@ module.exports.addStockApi = async function (req, res) {
 };
 module.exports.stockViewPage = async function (req, res) {
   try {
-    let stock = await Stock.findById(req.params.id)
-      .populate(
-        "prefix ornament purity kaarigar stockType approveTable stoneTable.type stoneTable.dealerName"
-      )
+    let stock = await Stock.findById(req.query.id)
+      .populate("prefix ornament purity kaarigar stockType approveTable stoneTable.type stoneTable.dealerName")
       .populate("createdBy", "email name")
       .populate("deletedBy", "email name")
-      .populate("updatedTable.user", "email name")
       .populate({
         path: "bill",
         populate: [
-          {
-            path: "customer",
-            select: "name"
-          },
-          {
-            path: "user",
-            select: "email name"
-          }
+          { path: "customer", select: "name" },
+          { path: "user", select: "email name" }
         ]
       })
       .populate({
         path: "approveTable",
         populate: [
-          {
-            path: "userGave",
-            select: "email name"
-          },
-          {
-            path: "userTake",
-            select: "email name"
-          },
-          {
-            path: "customer"
-          }
+          { path: "userGave", select: "email name" },
+          { path: "userTake", select: "email name" },
+          { path: "customer" }
         ]
       });
     await common_function.calculatePrice(stock);
@@ -258,45 +258,20 @@ module.exports.stockViewPage = async function (req, res) {
 };
 module.exports.stockEditPage = async function (req, res) {
   try {
-    let stock = await Stock.findById(req.params.id);
+    let stock = await Stock.findById(req.query.id);
     if (!stock.isInStock) {
       req.flash("error", "Item is not in stock!");
       return res.redirect(req.get("Referrer") || "/");
     }
-    let indexTable = await Index.find();
-    let kaarigarTable = await Kaarigar.find().sort({
-      name: 1
-    });
-    let ornamentTable = await Ornament.find().sort({
-      name: 1
-    });
-    let prefixTable = await Prefix.find().sort({
-      name: 1
-    });
-    let purityTable = await Purity.find();
-    let stockTypeTable = await StockType.find().sort({
-      name: 1
-    });
-    let stoneDealerTable = await StoneDealer.find().sort({
-      name: 1
-    });
-    let stoneTypeTable = await StoneType.find().sort({
-      name: 1
-    });
-    let envVar = await Index.findOne({
-      name: "index"
-    });
+    const [filters, indexTable] = await Promise.all([
+      getFilters(),
+      getAllNextTags()
+    ]);
     return res.render("stock_edit", {
       title: "Edit Stock",
       stock,
       indexTable,
-      kaarigarTable,
-      ornamentTable,
-      prefixTable,
-      purityTable,
-      stockTypeTable,
-      stoneDealerTable,
-      stoneTypeTable,
+      ...filters,
       breadcrumbs: breadcrumb.trail([
         { label: "Inventory", href: "/inventory" },
         { label: "Edit Stock" }
@@ -318,14 +293,12 @@ module.exports.editStockApi = async function (req, res) {
         return res.redirect(req.get("Referrer") || "/");
       }
       const imagePath = Stock.imagePath;
-      // 1. Locate current stock object state
       let tempStock = await Stock.findOne({ index: req.body.index })
         .populate("prefix ornament purity kaarigar stockType stoneTable.type stoneTable.dealerName");
       if (!tempStock) {
         req.flash("error", "Stock item not found.");
         return res.redirect("/");
       }
-      // 2. Clean old image physical assets safely via Async/Await
       let indexCounter = 1;
       while (true) {
         let oldImgFile = path.join(imagePath, `${req.body.index}-${indexCounter}.png`);
@@ -334,7 +307,7 @@ module.exports.editStockApi = async function (req, res) {
           await fs.unlink(oldImgFile);
           indexCounter++;
         } catch {
-          break; // File doesn't exist, stop looking loop
+          break;
         }
       }
       for (let img of tempStock.stockImage) {
@@ -342,7 +315,6 @@ module.exports.editStockApi = async function (req, res) {
           await fs.unlink(path.join(imagePath, img.fileName));
         } catch (_) { }
       }
-      // 3. Process new images
       let stockImage = [];
       if (req.files && req.files.length > 0) {
         for (let i = 0; i < req.files.length; i++) {
@@ -352,32 +324,28 @@ module.exports.editStockApi = async function (req, res) {
           stockImage.push({ fileName: fileName });
         }
       }
-      // 4. Recalculate prefix index tagging sequences if changed
       let tag = tempStock.tag;
       if (tempStock.prefix.toString() !== req.body.prefix || tempStock.ornament.toString() !== req.body.ornament) {
         let oldIndex = await Index.findOne({ prefix: tempStock.prefix._id, ornament: tempStock.ornament._id });
         if (oldIndex) {
-          oldIndex.available = oldIndex.available.filter(obj => obj != tempStock.tag);
-          await oldIndex.save();
-        }
-        let newIndex = await Index.findOne({ prefix: req.body.prefix, ornament: req.body.ornament });
-        if (newIndex) {
-          let availableArr = newIndex.available;
-          tag = availableArr.length + 1;
-          if (availableArr.length) {
-            availableArr.sort((a, b) => a - b);
-            for (let i = 1; i <= availableArr.length; i++) {
-              if (availableArr[i - 1] !== i) {
-                tag = i;
-                break;
-              }
-            }
+          if (!oldIndex.recycledGaps.includes(tempStock.tag)) {
+            oldIndex.recycledGaps.push(Number(tempStock.tag));
+            await oldIndex.save();
           }
-          newIndex.available.push(Number(tag));
-          await newIndex.save();
         }
+        tag = await getNextTagNumber(req.body.prefix, req.body.ornament);
+        let newIndex = await Index.findOne({ prefix: req.body.prefix, ornament: req.body.ornament });
+        if (!newIndex) {
+          newIndex = await Index.create({ prefix: req.body.prefix, ornament: req.body.ornament, lastIndex: tag, recycledGaps: [] });
+        } else {
+          if (newIndex.recycledGaps && newIndex.recycledGaps.includes(tag)) {
+            newIndex.recycledGaps = newIndex.recycledGaps.filter(g => g !== tag);
+          } else {
+            newIndex.lastIndex = tag;
+          }
+        }
+        await newIndex.save();
       }
-      // 5. Build incoming metrics and structures
       const normalizedInputs = {
         tag: Number(tag),
         prefix: req.body.prefix,
@@ -405,14 +373,11 @@ module.exports.editStockApi = async function (req, res) {
           });
         }
       }
-      // 6. Compute updates dynamically and compose standard logs
       let changesTracked = [];
-      // Array Mapping for human-readable relational strings
       const modelMap = { prefix: Prefix, ornament: Ornament, purity: Purity, stockType: StockType, kaarigar: Kaarigar };
       for (let key in normalizedInputs) {
         let oldVal = tempStock[key];
         let newVal = normalizedInputs[key];
-        // Scenario A: DB Object References
         if (oldVal && oldVal._id) {
           if (oldVal._id.toString() !== String(newVal)) {
             let targetRefModel = modelMap[key];
@@ -428,9 +393,7 @@ module.exports.editStockApi = async function (req, res) {
             });
             tempStock[key] = newVal;
           }
-        }
-        // Scenario B: Primitive configuration variables
-        else if (String(oldVal || "") !== String(newVal || "")) {
+        } else if (String(oldVal || "") !== String(newVal || "")) {
           changesTracked.push({
             field: key,
             oldValue: oldVal === undefined ? "" : oldVal,
@@ -439,7 +402,6 @@ module.exports.editStockApi = async function (req, res) {
           tempStock[key] = newVal;
         }
       }
-      // Check for array deep deviations (stoneTable tracking changes)
       let isStoneSame = tempStock.stoneTable.length === stoneTable.length;
       if (isStoneSame) {
         for (let i = 0; i < stoneTable.length; i++) {
@@ -463,11 +425,8 @@ module.exports.editStockApi = async function (req, res) {
         });
         tempStock.stoneTable = stoneTable;
       }
-      // Save asset image mappings
       tempStock.stockImage = stockImage;
-      // 7. Persist changes inside database
       await tempStock.save();
-      // 8. Generate operational AuditLog entry if changes exist
       if (changesTracked.length > 0) {
         await AuditLog.create({
           user: req.user.id,
@@ -490,45 +449,20 @@ module.exports.editStockApi = async function (req, res) {
 };
 module.exports.stockImageEditPage = async function (req, res) {
   try {
-    let stock = await Stock.findById(req.params.id);
+    let stock = await Stock.findById(req.query.id);
     if (!stock.isInStock) {
       req.flash("error", "Item is not in stock!");
       return res.redirect(req.get("Referrer") || "/");
     }
-    let indexTable = await Index.find();
-    let kaarigarTable = await Kaarigar.find().sort({
-      name: 1
-    });
-    let ornamentTable = await Ornament.find().sort({
-      name: 1
-    });
-    let prefixTable = await Prefix.find().sort({
-      name: 1
-    });
-    let purityTable = await Purity.find();
-    let stockTypeTable = await StockType.find().sort({
-      name: 1
-    });
-    let stoneDealerTable = await StoneDealer.find().sort({
-      name: 1
-    });
-    let stoneTypeTable = await StoneType.find().sort({
-      name: 1
-    });
-    let envVar = await Index.findOne({
-      name: "index"
-    });
+    const [filters, indexTable] = await Promise.all([
+      getFilters(),
+      getAllNextTags()
+    ]);
     return res.render("stock_image_edit", {
-      title: "Edit Image Stock",
+      title: "Edit Images Stock",
       stock,
       indexTable,
-      kaarigarTable,
-      ornamentTable,
-      prefixTable,
-      purityTable,
-      stockTypeTable,
-      stoneDealerTable,
-      stoneTypeTable,
+      ...filters,
       breadcrumbs: breadcrumb.trail([
         { label: "Inventory", href: "/inventory" },
         { label: "Edit Images" }
@@ -549,61 +483,54 @@ module.exports.editStockImageApi = async function (req, res) {
         req.flash("error", "File Type Not Correct!");
         return res.redirect(req.get("Referrer") || "/");
       }
-      let env = require("../config/environment");
-      let path = require("path");
       let imagePath = Stock.imagePath;
-      let fs = require("fs");
-      for (
-        let i = 0;
-        await fs.existsSync(
-          path.join(imagePath, req.body.index + "-" + (i + 1) + ".png")
-        );
-        i++
-      ) {
-        await fs.unlinkSync(
-          path.join(imagePath, req.body.index + "-" + (i + 1) + ".png")
-        );
-      }
-      let tempStock = await Stock.findOne({
-        index: req.body.index
-      });
-      for (let i = 0; i < tempStock.stockImage.length; i++) {
-        if (
-          await fs.existsSync(
-            path.join(imagePath, tempStock.stockImage[i].fileName)
-          )
-        ) {
-          await fs.unlinkSync(
-            path.join(imagePath, tempStock.stockImage[i].fileName)
-          );
+      let i = 0;
+      while (true) {
+        let targetPath = path.join(imagePath, req.body.index + "-" + (i + 1) + ".png");
+        try {
+          await fs.access(targetPath);
+          await fs.unlink(targetPath);
+          i++;
+        } catch {
+          break;
         }
       }
+      let tempStock = await Stock.findOne({ index: req.body.index });
+      for (let img of tempStock.stockImage) {
+        try {
+          let specPath = path.join(imagePath, img.fileName);
+          await fs.access(specPath);
+          await fs.unlink(specPath);
+        } catch (_) { }
+      }
       for (let i = 0; i < req.files.length; i++) {
-        let dest = path.join(
-          imagePath,
-          req.body.index + "-" + (i + 1) + ".png"
-        );
-        await fs.writeFile(dest, req.files[i].buffer, () => { });
-        req.files[i].filename = path.join(
-          req.body.index + "-" + (i + 1) + ".png"
-        );
+        let dest = path.join(imagePath, req.body.index + "-" + (i + 1) + ".png");
+        await fs.writeFile(dest, req.files[i].buffer);
+        req.files[i].filename = req.body.index + "-" + (i + 1) + ".png";
       }
       let stockImage = [];
       if (req.files) {
         for (let i = 0; i < req.files.length; i++) {
-          let temp = {
-            fileName: req.files[i].filename
-          };
-          stockImage.push(temp);
+          stockImage.push({ fileName: req.files[i].filename });
         }
       }
-      tempStock.updatedTable.push({
-        user: req.user.id,
-        date: new Date(),
-        remark: "** Last Updated By **"
-      });
       tempStock.stockImage = stockImage;
       await tempStock.save();
+      await AuditLog.create({
+        user: req.user.id,
+        action: "UPDATE",
+        targetModel: "Stock",
+        targetId: tempStock._id,
+        targetIdentifier: `Index: ${tempStock.index} | Tag: ${tempStock.tag}`,
+        changes: [
+          {
+            field: "stockImage",
+            oldValue: "Previous Image Stack",
+            newValue: "Updated Image Stack"
+          }
+        ],
+        remark: "Product visual display configuration re-uploaded via media wizard"
+      });
       req.flash("success", "Stock Edited Successfully!");
       return res.redirect("/stock/" + tempStock.id);
     });
@@ -616,25 +543,11 @@ module.exports.editStockImageApi = async function (req, res) {
 module.exports.stockTransferPage = async function (req, res) {
   try {
     let user = await User.findById(req.user);
-    let stockTable = user.cart;
-    stockTable = await Stock.find({
-      _id: {
-        $in: stockTable
-      }
-    })
+    let stockTable = await Stock.find({ _id: { $in: user.cart } })
       .populate("prefix ornament purity stockType stoneTable.type")
-      .sort({
-        prefix: 1,
-        ornament: 1,
-        tag: 1
-      });
+      .sort({ prefix: 1, ornament: 1, tag: 1 });
     stockTable = stockTable.filter((item) => item.isInStock);
-    let stockTypeTable = await StockType.find().sort({
-      name: 1
-    });
-    let kaarigarTable = await Kaarigar.find().sort({
-      name: 1
-    });
+    const { stockTypeTable, kaarigarTable } = await getFilters();
     return res.render("stock_edit_multiple", {
       title: "Edit Multiple",
       activeNav: "inventory",
@@ -655,8 +568,7 @@ module.exports.stockTransferPage = async function (req, res) {
 module.exports.stockTransferApi = async function (req, res) {
   try {
     let user = await User.findById(req.user).populate("cart");
-    let stockTable = user.cart;
-    stockTable = stockTable.filter((item) => item.isInStock);
+    let stockTable = user.cart.filter((item) => item.isInStock);
     if (!stockTable.length) {
       req.flash("error", "Cart is Empty!");
       return res.redirect(req.get("Referrer") || "/");
@@ -666,21 +578,26 @@ module.exports.stockTransferApi = async function (req, res) {
       path: "cart",
       populate: "stockType"
     });
-    let tempStockTable = tempUser.cart;
-    tempStockTable = tempStockTable.filter((item) => item.isInStock);
+    let tempStockTable = tempUser.cart.filter((item) => item.isInStock);
     for (let i = 0; i < stockTable.length; i++) {
-      stockTable[i].updatedTable.push({
-        user: req.user.id,
-        date: new Date(),
-        remark:
-          "stockType" +
-          " old: " +
-          tempStockTable[i].stockType.name +
-          " new: " +
-          newStockType.name
-      });
+      const oldStockTypeName = tempStockTable[i].stockType ? tempStockTable[i].stockType.name : "N/A";
       stockTable[i].stockType = req.body.stockType;
       await stockTable[i].save();
+      await AuditLog.create({
+        user: req.user.id,
+        action: "UPDATE",
+        targetModel: "Stock",
+        targetId: stockTable[i]._id,
+        targetIdentifier: `Index: ${stockTable[i].index} | Tag: ${stockTable[i].tag}`,
+        changes: [
+          {
+            field: "stockType",
+            oldValue: oldStockTypeName,
+            newValue: newStockType.name
+          }
+        ],
+        remark: `Bulk stock categorization adjusted from ${oldStockTypeName} to ${newStockType.name}`
+      });
     }
     req.flash("success", "Edited Items Successfully!");
     return res.redirect("cart");
@@ -692,34 +609,38 @@ module.exports.stockTransferApi = async function (req, res) {
 };
 module.exports.printTagPage = async function (req, res) {
   try {
-    let stockTable = await Stock.find({
-      _id: req.query.id
-    }).populate("prefix ornament purity stockType stoneTable.type kaarigar");
+    let stockTable = await Stock.find({ _id: req.query.id }).populate("prefix ornament purity stockType stoneTable.type kaarigar");
     stockTable = stockTable.filter((item) => item.tag !== null);
     if (!stockTable.length) {
       req.flash("error", "Item is not in stock!");
       return res.redirect(req.get("Referrer") || "/");
     }
     for (let i of stockTable) {
-      i.updatedTable.push({
+      await AuditLog.create({
         user: req.user.id,
-        date: new Date(),
-        remark: "** Tag Printed  **"
+        action: "EXPORT",
+        targetModel: "Stock",
+        targetId: i._id,
+        targetIdentifier: `Index: ${i.index} | Tag: ${i.tag}`,
+        changes: [
+          {
+            field: "tagPrinted",
+            oldValue: false,
+            newValue: true
+          }
+        ],
+        remark: "Physical barcode label/tag generated cleanly"
       });
-      await i.save();
     }
     for (let i of stockTable) {
       i.sellingPrice = 0;
       for (let j = 0; j < i.stoneTable.length; j++) {
         let stoneWt = i.stoneTable[j].ctWeight * 1;
         let stoneRate = i.stoneTable[j].sellRate * 1;
-        stoneWt = stoneWt ? stoneWt : 1;
-        i.sellingPrice += stoneWt * stoneRate;
+        i.sellingPrice += (stoneWt ? stoneWt : 1) * stoneRate;
       }
     }
-    let tag_name = await Env_Variable.findOne({
-      name: "TagName"
-    });
+    let tag_name = await Env_Variable.findOne({ name: "TagName" });
     return res.render("tags", {
       title: "Tags",
       activeNav: "inventory",
@@ -736,43 +657,40 @@ module.exports.printTagPage = async function (req, res) {
 module.exports.printMultipleTagsPage = async function (req, res) {
   try {
     let user = await User.findById(req.user);
-    let stockTable = user.cart;
-    stockTable = await Stock.find({
-      _id: {
-        $in: stockTable
-      }
-    })
+    let stockTable = await Stock.find({ _id: { $in: user.cart } })
       .populate("prefix ornament purity stockType stoneTable.type kaarigar")
-      .sort({
-        prefix: 1,
-        ornament: 1,
-        tag: 1
-      });
+      .sort({ prefix: 1, ornament: 1, tag: 1 });
     stockTable = stockTable.filter((item) => item.tag !== null);
     if (!stockTable.length) {
       req.flash("error", "Cart is Empty!");
       return res.redirect(req.get("Referrer") || "/");
     }
     for (let i of stockTable) {
-      i.updatedTable.push({
+      await AuditLog.create({
         user: req.user.id,
-        date: new Date(),
-        remark: "** Tag Printed  **"
+        action: "EXPORT",
+        targetModel: "Stock",
+        targetId: i._id,
+        targetIdentifier: `Index: ${i.index} | Tag: ${i.tag}`,
+        changes: [
+          {
+            field: "tagPrinted",
+            oldValue: false,
+            newValue: true
+          }
+        ],
+        remark: "Physical barcode label/tag bulk printing stream initiated"
       });
-      await i.save();
     }
     for (let i of stockTable) {
       i.sellingPrice = 0;
       for (let j = 0; j < i.stoneTable.length; j++) {
         let stoneWt = i.stoneTable[j].ctWeight * 1;
         let stoneRate = i.stoneTable[j].sellRate * 1;
-        stoneWt = stoneWt ? stoneWt : 1;
-        i.sellingPrice += stoneWt * stoneRate;
+        i.sellingPrice += (stoneWt ? stoneWt : 1) * stoneRate;
       }
     }
-    let tag_name = await Env_Variable.findOne({
-      name: "TagName"
-    });
+    let tag_name = await Env_Variable.findOne({ name: "TagName" });
     return res.render("tags", {
       title: "Print Tags",
       activeNav: "inventory",

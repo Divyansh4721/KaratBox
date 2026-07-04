@@ -45,13 +45,6 @@ router.post("/backDateSheet", passport.checkAuthentication, common_function.chec
 router.get("/allStock", passport.checkAuthentication, common_function.checkPermission("dataAllStock"), stockViewController.allStockPage);
 router.get("/allStockApi", passport.checkAuthentication, common_function.checkPermission("dataAllInStock"), stockViewController.allStockApi);
 
-router.use("/", require("./khatabook"));
-router.use("/", require("./list_master"));
-router.use("/", require("./customer"));
-router.use("/", require("./admin"));
-router.use("/", require("./approval"));
-router.use("/", require("./stock"));
-
 
 router.get("/user_profile", passport.checkAuthentication, usersController.profilePage);
 router.post("/user_profile_form", passport.checkAuthentication, usersController.profileForm);

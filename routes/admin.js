@@ -15,9 +15,10 @@ router.post("/admin/user/create", passport.checkAuthentication, common_function.
 router.post("/admin/user/update", passport.checkAuthentication, common_function.checkPermission("admin"), adminController.updateUserApi);
 router.post("/admin/user/delete", passport.checkAuthentication, common_function.checkPermission("admin"), adminController.deleteUserApi);
 
-router.get("/admin/user/permissions/:id", passport.checkAuthentication, common_function.checkPermission("admin"), adminController.getUserPermissionsApi);
-router.post("/admin/user/permissions/update/:id", passport.checkAuthentication, common_function.checkPermission("admin"), adminController.updateUserPermissionsApi);
-router.post("/admin/user/permissions/toggle/:id", passport.checkAuthentication, common_function.checkPermission("admin"), adminController.toggleUserPermissionApi);
+router.get("/admin/permissions", passport.checkAuthentication, common_function.checkPermission("admin"), adminController.permissionsPage);
+router.get("/admin/permissions/user", passport.checkAuthentication, common_function.checkPermission("admin"), adminController.userPermissionsPage);
+router.post("/admin/permissions/user/update", passport.checkAuthentication, common_function.checkPermission("admin"), adminController.updateUserPermissionsApi);
+router.post("/admin/permissions/user/toggle", passport.checkAuthentication, common_function.checkPermission("admin"), adminController.toggleUserPermissionApi);
 
 router.get("/admin/dev", adminController.DeveloperConsolePage);
 
