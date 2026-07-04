@@ -14,7 +14,7 @@
       </div>
       <a href="/customer?id=<%= customer.id %>" class="p-1 text-secondary hover:text-on-surface"><i class="fas fa-times"></i></a>
     </div>
-    <form action="/editCustomerForm" method="post" class="p-6 space-y-5">
+    <form id="editCustomerForm" action="/customer/edit-customer" method="post" class="p-6 space-y-5">
       <input type="hidden" name="id" value="<%= customer.id %>">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -84,6 +84,7 @@
     </form>
   </div>
 </div>
+<%- include('_ajax_helpers') %>
 <script>
   const inputClass = 'flex-1 px-4 py-3 bg-surface-container-low border border-transparent rounded-lg text-sm text-on-surface placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors';
   let phoneIdx = <%= customer.phNum ? customer.phNum.length : 0 %>;
@@ -126,5 +127,14 @@
   }
   document.addEventListener('DOMContentLoaded', () => {
     if (!document.getElementById('phoneRows').children.length) addPhoneRow();
+  });
+  document.getElementById('editCustomerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const json = await postForm('/customer/edit-customer', e.target);
+      notify(json.message, 'success');
+    } catch (err) {
+      notify(err.message, 'error');
+    }
   });
 </script>

@@ -167,7 +167,7 @@
                     <button type="button" onclick="AddToCart('${s.id}')" class="p-2 text-primary hover:bg-primary-fixed/25 rounded-lg transition-colors"><i class="fas fa-cart-plus"></i></button>
                 </td>
                 <td class="py-3 px-4 text-center">
-                    <a href="/stock/${s.id}" class="p-2 text-secondary hover:text-primary inline-block"><i class="fas fa-arrow-up-right-from-square"></i></a>
+                    <a href="${window.kbRoutes.stockView(s.id)}" class="p-2 text-secondary hover:text-primary inline-block"><i class="fas fa-arrow-up-right-from-square"></i></a>
                 </td>
             </tr>`).join('');
   }

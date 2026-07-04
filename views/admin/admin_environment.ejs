@@ -20,7 +20,7 @@
 }; %>
 <% const fullWidthFields = ["google_clientID", "google_clientSecret", "google_callbackURL"]; %>
 <div class="w-full pb-10">
-  <form action="/environment_form" method="post">
+  <form id="environmentForm" action="/admin/settings/update" method="post">
     <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper p-6 sm:p-8">
       <div class="mb-10">
         <h2 class="text-xl font-bold text-on-surface mb-1">General Settings</h2>
@@ -103,6 +103,7 @@
     </div>
   </form>
 </div>
+<%- include('_ajax_helpers') %>
 <script>
   function togglePassword(id, btn) {
     const input = document.getElementById(id);
@@ -113,4 +114,14 @@
     icon.classList.toggle('fa-eye', !hidden);
     icon.classList.toggle('fa-eye-slash', hidden);
   }
+
+  document.getElementById('environmentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const json = await postForm('/admin/settings/update', e.target);
+      notify(json.message || 'Settings updated successfully!', 'success');
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  });
 </script>

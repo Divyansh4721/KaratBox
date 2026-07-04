@@ -55,7 +55,7 @@
               <button type="button" onclick="AddToCart('<%= s._id || s.id %>')" class="p-1.5 rounded-lg text-primary hover:bg-primary-fixed/30 transition-colors" title="Add to cart">
                 <i class="fas fa-cart-plus text-sm"></i>
               </button>
-              <a href="/stock/<%= s._id || s.id %>" class="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-surface-container-low transition-colors" title="View stock">
+              <a href="/stock?id=<%= s._id || s.id %>" class="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-surface-container-low transition-colors" title="View stock">
                 <i class="fas fa-link text-sm"></i>
               </a>
             </div>

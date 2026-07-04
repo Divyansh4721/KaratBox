@@ -12,7 +12,7 @@
         tableId: 'sessionBody',
         minWidth: '520px',
         colCount: 3,
-        headerActions: `<a href="/session-delete/all" onclick="return confirm('End all active sessions?')" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-error/30 text-error text-sm font-semibold rounded-lg hover:bg-error/5 transition-all shrink-0"><i class="fas fa-power-off text-xs"></i> End All Sessions</a>`,
+        headerActions: `<button type="button" id="deleteAllSessionsBtn" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-error/30 text-error text-sm font-semibold rounded-lg hover:bg-error/5 transition-all shrink-0"><i class="fas fa-power-off text-xs"></i> End All Sessions</button>`,
         columns: [
             { label: 'S.No', align: 'left', thClass: 'px-5' },
             { label: 'Member', align: 'left', thClass: 'px-4' },
@@ -22,8 +22,11 @@
     }
 }) %>
 
+<%- include('_ajax_helpers') %>
 <script>
-    const allRows = <%- JSON.stringify(sessionlist) %>.map(s => ({
+    const sessionRows = <%- JSON.stringify(sessionlist) %>;
+    const allRows = sessionRows.map(s => ({
+        id: s.id,
         name: s.name || '',
         email: s.email || '',
         expires: s.expires || '',
@@ -80,6 +83,19 @@
         }
         document.getElementById('sessionCount').textContent = rows.length.toLocaleString('en-IN');
     }
+
+    document.getElementById('deleteAllSessionsBtn').addEventListener('click', async () => {
+        if (!confirm('End all active sessions?')) return;
+        try {
+            await postData('/admin/session/delete', { id: 'all' });
+            allRows.length = 0;
+            pager.resetPage();
+            renderTable();
+            notify('All sessions ended successfully!', 'success');
+        } catch (err) {
+            notify(err.message, 'error');
+        }
+    });
 
     document.addEventListener('DOMContentLoaded', renderTable);
 </script>

@@ -1,0 +1,31 @@
+<script>
+  function notify(text, type) {
+    if (typeof Noty !== 'undefined') {
+      new Noty({ theme: 'nest', text, type, layout: 'topCenter', timeout: 2000 }).show();
+    } else {
+      alert(text);
+    }
+  }
+
+  async function postForm(url, form) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(new FormData(form))
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Request failed');
+    return json;
+  }
+
+  async function postData(url, data) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(data)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Request failed');
+    return json;
+  }
+</script>

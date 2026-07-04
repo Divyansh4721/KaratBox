@@ -42,7 +42,7 @@
       </div>
       <button type="button" onclick="closeAddModal()" class="p-1 text-secondary hover:text-on-surface"><i class="fas fa-times"></i></button>
     </div>
-    <form action="/addCustomerForm" method="post" class="p-6 space-y-5">
+    <form id="addCustomerForm" action="/customer/add-customer" method="post" class="p-6 space-y-5">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div><label class="<%= label %>">Customer Name</label><input type="text" name="name" required placeholder="Enter Customer Name ...." class="<%= field %>"></div>
         <div><label class="<%= label %>">Address <span class="text-error">*</span></label><input type="text" name="address" required placeholder="Enter Customer Address ...." class="<%= field %>"></div>
@@ -95,9 +95,8 @@
       </div>
       <button type="button" onclick="closeEditModal()" class="p-1 text-secondary hover:text-on-surface"><i class="fas fa-times"></i></button>
     </div>
-    <form id="editForm" action="/editCustomerForm" method="post" class="p-6 space-y-5">
+    <form id="editForm" action="/customer/edit-customer" method="post" class="p-6 space-y-5">
       <input type="hidden" name="id" id="editId">
-      <input type="hidden" name="returnTo" value="/customerTable">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div><label class="<%= label %>">Customer Name</label><input type="text" name="name" id="editName" required placeholder="Enter Customer Name ...." class="<%= field %>"></div>
         <div><label class="<%= label %>">Address <span class="text-error">*</span></label><input type="text" name="address" id="editAddress" required placeholder="Enter Customer Address ...." class="<%= field %>"></div>
@@ -138,6 +137,7 @@
     </form>
   </div>
 </div>
+<%- include('_ajax_helpers') %>
 <script>
   const rawRows = <%- JSON.stringify(customerTable) %>;
   const allRows = rawRows.map((r) => ({
@@ -227,11 +227,58 @@
     document.getElementById('activeCount').textContent = allRows.length.toLocaleString('en-IN');
   }
 
-  function deleteCustomer(id) {
-    const row = allRows.find((r) => r.id === id);
+  async function deleteCustomer(id) {
+    const row = allRows.find((r) => String(r.id) === String(id));
     if (!row || row.hasRecords) return;
     if (!confirm(`Delete customer "${row.name}"? This cannot be undone.`)) return;
-    window.location.href = '/delCustomer?id=' + encodeURIComponent(id);
+    try {
+      await postData('/customer/delete-customer', { id });
+      const rowIdx = allRows.findIndex((r) => String(r.id) === String(id));
+      if (rowIdx >= 0) allRows.splice(rowIdx, 1);
+      const rawIdx = rawRows.findIndex((r) => String(r._id) === String(id));
+      if (rawIdx >= 0) rawRows.splice(rawIdx, 1);
+      pager.resetPage();
+      renderTable();
+      notify('Deleted customer successfully!', 'success');
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  }
+  function buildSearchStr(r) {
+    return (
+      (r.name || '') + ' ' +
+      (r.phNum || []).join(' ') + ' ' +
+      (r.address || '') + ' ' +
+      (r.CO || []).join(' ')
+    ).toLowerCase();
+  }
+  function mapCustomerToRow(r) {
+    return {
+      id: r._id,
+      name: r.name || '',
+      address: r.address || '',
+      addedBy: r.user && r.user.name ? r.user.name : 'Main Shop',
+      phone: r.phNum && r.phNum.length ? r.phNum[0] : '',
+      createdAt: r.createdAt,
+      impDate: r.impDates && r.impDates.length ? r.impDates[0].date : null,
+      hasRecords: !!(r.bills && r.bills.length) || !!(r.approvals && r.approvals.length) || !!(r.payments && r.payments.length),
+      searchStr: buildSearchStr(r)
+    };
+  }
+  function mapCustomerToRaw(r) {
+    return {
+      _id: r._id,
+      name: r.name,
+      address: r.address,
+      phNum: r.phNum || [],
+      CO: r.CO || [],
+      impDates: r.impDates || [],
+      user: r.user,
+      bills: r.bills || [],
+      approvals: r.approvals || [],
+      payments: r.payments || [],
+      createdAt: r.createdAt
+    };
   }
 
   function openAddModal() {
@@ -351,6 +398,50 @@
     if (type === 'co' && !document.getElementById('coRows').children.length) document.getElementById('coEmpty').classList.remove('hidden');
     if (type === 'date' && !document.getElementById('dateRows').children.length) document.getElementById('dateEmpty').classList.remove('hidden');
   }
+  document.getElementById('addCustomerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const json = await postForm('/customer/add-customer', e.target);
+      const raw = mapCustomerToRaw(json.data);
+      rawRows.unshift(raw);
+      allRows.unshift(mapCustomerToRow(raw));
+      e.target.reset();
+      document.getElementById('phoneRows').innerHTML = '';
+      document.getElementById('coRows').innerHTML = '';
+      document.getElementById('dateRows').innerHTML = '';
+      document.getElementById('coEmpty').classList.remove('hidden');
+      document.getElementById('dateEmpty').classList.remove('hidden');
+      phoneIdx = 0;
+      coIdx = 0;
+      dateIdx = 0;
+      closeAddModal();
+      pager.resetPage();
+      renderTable();
+      notify(json.message, 'success');
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  });
+  document.getElementById('editForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const oldId = document.getElementById('editId').value;
+    try {
+      const json = await postForm('/customer/edit-customer', e.target);
+      const raw = mapCustomerToRaw(json.data);
+      const rawIdx = rawRows.findIndex((r) => String(r._id) === String(oldId));
+      if (rawIdx >= 0) rawRows[rawIdx] = raw;
+      const rowIdx = allRows.findIndex((r) => String(r.id) === String(oldId));
+      if (rowIdx >= 0) {
+        const hasRecords = allRows[rowIdx].hasRecords;
+        allRows[rowIdx] = { ...mapCustomerToRow(raw), hasRecords };
+      }
+      closeEditModal();
+      renderTable();
+      notify(json.message, 'success');
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  });
   document.addEventListener('DOMContentLoaded', () => {
     renderTable();
     if (new URLSearchParams(window.location.search).get('openAdd') === '1') openAddModal();

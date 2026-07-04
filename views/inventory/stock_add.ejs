@@ -156,7 +156,11 @@
   let stoneDealerTable = <%- JSON.stringify(stoneDealerTable) %>;
   let stoneTypeTable = <%- JSON.stringify(stoneTypeTable) %>;
   let indexTable = <%- JSON.stringify(indexTable.map(function(i) {
-    return { prefix: i.prefix ? String(i.prefix) : '', ornament: i.ornament ? String(i.ornament) : '', available: i.available || [] };
+    return { 
+      prefix: i.prefix ? String(i.prefix) : '', 
+      ornament: i.ornament ? String(i.ornament) : '', 
+      nextLowestIndex: i.nextLowestIndex || 1 
+    };
   })) %>;
   const stoneInput = <%- JSON.stringify(input) %>;
   const stoneSelect = <%- JSON.stringify(select) %>;
@@ -173,7 +177,7 @@
     btn.id = 'enableCameraBtn';
     btn.className = camBtn;
     btn.innerHTML = '<i class="fas fa-camera"></i><span>Enable Camera</span>';
-    btn.addEventListener('click', async function () {
+    btn.addEventListener('click', async function() {
       try {
         await initializeCamera();
         cameraInitialized = true;
@@ -202,7 +206,11 @@
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: isMobile() ? { ideal: 'environment' } : undefined }
+        video: {
+          facingMode: isMobile() ? {
+            ideal: 'environment'
+          } : undefined
+        }
       });
       stream.getTracks().forEach(track => track.stop());
       await initializeCamera();
@@ -320,7 +328,7 @@
           </button>
         </div>`;
       container.appendChild(imageRow);
-      reader.onload = function (e) {
+      reader.onload = function(e) {
         document.getElementById('ImageRow' + i).querySelector('img').src = e.target.result;
       };
       reader.readAsDataURL(dataTransfer.files[i]);
@@ -331,9 +339,9 @@
     const fileInput = document.getElementById('imageButton');
     if (!fileInput.files.length) return;
     const reader = new FileReader();
-    reader.onload = function (loadEvent) {
+    reader.onload = function(loadEvent) {
       const img = new Image();
-      img.onload = function () {
+      img.onload = function() {
         const imgSize = Math.min(img.width, img.height);
         const startX = (img.width - imgSize) / 2;
         const startY = (img.height - imgSize) / 2;
@@ -347,8 +355,12 @@
         const ab = new ArrayBuffer(byteString.length);
         const ia = new Uint8Array(ab);
         for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
-        const blob = new Blob([ab], { type: mimeString });
-        dataTransfer.items.add(new File([blob], 'upload_' + Date.now() + '.png', { type: 'image/png' }));
+        const blob = new Blob([ab], {
+          type: mimeString
+        });
+        dataTransfer.items.add(new File([blob], 'upload_' + Date.now() + '.png', {
+          type: 'image/png'
+        }));
         document.getElementById('stockImage').files = dataTransfer.files;
         buildTable();
       };
@@ -396,10 +408,18 @@
   async function setCamera(deviceId) {
     const constraints = {
       video: {
-        deviceId: deviceId ? { exact: deviceId } : undefined,
-        facingMode: isMobile() ? { ideal: 'environment' } : undefined,
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
+        deviceId: deviceId ? {
+          exact: deviceId
+        } : undefined,
+        facingMode: isMobile() ? {
+          ideal: 'environment'
+        } : undefined,
+        width: {
+          ideal: 1280
+        },
+        height: {
+          ideal: 720
+        }
       }
     };
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -423,7 +443,11 @@
 
   async function initializeCamera() {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: isMobile() ? { ideal: 'environment' } : undefined }
+      video: {
+        facingMode: isMobile() ? {
+          ideal: 'environment'
+        } : undefined
+      }
     });
     stream.getTracks().forEach(track => track.stop());
     const cameras = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
@@ -462,8 +486,12 @@
       const ab = new ArrayBuffer(byteString.length);
       const ia = new Uint8Array(ab);
       for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
-      const blob = new Blob([ab], { type: mimeString });
-      dataTransfer.items.add(new File([blob], 'camera_capture_' + Date.now() + '.png', { type: 'image/png' }));
+      const blob = new Blob([ab], {
+        type: mimeString
+      });
+      dataTransfer.items.add(new File([blob], 'camera_capture_' + Date.now() + '.png', {
+        type: 'image/png'
+      }));
       document.getElementById('stockImage').files = dataTransfer.files;
       buildTable();
     });
@@ -482,21 +510,10 @@
     if (!ornament || !tagInput) return;
     const entry = findIndexEntry(prefix, ornament);
     if (!entry) {
-      tagInput.value = '';
+      tagInput.value = '1';
       return;
     }
-    const availableArr = entry.available || [];
-    let tagnumber = availableArr.length ? availableArr.length + 1 : 1;
-    if (availableArr.length) {
-      availableArr.sort((a, b) => a - b);
-      for (let i = 1; i <= availableArr.length; i++) {
-        if (availableArr[i - 1] !== i) {
-          tagnumber = i;
-          break;
-        }
-      }
-    }
-    tagInput.value = tagnumber;
+    tagInput.value = entry.nextLowestIndex;
   }
 
   function calculateWeight() {
@@ -534,14 +551,14 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
+  document.addEventListener('DOMContentLoaded', function() {
     checkCameraPermissionAndInit();
-    document.getElementById('quickCapture')?.addEventListener('click', function () {
+    document.getElementById('quickCapture')?.addEventListener('click', function() {
       document.getElementById('capture')?.click();
     });
     const form = document.getElementById('stock-form');
     if (form) {
-      form.addEventListener('submit', function (e) {
+      form.addEventListener('submit', function(e) {
         if (!dataTransfer.files.length) {
           e.preventDefault();
           alert('Please add at least one product image before submitting.');

@@ -108,7 +108,7 @@
       });
       const data = await res.json();
       if (data.success && data.redirectUrl) {
-        window.location.href = data.redirectUrl;
+        window.location.href = window.kbRoutes.normalizeLegacyRoute(data.redirectUrl);
         return;
       }
       showToast(data.message || 'Item not found');

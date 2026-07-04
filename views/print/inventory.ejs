@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Print Table</title>
+  <style>
+    body {
+      font-family: sans-serif !important;
+      width: 100%;
+      margin: 0
+    }
+
+    table {
+      border: 2px solid #000;
+      border-collapse: collapse;
+      font-size: 2vw !important;
+      text-align: center;
+      margin: 0 auto;
+      width: 100%
+    }
+
+    .bold {
+      font-weight: bold;
+      background-color: rgba(211, 211, 211, .5)
+    }
+
+    td {
+      padding: 5px;
+      white-space: nowrap
+    }
+
+    th {
+      padding: 5px
+    }
+
+    div {
+      width: min-content
+    }
+
+    #previewImg {
+      width: 100%
+    }
+
+    canvas {
+      width: 100% !important;
+      height: auto !important
+    }
+
+    #maindata {
+      position: relative;
+      width: 100%
+    }
+
+    #gclogo {
+      height: 60px;
+      position: absolute;
+      top: 6px;
+      left: 10px
+    }
+
+    th,
+    td {
+      white-space: nowrap
+    }
+
+    thead {
+      display: table-header-group
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      background-image: url("../images/watermark.png");
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center
+    }
+
+    @media print {
+      body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="previewImg"></div>
+  <div id="maindata">
+    <center>
+      <% 
+          // Dynamically compute the time on layout compilation
+          let months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          let days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+          let now = new Date();
+          let formattedTime = `${days[now.getDay()]} ${now.getDate()}-${months[now.getMonth()]}-${now.getFullYear()} at ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      %>
+      <%= formattedTime %>
+      <br>
+      <br>
+
+      <table border="1" id="printTable">
+        <thead>
+          <tr class="bold">
+            <td>S. No</td>
+            <td>SKU</td>
+            <td>Tag No</td>
+            <td>Purity</td>
+            <td>Gross Wt</td>
+            <td>Net Wt</td>
+            <td>Stone Wt<br>(In gms)</td>
+            <td>Stone Wt<br>(In ct)</td>
+            <td>Stock<br>Type</td>
+          </tr>
+        </thead>
+        <tbody>
+          <% for(let i = 0; i < stockTable.length; i++){ %>
+          <tr>
+            <td><%= (i+1) %></td>
+            <td><%= stockTable[i].index %></td>
+            <td><%= stockTable[i].prefix.name + " " + stockTable[i].ornament.name + (stockTable[i].tag ? ("-" + stockTable[i].tag) : "") %></td>
+            <td><%= stockTable[i].purity.name %></td>
+            <td><%= stockTable[i].grossWt.toFixed(3) %></td>
+            <td><%= stockTable[i].netWt.toFixed(3) %></td>
+            <td><%= stockTable[i].stoneWt.toFixed(3) %></td>
+            <td><%= (stockTable[i].stoneWt * 5).toFixed(3) %></td>
+            <td><%= stockTable[i].stockType.name %></td>
+          </tr>
+          <% } %>
+
+          <tr class="bold">
+            <td><%= stockTable.length %></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td><%= (stockTable.reduce((total, item) => total + (item.grossWt * 1), 0)).toFixed(3) %></td>
+            <td><%= (stockTable.reduce((total, item) => total + (item.netWt * 1), 0)).toFixed(3) %></td>
+            <td><%= (stockTable.reduce((total, item) => total + (item.stoneWt * 1), 0)).toFixed(3) %></td>
+            <td><%= (stockTable.reduce((total, item) => total + (item.stoneWt * 5), 0)).toFixed(3) %></td>
+            <td></td>
+          </tr>
+
+          <tr>
+            <td colspan="3" style="vertical-align: top;">
+              <table border="1" style="width: 100%;">
+                <tbody>
+                  <tr>
+                    <th colspan="3">Stone Summary</th>
+                  </tr>
+                  <tr>
+                    <th>Type</th>
+                    <th>Gram</th>
+                    <th>Carat</th>
+                  </tr>
+                  <%
+                      let stoneTableData = {};
+                      // Initialize stone unique types tracker
+                      for (let item of stockTable) {
+                          if (item.stoneTable) {
+                              for (let stone of item.stoneTable) {
+                                  stoneTableData[stone.type.name] = {
+                                      ctWeight: 0,
+                                      gmWeight: 0,
+                                  };
+                              }
+                          }
+                      }
+                      // Push final placeholders
+                      stoneTableData["Total"] = {
+                          ctWeight: 0,
+                          gmWeight: 0,
+                      };
+                      
+                      // Loop metrics adjustments
+                      for (let item of stockTable) {
+                          if (item.stoneTable) {
+                              for (let stone of item.stoneTable) {
+                                  stoneTableData[stone.type.name].ctWeight += (stone.ctWeight * 1);
+                                  stoneTableData[stone.type.name].gmWeight += (stone.ctWeight / 5);
+                                  stoneTableData["Total"].ctWeight += (stone.ctWeight * 1);
+                                  stoneTableData["Total"].gmWeight += (stone.ctWeight / 5);
+                              }
+                          }
+                      }
+                      
+                      // Ensure standard stone keys configuration sorting pushes total to end
+                      let keys = Object.keys(stoneTableData).filter(k => k !== "Total");
+                      keys.push("Total");
+                  %>
+                  <% for(let i of keys){ %>
+                  <tr>
+                    <td><%= i %></td>
+                    <td><%= stoneTableData[i].gmWeight.toFixed(3) %></td>
+                    <td><%= stoneTableData[i].ctWeight.toFixed(3) %></td>
+                  </tr>
+                  <% } %>
+                </tbody>
+              </table>
+            </td>
+
+            <td colspan="6" style="vertical-align: top;">
+              <table border="1" style="width: 100%;">
+                <tbody>
+                  <tr>
+                    <th colspan="4">Item Summary</th>
+                  </tr>
+                  <tr>
+                    <th>Item</th>
+                    <th>Count</th>
+                    <th>Item</th>
+                    <th>Count</th>
+                  </tr>
+                  <%
+                      let itemTable = {};
+                      for (let item of stockTable) {
+                          let nameKey = item.prefix.name + " " + item.ornament.name;
+                          itemTable[nameKey] = (itemTable[nameKey] || 0) + 1;
+                      }
+                      let itemKeys = Object.keys(itemTable);
+                  %>
+                  <% for(let i = 0; i < itemKeys.length; i += 2){ %>
+                  <tr>
+                    <td><%= itemKeys[i] %></td>
+                    <td><%= itemTable[itemKeys[i]] %></td>
+                    <td><%= (itemKeys[i+1]) ? itemKeys[i+1] : "" %></td>
+                    <td><%= (itemKeys[i+1]) ? itemTable[itemKeys[i+1]] : "" %></td>
+                  </tr>
+                  <% } %>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </center>
+  </div>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      window.print();
+    });
+  </script>
+</body>
+
+</html>

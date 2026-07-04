@@ -179,7 +179,7 @@
         } else {
           tbody.innerHTML = top.map((s) => `
           <tr class="border-t border-surface-container dark:border-white/10 hover:bg-surface-container-low/40">
-            <td class="py-3 px-5 font-medium text-primary"><a href="/stock/${s._id}" class="hover:underline">${itemLabel(s)}</a></td>
+            <td class="py-3 px-5 font-medium text-primary"><a href="${window.kbRoutes.stockView(s._id)}" class="hover:underline">${itemLabel(s)}</a></td>
             <td class="py-3 px-4 text-right tabular-nums">${fmtWt(s.netWt)}</td>
             <td class="py-3 px-5 text-right tabular-nums font-semibold">${fmtPrice(s.sellingPrice)}</td>
           </tr>

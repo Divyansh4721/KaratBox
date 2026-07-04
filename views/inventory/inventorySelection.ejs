@@ -5,8 +5,12 @@
 <% const mobileNavW = "w-[120px] min-w-[120px] max-w-[120px] shrink-0 grow-0 basis-[120px] flex-none"; %>
 <% const mobileNavBtn = "mobile-filter-tab w-full min-h-[44px] text-left px-2.5 py-3 text-xs leading-snug font-medium border-l-[3px] box-border"; %>
 <% const checkInput = "mt-0.5 rounded border-outline-variant text-primary focus:ring-primary-container shrink-0 cursor-pointer"; %>
-<% const filterBox = "max-h-48 overflow-y-auto space-y-2 rounded-lg border border-surface-container bg-surface-container-low/30 p-3"; %>
+<% const filterActions = "flex items-center gap-2 shrink-0 text-xs font-semibold"; %>
+<% const filterBoxShell = "h-48 flex flex-col rounded-lg border border-surface-container bg-surface-container-low/30 overflow-hidden"; %>
+<% const filterBoxBar = "flex items-center justify-end gap-2 px-3 py-2 border-b border-surface-container/80 shrink-0 " + filterActions; %>
+<% const filterBoxList = "filter-box-list flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 space-y-2"; %>
 <% const desktopCheck = checkInput + " w-4 h-4"; %>
+<% const mobileSortDirBtn = "sort-dir-mobile-btn min-w-[2.35rem] px-1.5 py-1 text-[10px] font-bold uppercase tracking-wide rounded-md transition-colors"; %>
 <% const q = typeof query !== 'undefined' ? query : {}; %>
 <% const prefixes = typeof prefixTable !== 'undefined' ? prefixTable : []; %>
 <% const ornaments = typeof ornamentTable !== 'undefined' ? ornamentTable : []; %>
@@ -24,6 +28,21 @@
   const names = selOrnament.map((id) => ornaments.find((o) => String(o._id) === String(id))?.name).filter(Boolean);
   if (names.length) selectedOrnament = names.join(', ');
 } %>
+
+<style>
+  .filter-box-list {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .filter-box-list::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+  .card-slideshow-img {
+    transition: opacity 0.35s ease;
+  }
+</style>
 
 <div class="pb-10">
   <!-- Header with Sort and Filter Button -->
@@ -49,8 +68,12 @@
         <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-secondary text-[10px] pointer-events-none"></i>
       </div>
       <label class="text-[10px] font-semibold uppercase tracking-widest text-secondary whitespace-nowrap hidden sm:inline">Order By:</label>
-      <div class="relative flex-1 sm:flex-none">
-        <select id="sortDirection" onchange="LoadTable()" class="<%= sideField %> w-full sm:w-24 cursor-pointer pr-8">
+      <div class="flex sm:hidden items-center gap-0.5 shrink-0 rounded-lg border border-surface-container bg-surface-container-low p-0.5" role="group" aria-label="Sort order">
+        <button type="button" data-sort-dir="asc" onclick="setSortDirection('asc')" class="<%= mobileSortDirBtn %> bg-primary text-on-primary">ASC</button>
+        <button type="button" data-sort-dir="desc" onclick="setSortDirection('desc')" class="<%= mobileSortDirBtn %> text-secondary">DESC</button>
+      </div>
+      <div class="relative hidden sm:block shrink-0">
+        <select id="sortDirection" onchange="LoadTable()" class="<%= sideField %> w-24 cursor-pointer pr-8">
           <option value="asc" selected>ASC</option>
           <option value="desc">DESC</option>
         </select>
@@ -71,41 +94,69 @@
         <form id="filterForm" method="get" action="/inventorySelection" class="space-y-4">
           <div>
             <p class="<%= label %> mb-2">Select Prefix</p>
-            <div class="<%= filterBox %>">
+            <div class="<%= filterBoxShell %>">
+              <div class="<%= filterBoxBar %>">
+                <button type="button" onclick="selectAllDesktopGroup('prefix')" class="text-primary hover:opacity-80">Select All</button>
+                <span class="text-outline-variant">|</span>
+                <button type="button" onclick="clearAllDesktopGroup('prefix')" class="text-error hover:opacity-80">Clear All</button>
+              </div>
+              <div class="<%= filterBoxList %>">
               <% for (let i of prefixes) { %>
               <label class="<%= checkLabel %>">
                 <input type="checkbox" name="prefixFilter" value="<%= i._id %>" <%= selPrefix ? (selPrefix.includes(String(i._id)) ? 'checked' : '') : 'checked' %> class="<%= desktopCheck %>">
                 <span><%= i.name || '-' %></span>
               </label>
               <% } %>
+              </div>
             </div>
           </div>
           <div>
             <p class="<%= label %> mb-2">Select Ornament</p>
-            <div class="<%= filterBox %>">
+            <div class="<%= filterBoxShell %>">
+              <div class="<%= filterBoxBar %>">
+                <button type="button" onclick="selectAllDesktopGroup('ornament')" class="text-primary hover:opacity-80">Select All</button>
+                <span class="text-outline-variant">|</span>
+                <button type="button" onclick="clearAllDesktopGroup('ornament')" class="text-error hover:opacity-80">Clear All</button>
+              </div>
+              <div class="<%= filterBoxList %>">
               <% for (let i of ornaments) { %>
               <label class="<%= checkLabel %>">
                 <input type="checkbox" name="ornamentSelectFilter" value="<%= i._id %>" <%= selOrnament ? (selOrnament.includes(String(i._id)) ? 'checked' : '') : 'checked' %> class="<%= desktopCheck %>">
                 <span><%= i.name %></span>
               </label>
               <% } %>
+              </div>
             </div>
           </div>
           <div>
             <p class="<%= label %> mb-2">Select Stock Type</p>
-            <div class="<%= filterBox %>">
+            <div class="<%= filterBoxShell %>">
+              <div class="<%= filterBoxBar %>">
+                <button type="button" onclick="selectAllDesktopGroup('stockType')" class="text-primary hover:opacity-80">Select All</button>
+                <span class="text-outline-variant">|</span>
+                <button type="button" onclick="clearAllDesktopGroup('stockType')" class="text-error hover:opacity-80">Clear All</button>
+              </div>
+              <div class="<%= filterBoxList %>">
               <% for (let i of stockTypes) { %>
               <label class="<%= checkLabel %>">
                 <input type="checkbox" name="stockTypeFilter" value="<%= i._id %>" <%= selStockType ? (selStockType.includes(String(i._id)) ? 'checked' : '') : 'checked' %> class="<%= desktopCheck %>">
                 <span><%= i.name %></span>
               </label>
               <% } %>
+              </div>
             </div>
           </div>
           <div class="pt-3 border-t border-surface-container space-y-3">
             <div id="purityFilter" class="hidden">
               <p class="<%= label %> mb-2">Gold Purity</p>
-              <div id="purityFilterList" class="<%= filterBox %>"></div>
+              <div class="<%= filterBoxShell %>">
+                <div class="<%= filterBoxBar %>">
+                  <button type="button" onclick="selectAllDesktopNamed('purityFilter')" class="text-primary hover:opacity-80">Select All</button>
+                  <span class="text-outline-variant">|</span>
+                  <button type="button" onclick="clearAllDesktopNamed('purityFilter')" class="text-error hover:opacity-80">Clear All</button>
+                </div>
+                <div id="purityFilterList" class="<%= filterBoxList %>"></div>
+              </div>
             </div>
             <div>
               <p class="<%= label %> mb-2">Availability</p>
@@ -121,7 +172,7 @@
 
     <!-- Content Area -->
     <div class="flex-1 min-w-0 w-full flex flex-col">
-      <div id="stockTable" class="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6 items-stretch"></div>
+      <div id="stockTable" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 items-stretch"></div>
       <div id="emptyState" class="hidden py-16 text-center text-secondary col-span-full">No stock items match your filters.</div>
       <div class="w-full text-center mt-8">
         <div id="pagination" class="inline-flex items-center justify-center gap-1.5 sm:gap-2"></div>
@@ -133,7 +184,7 @@
 <!-- Mobile Filter Drawer (Amazon-style) -->
 <div id="filterDrawerOverlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden transition-opacity duration-300" onclick="closeFilterDrawer()"></div>
 
-<div id="filterDrawer" class="fixed bottom-0 left-0 right-0 h-[85vh] min-h-[85vh] max-h-[85vh] w-full bg-surface-container-lowest z-50 hidden lg:hidden transform translate-y-full rounded-t-3xl shadow-2xl flex flex-col overflow-hidden" style="transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);">
+<div id="filterDrawer" class="fixed bottom-0 left-0 right-0 h-[90vh] min-h-[90vh] max-h-[90vh] w-full bg-surface-container-lowest z-50 hidden lg:hidden transform translate-y-full rounded-t-3xl shadow-2xl flex flex-col overflow-hidden" style="transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);">
   <div id="drawerHandle" class="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing select-none shrink-0">
     <div class="w-12 h-1.5 bg-surface-container rounded-full"></div>
   </div>
@@ -161,56 +212,82 @@
         <input type="hidden" name="stockType" value="<%= selStockType ? selStockType.join(',') : '' %>">
 
         <div id="mobilePanelPrefix" class="mobile-filter-panel absolute inset-0 overflow-y-auto">
-          <h3 class="px-4 pt-4 pb-3 text-base font-bold text-on-surface">Prefix</h3>
-          <div class="px-4 pb-6 space-y-2.5">
-            <label class="<%= checkLabel %>">
-              <input type="checkbox" data-filter-group="prefix" data-filter-value="" <%= !selPrefix ? 'checked' : '' %> class="<%= checkInput %> w-5 h-5">
-              <span> All Prefixes </span>
-            </label>
+          <h3 class="px-4 pt-4 pb-2 text-base font-bold text-on-surface">Prefix</h3>
+          <div class="px-4 pb-6">
+            <div class="<%= filterBoxShell %>">
+              <div class="<%= filterBoxBar %>">
+                <button type="button" onclick="selectAllMobileGroup('prefix')" class="text-primary hover:opacity-80">Select All</button>
+                <span class="text-outline-variant">|</span>
+                <button type="button" onclick="clearAllMobileGroup('prefix')" class="text-error hover:opacity-80">Clear All</button>
+              </div>
+              <div class="<%= filterBoxList %>">
             <% for (let i of prefixes) { %>
             <label class="<%= checkLabel %>">
               <input type="checkbox" data-filter-group="prefix" data-filter-value="<%= i._id %>" <%= selPrefix ? (selPrefix.includes(String(i._id)) ? 'checked' : '') : 'checked' %> class="<%= checkInput %> w-5 h-5">
               <span><%= i.name || '-' %></span>
             </label>
             <% } %>
+              </div>
+            </div>
           </div>
         </div>
 
         <div id="mobilePanelOrnament" class="mobile-filter-panel absolute inset-0 overflow-y-auto hidden">
-          <h3 class="px-4 pt-4 pb-3 text-base font-bold text-on-surface">Ornament</h3>
-          <div class="px-4 pb-6 space-y-2.5">
-            <label class="<%= checkLabel %>">
-              <input type="checkbox" data-filter-group="ornament" data-filter-value="" <%= !selOrnament ? 'checked' : '' %> class="<%= checkInput %> w-5 h-5">
-              <span>All Ornaments</span>
-            </label>
+          <h3 class="px-4 pt-4 pb-2 text-base font-bold text-on-surface">Ornament</h3>
+          <div class="px-4 pb-6">
+            <div class="<%= filterBoxShell %>">
+              <div class="<%= filterBoxBar %>">
+                <button type="button" onclick="selectAllMobileGroup('ornament')" class="text-primary hover:opacity-80">Select All</button>
+                <span class="text-outline-variant">|</span>
+                <button type="button" onclick="clearAllMobileGroup('ornament')" class="text-error hover:opacity-80">Clear All</button>
+              </div>
+              <div class="<%= filterBoxList %>">
             <% for (let i of ornaments) { %>
             <label class="<%= checkLabel %>">
               <input type="checkbox" data-filter-group="ornament" data-filter-value="<%= i._id %>" <%= selOrnament ? (selOrnament.includes(String(i._id)) ? 'checked' : '') : 'checked' %> class="<%= checkInput %> w-5 h-5">
               <span><%= i.name %></span>
             </label>
             <% } %>
+              </div>
+            </div>
           </div>
         </div>
 
         <div id="mobilePanelStockType" class="mobile-filter-panel absolute inset-0 overflow-y-auto hidden">
-          <h3 class="px-4 pt-4 pb-3 text-base font-bold text-on-surface">Stock Type</h3>
-          <div class="px-4 pb-6 space-y-2.5">
-            <label class="<%= checkLabel %>">
-              <input type="checkbox" data-filter-group="stockType" data-filter-value="" <%= !selStockType ? 'checked' : '' %> class="<%= checkInput %> w-5 h-5">
-              <span>All Stock</span>
-            </label>
+          <h3 class="px-4 pt-4 pb-2 text-base font-bold text-on-surface">Stock Type</h3>
+          <div class="px-4 pb-6">
+            <div class="<%= filterBoxShell %>">
+              <div class="<%= filterBoxBar %>">
+                <button type="button" onclick="selectAllMobileGroup('stockType')" class="text-primary hover:opacity-80">Select All</button>
+                <span class="text-outline-variant">|</span>
+                <button type="button" onclick="clearAllMobileGroup('stockType')" class="text-error hover:opacity-80">Clear All</button>
+              </div>
+              <div class="<%= filterBoxList %>">
             <% for (let i of stockTypes) { %>
             <label class="<%= checkLabel %>">
               <input type="checkbox" data-filter-group="stockType" data-filter-value="<%= i._id %>" <%= selStockType ? (selStockType.includes(String(i._id)) ? 'checked' : '') : 'checked' %> class="<%= checkInput %> w-5 h-5">
               <span><%= i.name %></span>
             </label>
             <% } %>
+              </div>
+            </div>
           </div>
         </div>
+
         <div id="mobilePanelPurity" class="mobile-filter-panel absolute inset-0 overflow-y-auto hidden">
-          <h3 class="px-4 pt-4 pb-3 text-base font-bold text-on-surface">Gold Purity</h3>
-          <div id="mobilePurityFilterList" class="px-4 pb-6 space-y-2.5"></div>
+          <h3 class="px-4 pt-4 pb-2 text-base font-bold text-on-surface">Gold Purity</h3>
+          <div class="px-4 pb-6">
+            <div class="<%= filterBoxShell %>">
+              <div class="<%= filterBoxBar %>">
+                <button type="button" onclick="selectAllMobileNamed('purityFilterMobile')" class="text-primary hover:opacity-80">Select All</button>
+                <span class="text-outline-variant">|</span>
+                <button type="button" onclick="clearAllMobileNamed('purityFilterMobile')" class="text-error hover:opacity-80">Clear All</button>
+              </div>
+              <div id="mobilePurityFilterList" class="<%= filterBoxList %>"></div>
+            </div>
+          </div>
         </div>
+
         <div id="mobilePanelAvailability" class="mobile-filter-panel absolute inset-0 overflow-y-auto hidden">
           <h3 class="px-4 pt-4 pb-3 text-base font-bold text-on-surface">Availability</h3>
           <div class="px-4 pb-6 space-y-2.5">
@@ -236,6 +313,33 @@
   window.categoryOrnamentLabelDefault = <%- JSON.stringify(selectedOrnament) %>;
 
   let activeMobileTab = 'prefix';
+
+  function onMobileFilterChange() {
+    updateMobileHiddenFilters();
+    if (typeof filterTable === 'function') filterTable();
+    updateMobileFilterUI();
+  }
+
+  function syncSortDirectionUI(dir) {
+    document.querySelectorAll('.sort-dir-mobile-btn').forEach((btn) => {
+      const active = btn.dataset.sortDir === dir;
+      btn.classList.toggle('bg-primary', active);
+      btn.classList.toggle('text-on-primary', active);
+      btn.classList.toggle('text-secondary', !active);
+    });
+  }
+
+  function setSortDirection(dir) {
+    const select = document.getElementById('sortDirection');
+    if (select) select.value = dir;
+    syncSortDirectionUI(dir);
+    if (typeof LoadTable === 'function') LoadTable();
+  }
+
+  document.getElementById('sortDirection')?.addEventListener('change', function () {
+    syncSortDirectionUI(this.value);
+  });
+  syncSortDirectionUI(document.getElementById('sortDirection')?.value || 'asc');
 
   function selectMobileFilterTab(tabId) {
     activeMobileTab = tabId;
@@ -269,14 +373,87 @@
     ['prefix', 'ornament', 'stockType'].forEach((group) => {
       const { selected, total } = getMobileGroupSelection(group);
       const hidden = form.querySelector('[name="' + group + '"]');
-      const allCb = form.querySelector('[data-filter-group="' + group + '"][data-filter-value=""]');
       if (hidden) hidden.value = !selected.length || selected.length >= total ? '' : selected.join(',');
-      if (allCb) allCb.checked = !selected.length || selected.length >= total;
     });
+  }
+
+  function selectAllMobileGroup(group) {
+    const form = document.getElementById('mobileFilterForm');
+    if (!form) return;
+    form.querySelectorAll('[data-filter-group="' + group + '"]').forEach((cb) => {
+      cb.checked = true;
+    });
+    onMobileFilterChange();
+  }
+
+  function clearAllMobileGroup(group) {
+    const form = document.getElementById('mobileFilterForm');
+    if (!form) return;
+    form.querySelectorAll('[data-filter-group="' + group + '"]').forEach((cb) => {
+      cb.checked = false;
+    });
+    onMobileFilterChange();
+  }
+
+  function selectAllMobileNamed(name) {
+    document.querySelectorAll('input[name="' + name + '"]').forEach((cb) => {
+      cb.checked = true;
+    });
+    if (typeof filterTable === 'function') filterTable();
+    updateMobileFilterUI();
+  }
+
+  function clearAllMobileNamed(name) {
+    document.querySelectorAll('input[name="' + name + '"]').forEach((cb) => {
+      cb.checked = false;
+    });
+    if (typeof filterTable === 'function') filterTable();
+    updateMobileFilterUI();
   }
 
   function getDesktopFilterName(group) {
     return group === 'ornament' ? 'ornamentSelectFilter' : group + 'Filter';
+  }
+
+  function onDesktopFilterChange() {
+    if (typeof syncDesktopToMobileFilters === 'function') syncDesktopToMobileFilters();
+    if (typeof filterTable === 'function') filterTable();
+    if (typeof applyServerFilters === 'function') applyServerFilters();
+  }
+
+  function onDesktopClientFilterChange() {
+    if (typeof filterTable === 'function') filterTable();
+    if (typeof updateMobileFilterUI === 'function') updateMobileFilterUI();
+  }
+
+  function selectAllDesktopGroup(group) {
+    const filterName = getDesktopFilterName(group);
+    document.querySelectorAll('input[name="' + filterName + '"]').forEach((cb) => {
+      cb.checked = true;
+    });
+    onDesktopFilterChange();
+  }
+
+  function clearAllDesktopGroup(group) {
+    const filterName = getDesktopFilterName(group);
+    document.querySelectorAll('input[name="' + filterName + '"]').forEach((cb) => {
+      cb.checked = false;
+    });
+    onDesktopFilterChange();
+  }
+
+  function selectAllDesktopNamed(name) {
+    document.querySelectorAll('input[name="' + name + '"]').forEach((cb) => {
+      cb.checked = true;
+    });
+    onDesktopClientFilterChange();
+  }
+
+  function clearAllDesktopNamed(name) {
+    document.querySelectorAll('input[name="' + name + '"]').forEach((cb) => {
+      cb.checked = false;
+    });
+    onDesktopClientFilterChange();
   }
 
   function syncDesktopToMobileFilters() {
@@ -317,9 +494,6 @@
       const { selected, total } = getMobileGroupSelection(group);
       if (total && selected.length && selected.length < total) count++;
     });
-    const typeTotal = document.querySelectorAll('input[name="ornamentFilterMobile"]').length;
-    const typeChecked = document.querySelectorAll('input[name="ornamentFilterMobile"]:checked').length;
-    if (typeTotal && typeChecked < typeTotal) count++;
     const purityTotal = document.querySelectorAll('input[name="purityFilterMobile"]').length;
     const purityChecked = document.querySelectorAll('input[name="purityFilterMobile"]:checked').length;
     if (purityTotal && purityChecked < purityTotal) count++;
@@ -357,7 +531,7 @@
       });
       updateMobileHiddenFilters();
     }
-    document.querySelectorAll('input[name="ornamentFilter"], input[name="ornamentFilterMobile"], input[name="purityFilter"], input[name="purityFilterMobile"]').forEach((cb) => {
+    document.querySelectorAll('input[name="purityFilter"], input[name="purityFilterMobile"]').forEach((cb) => {
       cb.checked = true;
     });
     const desktopStock = document.getElementById('checkbox');
@@ -380,6 +554,7 @@
   function openFilterDrawer() {
     const drawer = document.getElementById('filterDrawer');
     const overlay = document.getElementById('filterDrawerOverlay');
+    syncDesktopToMobileFilters();
     drawer.classList.remove('hidden');
     overlay.classList.remove('hidden');
     requestAnimationFrame(() => {
@@ -414,7 +589,6 @@
     updateMobileHiddenFilters();
     syncMobileToDesktopFilters();
     const mobile = document.getElementById('mobileFilterForm');
-    const params = new URLSearchParams(window.location.search);
     let serverChanged = false;
     ['prefix', 'ornament', 'stockType'].forEach((name) => {
       const val = mobile.querySelector('[name="' + name + '"]')?.value || '';
@@ -433,22 +607,7 @@
     if (!form) return;
     ['prefix', 'ornament', 'stockType'].forEach((group) => {
       form.querySelectorAll('[data-filter-group="' + group + '"]').forEach((cb) => {
-        cb.addEventListener('change', function () {
-          if (this.dataset.filterValue === '') {
-            const all = this.checked;
-            form.querySelectorAll('[data-filter-group="' + group + '"]:not([data-filter-value=""])').forEach((el) => {
-              el.checked = all;
-            });
-          } else {
-            const total = form.querySelectorAll('[data-filter-group="' + group + '"]:not([data-filter-value=""])').length;
-            const checked = form.querySelectorAll('[data-filter-group="' + group + '"]:checked:not([data-filter-value=""])').length;
-            const allCb = form.querySelector('[data-filter-group="' + group + '"][data-filter-value=""]');
-            if (allCb) allCb.checked = checked === total;
-          }
-          updateMobileHiddenFilters();
-          if (typeof filterTable === 'function') filterTable();
-          updateMobileFilterUI();
-        });
+        cb.addEventListener('change', onMobileFilterChange);
       });
     });
     updateMobileHiddenFilters();

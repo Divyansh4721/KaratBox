@@ -15,13 +15,13 @@
       <h2 class="text-display-lg-mobile md:text-headline-xl font-bold text-on-surface tracking-tight mb-2">Asset Details</h2>
     </div>
     <div class="flex items-center gap-2 shrink-0">
-      <a href="/stock_image_edit/<%= stock._id %>" class="hidden sm:inline-flex p-2.5 rounded-lg border border-surface-container text-secondary hover:bg-surface-container-low transition-colors" title="Edit Images">
+      <a href="/stock/edit-image?id=<%= stock._id %>" class="hidden sm:inline-flex p-2.5 rounded-lg border border-surface-container text-secondary hover:bg-surface-container-low transition-colors" title="Edit Images">
         <i class="far fa-image"></i>
       </a>
       <a href="/printTag?id=<%= stock._id %>" class="hidden sm:inline-flex p-2.5 rounded-lg border border-surface-container text-secondary hover:bg-surface-container-low transition-colors" title="Print Tag">
         <i class="fa-solid fa-print"></i>
       </a>
-      <a href="/stock_edit/<%= stock._id %>" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-primary-container text-primary text-sm font-semibold hover:bg-primary-fixed/20 transition-colors">
+      <a href="/stock/edit?id=<%= stock._id %>" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-primary-container text-primary text-sm font-semibold hover:bg-primary-fixed/20 transition-colors">
         <i class="fas fa-pen text-xs"></i> Edit
       </a>
       <button type="button" onclick="AddToCart('<%= stock._id %>')" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-container hover:brightness-105 text-on-primary text-sm font-semibold shadow-sm transition-all">
@@ -38,7 +38,7 @@
       <div class="flex flex-col gap-2 shrink-0">
         <% for (let i = 0; i < Math.min(images.length, thumbMax); i++) { %>
         <button type="button" onclick="setImage(<%= i %>)" class="thumb-btn relative w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden border-2 <%= i === 0 ? 'border-primary-container' : 'border-transparent' %> bg-surface-container-low shrink-0">
-          <img src="/uploads/<%= images[i].fileName %>" alt="" class="w-full h-full object-cover">
+          <img src="/uploads/stock/<%= images[i].fileName %>" alt="" class="w-full h-full object-cover">
         </button>
         <% } %>
         <% if (extraCount > 0) { %>
@@ -52,7 +52,7 @@
         <% } %>
         <div id="mainImage" class="w-full h-full">
           <% if (images.length) { %>
-          <img id="heroImg" src="/uploads/<%= images[0].fileName %>" alt="<%= stockCrumb %>" class="w-full h-full object-cover">
+          <img id="heroImg" src="/uploads/stock/<%= images[0].fileName %>" alt="<%= stockCrumb %>" class="w-full h-full object-cover">
           <% } else { %>
           <div class="w-full h-full flex items-center justify-center"><i class="fa-solid fa-image text-5xl text-secondary/30"></i></div>
           <% } %>
@@ -223,7 +223,7 @@
       </table>
     </div>
     <% } %>
-    <% if (stock.updatedTable.length) { %>
+    <% if (stock.updatedTable && stock.updatedTable.length) { %>
     <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper overflow-hidden">
       <div class="flex items-center gap-2 px-6 py-4 border-b border-surface-container">
         <span class="w-8 h-8 rounded-full bg-primary-fixed/40 flex items-center justify-center text-primary text-sm"><i class="fas fa-clock-rotate-left"></i></span>
@@ -275,7 +275,7 @@
   function setImage(i) {
     const img = document.getElementById('heroImg');
     if (!img || !imageList[i]) return;
-    img.src = '/uploads/' + imageList[i];
+    img.src = '/uploads/stock/' + imageList[i];
     document.querySelectorAll('.thumb-btn').forEach((el, n) => {
       el.classList.toggle('border-primary-container', n === i);
       el.classList.toggle('border-transparent', n !== i);

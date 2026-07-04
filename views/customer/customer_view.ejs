@@ -28,7 +28,7 @@ if (customer.payments && customer.payments.length) {
           <span class="text-2xl sm:text-3xl font-bold text-on-primary/70"><%= initials %></span>
         </div>
         <div class="flex-1 min-w-0">
-          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight truncate"><%= customer.name %></h2>
+          <h2 id="customerName" class="text-2xl sm:text-3xl font-bold tracking-tight truncate"><%= customer.name %></h2>
           <p class="text-sm text-on-primary/75 mt-0.5"> Since <%= sinceStr %></p>
         </div>
         <button type="button" onclick="openEditModal()" class="inline-flex items-center gap-2 px-4 py-2.5 border border-on-primary/40 hover:bg-on-primary/10 text-on-primary text-sm font-semibold rounded-lg transition-colors shrink-0">
@@ -45,7 +45,7 @@ if (customer.payments && customer.payments.length) {
           <span class="w-9 h-9 rounded-lg bg-surface-container-low flex items-center justify-center shrink-0 text-secondary"><i class="fas fa-location-dot text-sm"></i></span>
           <div>
             <p class="<%= label %>">Customer Address</p>
-            <p class="text-sm font-medium text-on-surface"><%= customer.address %></p>
+            <p id="customerAddress" class="text-sm font-medium text-on-surface"><%= customer.address %></p>
           </div>
         </div>
         <div class="flex items-start gap-3">
@@ -63,7 +63,7 @@ if (customer.payments && customer.payments.length) {
               <span class="w-8 h-8 rounded-lg bg-surface-container-lowest flex items-center justify-center text-secondary"><i class="fas fa-money-bill-wave text-xs"></i></span>
               <div>
                 <p class="<%= label %> mb-0">Cash Balance</p>
-                <p class="text-lg font-bold text-on-surface">&#8377; <%= fmt(cashBalance) %> <span class="text-sm font-normal text-secondary">/-</span></p>
+                <p id="cashBalanceDisplay" class="text-lg font-bold text-on-surface">&#8377; <%= fmt(cashBalance) %> <span class="text-sm font-normal text-secondary">/-</span></p>
               </div>
             </div>
             <% if (cashBalance === 0) { %><span class="text-[10px] font-bold uppercase tracking-wide text-on-surface bg-surface-container-highest px-2.5 py-1 rounded-full">Settled</span><% } %>
@@ -74,7 +74,7 @@ if (customer.payments && customer.payments.length) {
               <span class="w-8 h-8 rounded-lg bg-surface-container-lowest flex items-center justify-center text-secondary"><i class="fas fa-gem text-xs"></i></span>
               <div>
                 <p class="<%= label %> mb-0">Gold Balance</p>
-                <p class="text-lg font-bold text-on-surface"><%= fmt(goldBalance) %> <span class="text-sm font-normal text-secondary">gm</span></p>
+                <p id="goldBalanceDisplay" class="text-lg font-bold text-on-surface"><%= fmt(goldBalance) %> <span class="text-sm font-normal text-secondary">gm</span></p>
               </div>
             </div>
             <% if (goldBalance === 0) { %><span class="text-[10px] font-bold uppercase tracking-wide text-on-surface bg-surface-container-highest px-2.5 py-1 rounded-full">Settled</span><% } %>
@@ -91,6 +91,7 @@ if (customer.payments && customer.payments.length) {
         <span class="w-9 h-9 rounded-lg bg-surface-container-low flex items-center justify-center shrink-0 text-secondary"><i class="fas fa-phone text-sm"></i></span>
         <div>
           <p class="<%= label %>">Phone Numbers</p>
+          <div id="customerPhones">
           <% if (customer.phNum && customer.phNum.length) { %>
           <div class="space-y-1">
             <% customer.phNum.forEach(function(num) { %>
@@ -100,12 +101,14 @@ if (customer.payments && customer.payments.length) {
           <% } else { %>
           <p class="text-sm font-medium text-on-surface">+91 —</p>
           <% } %>
+          </div>
         </div>
       </div>
       <div class="flex items-start gap-3">
         <span class="w-9 h-9 rounded-lg bg-surface-container-low flex items-center justify-center shrink-0 text-secondary"><i class="fas fa-user-friends text-sm"></i></span>
         <div>
           <p class="<%= label %>">Care Of</p>
+          <div id="customerCO">
           <% if (customer.CO && customer.CO.length) { %>
           <ul class="text-sm font-medium text-on-surface space-y-1 list-disc list-inside">
             <% customer.CO.forEach(function(co) { %>
@@ -115,12 +118,14 @@ if (customer.payments && customer.payments.length) {
           <% } else { %>
           <p class="text-sm font-medium text-on-surface">Not Specified</p>
           <% } %>
+          </div>
         </div>
       </div>
       <div class="flex items-start gap-3">
         <span class="w-9 h-9 rounded-lg bg-surface-container-low flex items-center justify-center shrink-0 text-secondary"><i class="fas fa-calendar-days text-sm"></i></span>
         <div class="min-w-0 flex-1">
           <p class="<%= label %>">Important Dates</p>
+          <div id="customerImpDates">
           <% if (customer.impDates && customer.impDates.length) { %>
           <div class="space-y-2">
             <% customer.impDates
@@ -138,6 +143,7 @@ if (customer.payments && customer.payments.length) {
           <% } else { %>
           <p class="text-sm font-medium text-on-surface">Not Specified</p>
           <% } %>
+          </div>
         </div>
       </div>
     </div>
@@ -159,7 +165,7 @@ if (customer.payments && customer.payments.length) {
       </div>
       <div class="p-6 sm:p-8 pt-6">
         <div class="relative h-[28rem]">
-          <form action="/addPaymentCustomer" method="post" id="paymentForm" class="txn-panel absolute inset-0 space-y-4 overflow-y-auto">
+          <form action="/customer/add-payment" method="post" id="paymentForm" class="txn-panel absolute inset-0 space-y-4 overflow-y-auto">
             <input type="hidden" name="id" value="<%= customer.id %>">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -179,7 +185,7 @@ if (customer.payments && customer.payments.length) {
               <i class="fas fa-money-bill-wave text-xs"></i> Add Payment
             </button>
           </form>
-          <form action="/addPaymentCustomer" method="post" id="goldForm" class="txn-panel hidden absolute inset-0 space-y-4 overflow-y-auto">
+          <form action="/customer/add-payment" method="post" id="goldForm" class="txn-panel hidden absolute inset-0 space-y-4 overflow-y-auto">
             <input type="hidden" name="id" value="<%= customer.id %>">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div><label class="<%= label %>">Gold Wt (gm)</label><input type="number" id="payemntGold" step="0.001" placeholder="Gold Wt..." onchange="calcFine()" required class="<%= field %>"></div>
@@ -215,9 +221,9 @@ if (customer.payments && customer.payments.length) {
           <p><span class="text-secondary">Total Cash Due:</span> <span class="font-bold text-on-surface">&#8377; <%= fmt(cashBalance) %>.00</span></p>
           <p><span class="text-secondary">Total Gold Due:</span> <span class="font-bold text-on-surface"><%= (goldBalance * 1).toFixed(3) %> gm</span></p>
         </div>
-        <a href="/settleCustomer/<%= customer.id %>" onclick="return confirm('Settle all balances for this customer?')" class="block w-full text-center py-3 border-2 border-primary text-primary font-bold text-sm rounded-lg hover:bg-primary-fixed/40 transition-colors">
+        <button type="button" id="settleBtn" class="block w-full text-center py-3 border-2 border-primary text-primary font-bold text-sm rounded-lg hover:bg-primary-fixed/40 transition-colors">
           Settle Now
-        </a>
+        </button>
       </div>
       <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper p-6">
         <h3 class="text-sm font-bold text-on-surface mb-4">Lifecycle &amp; History</h3>
@@ -270,9 +276,8 @@ if (customer.payments && customer.payments.length) {
       </div>
       <button type="button" onclick="closeEditModal()" class="p-1 text-secondary hover:text-on-surface"><i class="fas fa-times"></i></button>
     </div>
-    <form id="editForm" action="/editCustomerForm" method="post" class="p-6 space-y-5">
+    <form id="editForm" action="/customer/edit-customer" method="post" class="p-6 space-y-5">
       <input type="hidden" name="id" id="editId">
-      <input type="hidden" name="returnTo" value="/customer?id=<%= customer.id %>">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div><label class="<%= label %>">Customer Name</label><input type="text" name="name" id="editName" required placeholder="Enter Customer Name ...." class="<%= field %>"></div>
         <div><label class="<%= label %>">Address <span class="text-error">*</span></label><input type="text" name="address" id="editAddress" required placeholder="Enter Customer Address ...." class="<%= field %>"></div>
@@ -313,6 +318,7 @@ if (customer.payments && customer.payments.length) {
     </form>
   </div>
 </div>
+<%- include('_ajax_helpers') %>
 <script>
   const customerData = <%- JSON.stringify({
     _id: customer.id,
@@ -446,6 +452,100 @@ if (customer.payments && customer.payments.length) {
   })) %>;
   const ledgerCustomerId = '<%= customer.id %>';
   const fmtLedger = n => new Intl.NumberFormat('en-IN').format(Math.abs(n * 1));
+  let cashBalance = <%= cashBalance * 1 %>;
+  let goldBalance = <%= goldBalance * 1 %>;
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  function fmtProfileDate(iso) {
+    const d = new Date(iso);
+    return monthNames[d.getMonth()].slice(0, 3) + ' ' + d.getDate() + ', ' + d.getFullYear();
+  }
+  function updateBalanceDisplays() {
+    document.getElementById('cashBalanceDisplay').innerHTML =
+      '&#8377; ' + fmtLedger(cashBalance) + ' <span class="text-sm font-normal text-secondary">/-</span>';
+    document.getElementById('goldBalanceDisplay').innerHTML =
+      fmtLedger(goldBalance) + ' <span class="text-sm font-normal text-secondary">gm</span>';
+  }
+  function reverseEntryBalance(entry) {
+    if (entry.bill === 'bill') {
+      if (entry.amount) cashBalance += entry.amount * 1;
+      if (entry.gold) goldBalance += entry.gold * 1;
+      return;
+    }
+    if (entry.type === 'right') {
+      if (entry.amount) cashBalance -= entry.amount * 1;
+      if (entry.gold) goldBalance -= entry.gold * 1;
+    }
+  }
+  function updateProfileFromData(c) {
+    Object.assign(customerData, {
+      _id: c._id,
+      name: c.name,
+      address: c.address,
+      phNum: c.phNum || [],
+      CO: c.CO || [],
+      impDates: c.impDates || []
+    });
+    document.getElementById('customerName').textContent = c.name;
+    document.getElementById('customerAddress').textContent = c.address;
+    const phonesEl = document.getElementById('customerPhones');
+    if (c.phNum && c.phNum.length) {
+      phonesEl.innerHTML = '<div class="space-y-1">' +
+        c.phNum.map((n) => `<p class="text-sm font-medium text-on-surface">+91 ${escLedger(String(n))}</p>`).join('') +
+        '</div>';
+    } else {
+      phonesEl.innerHTML = '<p class="text-sm font-medium text-on-surface">+91 —</p>';
+    }
+    const coEl = document.getElementById('customerCO');
+    if (c.CO && c.CO.length) {
+      coEl.innerHTML = '<ul class="text-sm font-medium text-on-surface space-y-1 list-disc list-inside">' +
+        c.CO.map((co) => `<li>${escLedger(co)}</li>`).join('') + '</ul>';
+    } else {
+      coEl.innerHTML = '<p class="text-sm font-medium text-on-surface">Not Specified</p>';
+    }
+    const datesEl = document.getElementById('customerImpDates');
+    if (c.impDates && c.impDates.length) {
+      const sorted = [...c.impDates].sort((a, b) => new Date(a.date) - new Date(b.date));
+      datesEl.innerHTML = '<div class="space-y-2">' + sorted.map((d) =>
+        `<div><p class="text-sm font-semibold text-on-surface">${fmtProfileDate(d.date)}</p>` +
+        (d.remark ? `<p class="text-xs text-secondary mt-0.5">${escLedger(d.remark)}</p>` : '') +
+        '</div>'
+      ).join('') + '</div>';
+    } else {
+      datesEl.innerHTML = '<p class="text-sm font-medium text-on-surface">Not Specified</p>';
+    }
+  }
+  async function deleteBill(billId) {
+    if (!confirm('Delete this bill from customer?')) return;
+    try {
+      await postData('/customer/delete-bill', { billId, customerId: ledgerCustomerId });
+      const idx = ledgerEntries.findIndex((e) => String(e.id) === String(billId));
+      if (idx >= 0) {
+        reverseEntryBalance(ledgerEntries[idx]);
+        ledgerEntries.splice(idx, 1);
+      }
+      updateBalanceDisplays();
+      renderLedger();
+      notify('Deleted bill successfully!', 'success');
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  }
+  async function deletePayment(paymentId) {
+    if (!confirm('Delete this payment?')) return;
+    try {
+      await postData('/customer/delete-payment', { paymentId, customerId: ledgerCustomerId });
+      const idx = ledgerEntries.findIndex((e) => String(e.id) === String(paymentId));
+      if (idx >= 0) {
+        reverseEntryBalance(ledgerEntries[idx]);
+        ledgerEntries.splice(idx, 1);
+      }
+      updateBalanceDisplays();
+      renderLedger();
+      notify('Deleted payment successfully!', 'success');
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  }
 
   function escLedger(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -462,13 +562,13 @@ if (customer.payments && customer.payments.length) {
   function ledgerActions(e) {
     if (e.bill === 'bill') {
       return `<a href="/bill?id=${e.id}" class="p-2 text-secondary hover:text-primary rounded-lg" title="View Bill"><i class="fas fa-file-invoice"></i></a>
-        <a href="/delBillCustomer?id=${e.id}&customer=${ledgerCustomerId}" onclick="return confirm('Delete this bill from customer?')" class="p-2 text-secondary hover:text-error rounded-lg" title="Delete"><i class="fas fa-trash"></i></a>`;
+        <button type="button" onclick="deleteBill('${e.id}')" class="p-2 text-secondary hover:text-error rounded-lg" title="Delete"><i class="fas fa-trash"></i></button>`;
     }
     if (e.bill === 'approval') {
       return `<a href="/approvalRecvPage?id=${e.id}" class="p-2 text-secondary hover:text-primary rounded-lg" title="View Approval"><i class="fa-regular fa-folder-open"></i></a>`;
     }
     if (e.id) {
-      return `<a href="/delPaymentCustomer?id=${e.id}&customer=${ledgerCustomerId}" onclick="return confirm('Delete this payment?')" class="p-2 text-secondary hover:text-error rounded-lg" title="Delete"><i class="fas fa-trash"></i></a>`;
+      return `<button type="button" onclick="deletePayment('${e.id}')" class="p-2 text-secondary hover:text-error rounded-lg" title="Delete"><i class="fas fa-trash"></i></button>`;
     }
     return '';
   }
@@ -525,4 +625,52 @@ if (customer.payments && customer.payments.length) {
   }
 
   renderLedger();
+
+  document.getElementById('editForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const json = await postForm('/customer/edit-customer', e.target);
+      updateProfileFromData(json.data);
+      closeEditModal();
+      notify(json.message, 'success');
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  });
+  document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      await postForm('/customer/add-payment', e.target);
+      notify('Added payment successfully!', 'success');
+      window.location.reload();
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  });
+  document.getElementById('goldForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      await postForm('/customer/add-payment', e.target);
+      notify('Added gold entry successfully!', 'success');
+      window.location.reload();
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  });
+  document.getElementById('settleBtn').addEventListener('click', async () => {
+    if (!confirm('Settle all balances for this customer?')) return;
+    try {
+      await postData('/customer/settle-customer', { id: ledgerCustomerId });
+      cashBalance = 0;
+      goldBalance = 0;
+      const approvals = ledgerEntries.filter((e) => e.bill === 'approval');
+      ledgerEntries.length = 0;
+      ledgerEntries.push(...approvals);
+      updateBalanceDisplays();
+      renderLedger();
+      notify('Customer settled successfully!', 'success');
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  });
 </script>

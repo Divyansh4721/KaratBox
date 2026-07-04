@@ -56,6 +56,51 @@
       if (e.persisted) window.location.reload();
     });
   </script>
+  <script>
+    (function() {
+      function buildQueryRoute(pathname, id) {
+        return pathname + '?id=' + encodeURIComponent(String(id || ''));
+      }
+
+      function normalizeLegacyRoute(url) {
+        if (!url) return url;
+        try {
+          const parsed = new URL(url, window.location.origin);
+          const routeMap = [
+            { pattern: /^\/stock\/([^/]+)$/, pathname: '/stock' },
+            { pattern: /^\/stock_edit\/([^/]+)$/, pathname: '/stock/edit' },
+            { pattern: /^\/stock_image_edit\/([^/]+)$/, pathname: '/stock/edit-image' }
+          ];
+
+          for (const route of routeMap) {
+            const match = parsed.pathname.match(route.pattern);
+            if (!match) continue;
+            parsed.pathname = route.pathname;
+            parsed.searchParams.set('id', match[1]);
+            return parsed.origin === window.location.origin
+              ? parsed.pathname + parsed.search + parsed.hash
+              : parsed.toString();
+          }
+        } catch (err) {
+          return url;
+        }
+        return url;
+      }
+
+      window.kbRoutes = {
+        stockView(id) {
+          return buildQueryRoute('/stock', id);
+        },
+        stockEdit(id) {
+          return buildQueryRoute('/stock/edit', id);
+        },
+        stockImageEdit(id) {
+          return buildQueryRoute('/stock/edit-image', id);
+        },
+        normalizeLegacyRoute
+      };
+    })();
+  </script>
 </body>
 <script>
   '<% if (flash.success && flash.success.length > 0) { %>'
