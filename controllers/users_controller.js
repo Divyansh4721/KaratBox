@@ -5,21 +5,13 @@ const passportController = require("../config/passport_google_oauth2_strategy");
 const env = require("../config/environment");
 const User = require("../models/user");
 
-function avatarSrc(user) {
-  if (!user || !user.avatar) return "";
-  if (user.avatar.startsWith("http") || user.avatar.startsWith("/")) {
-    return user.avatar;
-  }
-  return "/uploads/" + user.avatar;
-}
-
 module.exports.signin = async function (req, res) {
   if (req.isAuthenticated()) {
     req.flash("success", "Already Signed In!");
     return res.redirect("/");
   }
   passportController.UpdateStrategy();
-  return res.render("auth/_user_signin", {
+  return res.render("users/user_signin", {
     title: "Sign In",
     layout: false
   });
@@ -40,11 +32,10 @@ module.exports.destroysession = function (req, res) {
 module.exports.profilePage = async function (req, res) {
   try {
     let userlist = await User.findById(req.user.id);
-    return res.render("user_profile", {
+    return res.render("users/user_profile", {
       title: "My Profile",
       activeNav: "",
       userlist,
-      avatarSrc: avatarSrc(userlist),
       ...breadcrumb.label("My Profile")
     });
   } catch (err) {
@@ -54,14 +45,13 @@ module.exports.profilePage = async function (req, res) {
   }
 };
 module.exports.profileForm = async function (req, res) {
-  if (String(req.user.id) !== String(req.body.id)) {
-    req.flash("error", "Invalid request!");
-    return res.redirect("/user_profile");
-  }
   User.uploadImage(req, res, async function (err) {
     if (err) {
       console.log("Image upload error", err);
-      req.flash("error", "Invalid image file. Use PNG, JPG, or WEBP under 2MB.");
+      req.flash(
+        "error",
+        "Invalid image file. Use PNG, JPG, or WEBP under 2MB."
+      );
       return res.redirect("/user_profile");
     }
     try {
@@ -76,7 +66,10 @@ module.exports.profileForm = async function (req, res) {
         user.avatar = "";
       } else if (req.file) {
         const fileName = "profile-" + user.id + ".png";
-        await fs.promises.writeFile(User.imageFullPath + "/" + fileName, req.file.buffer);
+        await fs.promises.writeFile(
+          User.imageFullPath + "/" + fileName,
+          req.file.buffer
+        );
         user.useGoogleAvatar = false;
         user.avatar = User.imagePath + "/" + fileName;
       }

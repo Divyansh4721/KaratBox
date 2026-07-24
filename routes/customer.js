@@ -5,7 +5,6 @@ const customerController = require("../controllers/customer_controller");
 const common_function = require("../controllers/common_function");
 
 
-router.get("/customerForm", passport.checkAuthentication, common_function.checkPermission("CustomerView"), customerController.CustomerPageForm);
 router.get("/customer", passport.checkAuthentication, common_function.checkPermission("CustomerView"), customerController.CustomerPage);
 router.get("/customerTable", passport.checkAuthentication, common_function.checkPermission("CustomerView"), customerController.CustomerPageTable);
 

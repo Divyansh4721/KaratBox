@@ -14,7 +14,7 @@ module.exports.listMasterPage = async function (req, res) {
   try {
     let TagName = await Env_Variable.findOne({ name: "TagName" });
     let goldPrice = await Env_Variable.findOne({ name: "goldPrice" });
-    return res.render("list_master", {
+    return res.render("list_master/index", {
       title: "List Master",
       activeNav: "list_master",
       TagName: TagName || { value: "" },
@@ -52,7 +52,7 @@ module.exports.kaarigarPage = async function (req, res) {
       let stock = await Stock.find({ kaarigar: kaarigar[i]._id });
       kaarigar[i].stockCount = stock.length;
     }
-    return res.render("list_master/edit_add_del_kaarigar", {
+    return res.render("list_master/kaarigar", {
       title: "Kaarigar",
       activeNav: "list_master",
       name: "Kaarigar",
@@ -139,7 +139,7 @@ module.exports.ornamentPage = async function (req, res) {
       let stock = await Stock.find({ ornament: ornament[i]._id });
       ornament[i].stockCount = stock.length;
     }
-    return res.render("list_master/edit_add_del_ornament", {
+    return res.render("list_master/ornament", {
       title: "Ornament",
       activeNav: "list_master",
       name: "Ornament",
@@ -235,7 +235,7 @@ module.exports.prefixPage = async function (req, res) {
       let stock = await Stock.find({ prefix: prefix[i]._id });
       prefix[i].stockCount = stock.length;
     }
-    return res.render("list_master/edit_add_del_prefix", {
+    return res.render("list_master/prefix", {
       title: "Prefix",
       activeNav: "list_master",
       name: "Prefix",
@@ -331,7 +331,7 @@ module.exports.purityPage = async function (req, res) {
       let stock = await Stock.find({ purity: purity[i]._id });
       purity[i].stockCount = stock.length;
     }
-    return res.render("list_master/edit_add_del_purity", {
+    return res.render("list_master/purity", {
       title: "Purity",
       activeNav: "list_master",
       name: "Purity",
@@ -424,7 +424,7 @@ module.exports.stockTypePage = async function (req, res) {
       let stock = await Stock.find({ stockType: stockType[i]._id });
       stockType[i].stockCount = stock.length;
     }
-    return res.render("list_master/edit_add_del_stocktype", {
+    return res.render("list_master/stocktype", {
       title: "StockType",
       activeNav: "list_master",
       name: "StockType",
@@ -513,7 +513,7 @@ module.exports.stoneDealerPage = async function (req, res) {
       });
       stoneDealer[i].stockCount = stock.length;
     }
-    return res.render("list_master/edit_add_del_stonedealer", {
+    return res.render("list_master/stonedealer", {
       title: "StoneDealer",
       activeNav: "list_master",
       name: "StoneDealer",
@@ -600,7 +600,7 @@ module.exports.stoneTypePage = async function (req, res) {
       let stock = await Stock.find({ "stoneTable.type": stoneType[i]._id });
       stoneType[i].stockCount = stock.length;
     }
-    return res.render("list_master/edit_add_del_stonetype", {
+    return res.render("list_master/stonetype", {
       title: "StoneType",
       activeNav: "list_master",
       name: "StoneType",

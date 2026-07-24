@@ -63,7 +63,7 @@ async function getNextTagNumber(prefix, ornament) {
 async function getAllNextTags() {
   try {
     const rawIndexes = await Index.find().populate("prefix ornament");
-    const optimizedIndexTable = rawIndexes.map(doc => {
+    const optimizedIndexTable = rawIndexes.map((doc) => {
       const plainDoc = doc.toObject();
       if (plainDoc.name === "index") return plainDoc;
       let lowestAvailable = 1;
@@ -89,8 +89,8 @@ module.exports.stockAddPage = async function (req, res) {
       getAllNextTags(),
       Index.findOne({ name: "index" })
     ]);
-    const nextGlobalIndex = envVar ? (envVar.index * 1 + 1) : 1;
-    return res.render("inventory/stock_add", {
+    const nextGlobalIndex = envVar ? envVar.index * 1 + 1 : 1;
+    return res.render("inventory/add", {
       title: "Add Stock",
       activeNav: "inventory",
       index: nextGlobalIndex,
@@ -126,7 +126,10 @@ module.exports.addStockApi = async function (req, res) {
       }
       let imagePath = Stock.imagePath;
       for (let i = 0; i < req.files.length; i++) {
-        let dest = path.join(imagePath, req.body.index + "-" + (i + 1) + ".png");
+        let dest = path.join(
+          imagePath,
+          req.body.index + "-" + (i + 1) + ".png"
+        );
         await fs.writeFile(dest, req.files[i].buffer);
         req.files[i].filename = req.body.index + "-" + (i + 1) + ".png";
       }
@@ -136,12 +139,17 @@ module.exports.addStockApi = async function (req, res) {
       let ornament = req.body.ornament;
       let indexDoc = await Index.findOne({ prefix, ornament });
       if (!indexDoc) {
-        indexDoc = await Index.create({ prefix, ornament, lastIndex: 0, recycledGaps: [] });
+        indexDoc = await Index.create({
+          prefix,
+          ornament,
+          lastIndex: 0,
+          recycledGaps: []
+        });
       }
       let tag = 1;
       if (indexDoc.recycledGaps && indexDoc.recycledGaps.length > 0) {
         tag = Math.min(...indexDoc.recycledGaps);
-        indexDoc.recycledGaps = indexDoc.recycledGaps.filter(g => g !== tag);
+        indexDoc.recycledGaps = indexDoc.recycledGaps.filter((g) => g !== tag);
       } else {
         indexDoc.lastIndex = (indexDoc.lastIndex || 0) + 1;
         tag = indexDoc.lastIndex;
@@ -221,7 +229,9 @@ module.exports.addStockApi = async function (req, res) {
 module.exports.stockViewPage = async function (req, res) {
   try {
     let stock = await Stock.findById(req.query.id)
-      .populate("prefix ornament purity kaarigar stockType approveTable stoneTable.type stoneTable.dealerName")
+      .populate(
+        "prefix ornament purity kaarigar stockType approveTable stoneTable.type stoneTable.dealerName"
+      )
       .populate("createdBy", "email name")
       .populate("deletedBy", "email name")
       .populate({
@@ -233,17 +243,27 @@ module.exports.stockViewPage = async function (req, res) {
       })
       .populate({
         path: "approveTable",
+        options: {
+          sort: { updatedAt: -1 }
+        },
         populate: [
           { path: "userGave", select: "email name" },
           { path: "userTake", select: "email name" },
           { path: "customer" }
         ]
       });
+    let auditLogs = await AuditLog.find({
+      targetModel: "Stock",
+      targetId: stock._id
+    })
+      .populate("user", "email name")
+      .sort({ createdAt: -1 });
     await common_function.calculatePrice(stock);
     const tagName = common_function.generateTagName(stock);
-    return res.render("inventory/stock_view", {
+    return res.render("inventory/view", {
       title: "View Stock",
       stock,
+      auditLogs,
       convertDate: common_function.convertDate,
       breadcrumbs: breadcrumb.trail([
         { label: "Inventory", href: "/inventory" },
@@ -267,7 +287,7 @@ module.exports.stockEditPage = async function (req, res) {
       getFilters(),
       getAllNextTags()
     ]);
-    return res.render("stock_edit", {
+    return res.render("inventory/edit", {
       title: "Edit Stock",
       stock,
       indexTable,
@@ -293,15 +313,19 @@ module.exports.editStockApi = async function (req, res) {
         return res.redirect(req.get("Referrer") || "/");
       }
       const imagePath = Stock.imagePath;
-      let tempStock = await Stock.findOne({ index: req.body.index })
-        .populate("prefix ornament purity kaarigar stockType stoneTable.type stoneTable.dealerName");
+      let tempStock = await Stock.findOne({ index: req.body.index }).populate(
+        "prefix ornament purity kaarigar stockType stoneTable.type stoneTable.dealerName"
+      );
       if (!tempStock) {
         req.flash("error", "Stock item not found.");
         return res.redirect("/");
       }
       let indexCounter = 1;
       while (true) {
-        let oldImgFile = path.join(imagePath, `${req.body.index}-${indexCounter}.png`);
+        let oldImgFile = path.join(
+          imagePath,
+          `${req.body.index}-${indexCounter}.png`
+        );
         try {
           await fs.access(oldImgFile);
           await fs.unlink(oldImgFile);
@@ -313,7 +337,7 @@ module.exports.editStockApi = async function (req, res) {
       for (let img of tempStock.stockImage) {
         try {
           await fs.unlink(path.join(imagePath, img.fileName));
-        } catch (_) { }
+        } catch (_) {}
       }
       let stockImage = [];
       if (req.files && req.files.length > 0) {
@@ -325,8 +349,14 @@ module.exports.editStockApi = async function (req, res) {
         }
       }
       let tag = tempStock.tag;
-      if (tempStock.prefix.toString() !== req.body.prefix || tempStock.ornament.toString() !== req.body.ornament) {
-        let oldIndex = await Index.findOne({ prefix: tempStock.prefix._id, ornament: tempStock.ornament._id });
+      if (
+        tempStock.prefix.toString() !== req.body.prefix ||
+        tempStock.ornament.toString() !== req.body.ornament
+      ) {
+        let oldIndex = await Index.findOne({
+          prefix: tempStock.prefix._id,
+          ornament: tempStock.ornament._id
+        });
         if (oldIndex) {
           if (!oldIndex.recycledGaps.includes(tempStock.tag)) {
             oldIndex.recycledGaps.push(Number(tempStock.tag));
@@ -334,12 +364,22 @@ module.exports.editStockApi = async function (req, res) {
           }
         }
         tag = await getNextTagNumber(req.body.prefix, req.body.ornament);
-        let newIndex = await Index.findOne({ prefix: req.body.prefix, ornament: req.body.ornament });
+        let newIndex = await Index.findOne({
+          prefix: req.body.prefix,
+          ornament: req.body.ornament
+        });
         if (!newIndex) {
-          newIndex = await Index.create({ prefix: req.body.prefix, ornament: req.body.ornament, lastIndex: tag, recycledGaps: [] });
+          newIndex = await Index.create({
+            prefix: req.body.prefix,
+            ornament: req.body.ornament,
+            lastIndex: tag,
+            recycledGaps: []
+          });
         } else {
           if (newIndex.recycledGaps && newIndex.recycledGaps.includes(tag)) {
-            newIndex.recycledGaps = newIndex.recycledGaps.filter(g => g !== tag);
+            newIndex.recycledGaps = newIndex.recycledGaps.filter(
+              (g) => g !== tag
+            );
           } else {
             newIndex.lastIndex = tag;
           }
@@ -357,8 +397,12 @@ module.exports.editStockApi = async function (req, res) {
         stockType: req.body.stockType,
         purity: req.body.purity,
         isKDM: req.body.isKDM !== undefined,
-        HUID: req.body.huid ? req.body.huid.replace(/[^a-zA-Z0-9 ]/g, " ").trim() : "",
-        remark: req.body.remark ? req.body.remark.replace(/[^a-zA-Z0-9 ]/g, " ").trim() : ""
+        HUID: req.body.huid
+          ? req.body.huid.replace(/[^a-zA-Z0-9 ]/g, " ").trim()
+          : "",
+        remark: req.body.remark
+          ? req.body.remark.replace(/[^a-zA-Z0-9 ]/g, " ").trim()
+          : ""
       };
       let stoneTable = [];
       if (req.body.stoneType) {
@@ -374,7 +418,13 @@ module.exports.editStockApi = async function (req, res) {
         }
       }
       let changesTracked = [];
-      const modelMap = { prefix: Prefix, ornament: Ornament, purity: Purity, stockType: StockType, kaarigar: Kaarigar };
+      const modelMap = {
+        prefix: Prefix,
+        ornament: Ornament,
+        purity: Purity,
+        stockType: StockType,
+        kaarigar: Kaarigar
+      };
       for (let key in normalizedInputs) {
         let oldVal = tempStock[key];
         let newVal = normalizedInputs[key];
@@ -402,27 +452,77 @@ module.exports.editStockApi = async function (req, res) {
           tempStock[key] = newVal;
         }
       }
-      let isStoneSame = tempStock.stoneTable.length === stoneTable.length;
-      if (isStoneSame) {
-        for (let i = 0; i < stoneTable.length; i++) {
-          if (
-            String(tempStock.stoneTable[i].type?._id || tempStock.stoneTable[i].type) !== String(stoneTable[i].type) ||
-            Number(tempStock.stoneTable[i].ctWeight) !== Number(stoneTable[i].ctWeight) ||
-            Number(tempStock.stoneTable[i].purchaseRate || 0) !== Number(stoneTable[i].purchaseRate || 0) ||
-            Number(tempStock.stoneTable[i].sellRate || 0) !== Number(stoneTable[i].sellRate || 0) ||
-            String(tempStock.stoneTable[i].dealerName?._id || tempStock.stoneTable[i].dealerName || "") !== String(stoneTable[i].dealerName || "")
-          ) {
-            isStoneSame = false;
-            break;
-          }
+      let stoneTableChanges = [];
+      const maxRows = Math.max(tempStock.stoneTable.length, stoneTable.length);
+      for (let i = 0; i < maxRows; i++) {
+        let oldRow = tempStock.stoneTable[i];
+        let newRow = stoneTable[i];
+        if (oldRow && !newRow) {
+          stoneTableChanges.push({
+            field: `stoneTable[Row ${i + 1}]`,
+            oldValue: `Stone Type: ${oldRow.type.name}, Wt: ${oldRow.ctWeight}ct, PRate: ${oldRow.purchaseRate}, SRate: ${oldRow.sellRate}, Dealer: ${oldRow.dealerName?.name || ""}`,
+            newValue: "Deleted"
+          });
+          continue;
+        }
+        if (!oldRow && newRow) {
+          let newName = await StoneType.findById(newRow.type);
+          let newDealer = await StoneDealer.findById(newRow.dealerName);
+          stoneTableChanges.push({
+            field: `stoneTable[Row ${i + 1}]`,
+            oldValue: "New Row",
+            newValue: `Stone Type: ${newName?.name}, Wt: ${newRow.ctWeight}ct, PRate: ${newRow.purchaseRate}, SRate: ${newRow.sellRate}, Dealer: ${newDealer?.name || ""}`
+          });
+          continue;
+        }
+        let oldTypeStr = String(oldRow.type?._id || oldRow.type || "");
+        let newTypeStr = String(newRow.type || "");
+        if (oldTypeStr !== newTypeStr) {
+          let newName = await StoneType.findById(newRow.type);
+          stoneTableChanges.push({
+            field: `stoneTable[Row ${i + 1}] - Type`,
+            oldValue: oldRow.type?.name || "Empty",
+            newValue: newName?.name || "Empty"
+          });
+        }
+        if (Number(oldRow.ctWeight) !== Number(newRow.ctWeight)) {
+          stoneTableChanges.push({
+            field: `stoneTable[Row ${i + 1}] - Weight (ct)`,
+            oldValue: String(oldRow.ctWeight),
+            newValue: String(newRow.ctWeight)
+          });
+        }
+        if (
+          Number(oldRow.purchaseRate || 0) !== Number(newRow.purchaseRate || 0)
+        ) {
+          stoneTableChanges.push({
+            field: `stoneTable[Row ${i + 1}] - Purchase Rate`,
+            oldValue: String(oldRow.purchaseRate || 0),
+            newValue: String(newRow.purchaseRate || 0)
+          });
+        }
+        if (Number(oldRow.sellRate || 0) !== Number(newRow.sellRate || 0)) {
+          stoneTableChanges.push({
+            field: `stoneTable[Row ${i + 1}] - Sell Rate`,
+            oldValue: String(oldRow.sellRate || 0),
+            newValue: String(newRow.sellRate || 0)
+          });
+        }
+        let oldDealerStr = String(
+          oldRow.dealerName?._id || oldRow.dealerName || ""
+        );
+        let newDealerStr = String(newRow.dealerName || "");
+        if (oldDealerStr !== newDealerStr) {
+          let newDealer = await StoneDealer.findById(newRow.dealerName);
+          stoneTableChanges.push({
+            field: `stoneTable[Row ${i + 1}] - Dealer`,
+            oldValue: oldRow.dealerName?.name || "Empty",
+            newValue: newDealer?.name || "Empty"
+          });
         }
       }
-      if (!isStoneSame) {
-        changesTracked.push({
-          field: "stoneTable",
-          oldValue: "Previous Table Layout",
-          newValue: "Modified Table Layout"
-        });
+      if (stoneTableChanges.length > 0) {
+        changesTracked.push(...stoneTableChanges);
         tempStock.stoneTable = stoneTable;
       }
       tempStock.stockImage = stockImage;
@@ -435,11 +535,11 @@ module.exports.editStockApi = async function (req, res) {
           targetId: tempStock._id,
           targetIdentifier: `Index: ${tempStock.index} | Tag: ${tempStock.tag}`,
           changes: changesTracked,
-          remark: "Stock configuration parameters modified cleanly via control panel grid interface"
+          remark: "Stock item details updated via Edit Page"
         });
       }
       req.flash("success", "Stock Edited Successfully!");
-      return res.redirect(`/stock/${tempStock.id}`);
+      return res.redirect(`/stock?id=${tempStock.id}`);
     });
   } catch (err) {
     console.error("Critical System Failure updating stock item:", err);
@@ -449,20 +549,16 @@ module.exports.editStockApi = async function (req, res) {
 };
 module.exports.stockImageEditPage = async function (req, res) {
   try {
-    let stock = await Stock.findById(req.query.id);
+    let stock = await Stock.findById(req.query.id).populate(
+      "prefix ornament purity kaarigar stockType approveTable stoneTable.type stoneTable.dealerName"
+    );
     if (!stock.isInStock) {
       req.flash("error", "Item is not in stock!");
       return res.redirect(req.get("Referrer") || "/");
     }
-    const [filters, indexTable] = await Promise.all([
-      getFilters(),
-      getAllNextTags()
-    ]);
-    return res.render("stock_image_edit", {
+    return res.render("inventory/edit_images", {
       title: "Edit Images Stock",
       stock,
-      indexTable,
-      ...filters,
       breadcrumbs: breadcrumb.trail([
         { label: "Inventory", href: "/inventory" },
         { label: "Edit Images" }
@@ -486,7 +582,10 @@ module.exports.editStockImageApi = async function (req, res) {
       let imagePath = Stock.imagePath;
       let i = 0;
       while (true) {
-        let targetPath = path.join(imagePath, req.body.index + "-" + (i + 1) + ".png");
+        let targetPath = path.join(
+          imagePath,
+          req.body.index + "-" + (i + 1) + ".png"
+        );
         try {
           await fs.access(targetPath);
           await fs.unlink(targetPath);
@@ -501,10 +600,13 @@ module.exports.editStockImageApi = async function (req, res) {
           let specPath = path.join(imagePath, img.fileName);
           await fs.access(specPath);
           await fs.unlink(specPath);
-        } catch (_) { }
+        } catch (_) {}
       }
       for (let i = 0; i < req.files.length; i++) {
-        let dest = path.join(imagePath, req.body.index + "-" + (i + 1) + ".png");
+        let dest = path.join(
+          imagePath,
+          req.body.index + "-" + (i + 1) + ".png"
+        );
         await fs.writeFile(dest, req.files[i].buffer);
         req.files[i].filename = req.body.index + "-" + (i + 1) + ".png";
       }
@@ -514,6 +616,7 @@ module.exports.editStockImageApi = async function (req, res) {
           stockImage.push({ fileName: req.files[i].filename });
         }
       }
+      oldImageCount = tempStock.stockImage.length;
       tempStock.stockImage = stockImage;
       await tempStock.save();
       await AuditLog.create({
@@ -525,14 +628,14 @@ module.exports.editStockImageApi = async function (req, res) {
         changes: [
           {
             field: "stockImage",
-            oldValue: "Previous Image Stack",
-            newValue: "Updated Image Stack"
+            oldValue: oldImageCount, // Old length of images
+            newValue: stockImage.length // New length of images
           }
         ],
-        remark: "Product visual display configuration re-uploaded via media wizard"
+        remark: "Stock images updated via Edit Images Page"
       });
       req.flash("success", "Stock Edited Successfully!");
-      return res.redirect("/stock/" + tempStock.id);
+      return res.redirect("/stock?id=" + tempStock.id);
     });
   } catch (err) {
     console.log("Error in Editing New Stock!", err);
@@ -548,7 +651,7 @@ module.exports.stockTransferPage = async function (req, res) {
       .sort({ prefix: 1, ornament: 1, tag: 1 });
     stockTable = stockTable.filter((item) => item.isInStock);
     const { stockTypeTable, kaarigarTable } = await getFilters();
-    return res.render("stock_edit_multiple", {
+    return res.render("inventory/transfer", {
       title: "Edit Multiple",
       activeNav: "inventory",
       stockTable,
@@ -580,7 +683,9 @@ module.exports.stockTransferApi = async function (req, res) {
     });
     let tempStockTable = tempUser.cart.filter((item) => item.isInStock);
     for (let i = 0; i < stockTable.length; i++) {
-      const oldStockTypeName = tempStockTable[i].stockType ? tempStockTable[i].stockType.name : "N/A";
+      const oldStockTypeName = tempStockTable[i].stockType
+        ? tempStockTable[i].stockType.name
+        : "N/A";
       stockTable[i].stockType = req.body.stockType;
       await stockTable[i].save();
       await AuditLog.create({
@@ -596,7 +701,7 @@ module.exports.stockTransferApi = async function (req, res) {
             newValue: newStockType.name
           }
         ],
-        remark: `Bulk stock categorization adjusted from ${oldStockTypeName} to ${newStockType.name}`
+        remark: `Stock type change via Stock Transfer Page`
       });
     }
     req.flash("success", "Edited Items Successfully!");
@@ -609,7 +714,9 @@ module.exports.stockTransferApi = async function (req, res) {
 };
 module.exports.printTagPage = async function (req, res) {
   try {
-    let stockTable = await Stock.find({ _id: req.query.id }).populate("prefix ornament purity stockType stoneTable.type kaarigar");
+    let stockTable = await Stock.find({ _id: req.query.id }).populate(
+      "prefix ornament purity stockType stoneTable.type kaarigar"
+    );
     stockTable = stockTable.filter((item) => item.tag !== null);
     if (!stockTable.length) {
       req.flash("error", "Item is not in stock!");
@@ -629,7 +736,7 @@ module.exports.printTagPage = async function (req, res) {
             newValue: true
           }
         ],
-        remark: "Physical barcode label/tag generated cleanly"
+        remark: "Single label printed"
       });
     }
     for (let i of stockTable) {
@@ -641,12 +748,10 @@ module.exports.printTagPage = async function (req, res) {
       }
     }
     let tag_name = await Env_Variable.findOne({ name: "TagName" });
-    return res.render("tags", {
-      title: "Tags",
-      activeNav: "inventory",
+    return res.render("print/tags", {
+      layout: false,
       stockTable,
-      tag_name: tag_name.value,
-      backHref: "/stock/" + stockTable[0]._id
+      tag_name: tag_name.value
     });
   } catch (err) {
     console.log("Error in Multiple Tags Print Page!", err);
@@ -679,7 +784,7 @@ module.exports.printMultipleTagsPage = async function (req, res) {
             newValue: true
           }
         ],
-        remark: "Physical barcode label/tag bulk printing stream initiated"
+        remark: "Multiple labels printed"
       });
     }
     for (let i of stockTable) {
@@ -691,16 +796,10 @@ module.exports.printMultipleTagsPage = async function (req, res) {
       }
     }
     let tag_name = await Env_Variable.findOne({ name: "TagName" });
-    return res.render("tags", {
-      title: "Print Tags",
-      activeNav: "inventory",
+    return res.render("print/tags", {
+      layout: false,
       stockTable,
-      tag_name: tag_name.value,
-      backHref: "/cart",
-      breadcrumbs: breadcrumb.trail([
-        { label: "Cart", href: "/cart" },
-        { label: "Print Tags" }
-      ])
+      tag_name: tag_name.value
     });
   } catch (err) {
     console.log("Error in Multiple Tags Print Page!", err);

@@ -78,12 +78,32 @@ module.exports.cartPage = async function (req, res) {
     for (let i = 0; i < stockTable.length; i++) {
       await common_function.calculatePrice(stockTable[i]);
     }
-    return res.render("cart", {
+    return res.render("cart/index", {
       title: "Cart",
       stockTable,
       generateTagName: common_function.generateTagName,
       hideBreadcrumb: true,
       ...breadcrumb.label("Cart")
+    });
+  } catch (err) {
+    console.log("Error in Cart Page!", err);
+    req.flash("error", "Error in Cart Page!");
+    return res.redirect(req.get("Referrer") || "/");
+  }
+};
+module.exports.cartInfoApi = async function (req, res) {
+  try {
+    let user = await User.findById(req.user);
+    let stockTable = user.cart;
+    stockTable = await Stock.find({
+      _id: {
+        $in: stockTable
+      }
+    });
+    return res.status(200).json({
+      status: "success",
+      message: "Cart Info Fetched Successfully!",
+      cartCount: stockTable.length
     });
   } catch (err) {
     console.log("Error in Cart Page!", err);
@@ -186,7 +206,7 @@ module.exports.estimateRetailPage = async function (req, res) {
     let goldPrice = await Env_Variable.findOne({
       name: "goldPrice"
     });
-    return res.render("estimateRetail", {
+    return res.render("cart/estimate_retail", {
       title: "Estimate Retail",
       activeNav: "inventory",
       stockTable,
@@ -236,7 +256,7 @@ module.exports.estimateWholesalePage = async function (req, res) {
     let goldPrice = await Env_Variable.findOne({
       name: "goldPrice"
     });
-    return res.render("estimateWholesale", {
+    return res.render("cart/estimate_wholesale", {
       title: "Estimate Wholesale",
       activeNav: "inventory",
       stockTable,
@@ -287,7 +307,7 @@ module.exports.estimateWholesaleBillPage = async function (req, res) {
     let goldPrice = await Env_Variable.findOne({
       name: "goldPrice"
     });
-    return res.render("estimateWholesale", {
+    return res.render("cart/estimate_wholesale", {
       title: "Estimate Wholesale",
       activeNav: "inventory",
       stockTable,
@@ -342,7 +362,7 @@ module.exports.soldRetailPage = async function (req, res) {
       await common_function.calculatePrice(stockTable[i]);
       tTotalPrice += stockTable[i].sellingPrice;
     }
-    return res.render("soldRetail", {
+    return res.render("cart/sold_retail", {
       title: "Sell Retail",
       activeNav: "inventory",
       stockTable,
@@ -392,9 +412,7 @@ module.exports.soldRetailForm = async function (req, res) {
         prefix: stockTable[i].prefix.id,
         ornament: stockTable[i].ornament.id
       });
-      index.available = index.available.filter(
-        (obj) => obj != stockTable[i].tag
-      );
+      index.recycledGaps.push(stockTable[i].tag);
       await index.save();
     }
     if (!req.body.customer) {
@@ -460,7 +478,7 @@ module.exports.soldWholesalePage = async function (req, res) {
     let goldPrice = await Env_Variable.findOne({
       name: "goldPrice"
     });
-    return res.render("soldWholesale", {
+    return res.render("cart/sold_wholesale", {
       title: "Sell Wholesale",
       activeNav: "inventory",
       stockTable,
@@ -509,9 +527,7 @@ module.exports.soldWholesaleForm = async function (req, res) {
         prefix: stockTable[i].prefix,
         ornament: stockTable[i].ornament
       });
-      index.available = index.available.filter(
-        (obj) => obj != stockTable[i].tag
-      );
+      index.recycledGaps.push(stockTable[i].tag);
       await index.save();
     }
     let customer = await Customer.findById(req.body.customer);
@@ -548,7 +564,7 @@ module.exports.billPage = async function (req, res) {
       .sort({
         createdAt: -1
       });
-    return res.render("bill/billForm", {
+    return res.render("bill/index", {
       title: "View Bill",
       billTable,
       ...breadcrumb.label("Bills")
@@ -574,7 +590,7 @@ module.exports.billView = async function (req, res) {
         ornament: 1,
         tag: 1
       });
-    return res.render("bill/bill", {
+    return res.render("bill/view", {
       title: "Bill",
       bill,
       stockTable,

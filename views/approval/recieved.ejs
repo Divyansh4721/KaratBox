@@ -1,0 +1,93 @@
+<% activeNav = 'approval' %>
+<%- include('../partials/_tokens') %>
+<div class="pb-10">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+    <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper p-6">
+      <p class="text-[10px] font-semibold uppercase tracking-widest text-secondary mb-4">Customer Details</p>
+      <div class="flex items-start gap-4 mb-4">
+        <span class="w-14 h-14 rounded-full bg-primary-fixed/50 text-primary text-xl font-bold flex items-center justify-center shrink-0"><%= (approval.customer.name || 'C').trim().charAt(0).toUpperCase(); %></span>
+        <div>
+          <h3 class="text-lg font-bold text-on-surface"><%= approval.customer.name %></h3>
+          <div class="flex flex-wrap gap-2 mt-2">
+            <span class="text-[10px] font-semibold uppercase tracking-wider bg-surface-container text-secondary px-2.5 py-1 rounded-full">Approver: <%= approval.userGave.name %></span>
+          </div>
+        </div>
+      </div>
+      <div class="pt-4 border-t border-surface-container">
+        <p class="text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1">Estimate</p>
+        <p class="text-2xl font-bold text-on-surface">₹ <%= new Intl.NumberFormat('en-IN').format(approval.totalCash) %> <span class="text-sm font-normal text-secondary">/-</span></p>
+        <p class="text-sm text-secondary italic mt-3"><%= approval.remark ? approval.remark : 'No remarks provided' %></p>
+      </div>
+      <a href="/customer?id=<%= approval.customer._id %>" class="inline-flex items-center gap-1.5 mt-4 text-sm font-semibold text-primary hover:underline">
+        <i class="fas fa-arrow-up-right-from-square text-xs"></i> View Customer Profile
+      </a>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper p-6">
+      <p class="text-[10px] font-semibold uppercase tracking-widest text-secondary mb-4">Transaction Summary</p>
+      <div class="space-y-5">
+        <div>
+          <p class="text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1">Given By</p>
+          <p class="font-bold text-on-surface"><%= approval.userGave.name %></p>
+          <p class="text-sm text-secondary"><%= convertDate(approval.approvedDate) %></p>
+        </div>
+        <% if (approval.receivedDate) { %>
+        <div class="pt-4 border-t border-surface-container">
+          <p class="text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1">Taken By</p>
+          <p class="font-bold text-on-surface"><%= approval.userTake.name %></p>
+          <p class="text-sm text-secondary"><%= convertDate(approval.receivedDate) %></p>
+        </div>
+        <% } else { %>
+        <div class="pt-4 border-t border-surface-container">
+          <p class="text-sm text-secondary italic">Awaiting return & credit confirmation</p>
+        </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+  <form id="approvalForm" action="/approvalRecvForm" method="post">
+    <input type="hidden" name="approval" value="<%= approval._id %>">
+    <%- include('../partials/_stock_detail_table', { stockTable, title: 'Items for Approval' }) %>
+    <div class="flex flex-wrap items-center justify-end gap-3">
+      <a href="/print/inventory?path=approval&id=<%= approval._id %>" target="_blank" class="px-5 py-2.5 border-2 border-primary-container text-primary text-sm font-semibold rounded-lg hover:bg-primary-fixed/20 transition-colors">
+        Print Summary
+      </a>
+      <% if (!approval.receivedDate) { %>
+      <button type="submit" id="submitApprovalBtn" class="px-6 py-2.5 bg-primary-container hover:brightness-105 text-on-primary text-sm font-semibold rounded-lg shadow-sm transition-all">
+        Submit Approval
+      </button>
+      <% } %>
+    </div>
+  </form>
+  <div id="cartToast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 hidden px-5 py-3 rounded-lg shadow-lg text-sm font-medium text-on-primary bg-primary"></div>
+</div>
+<script>
+  function showToast(msg, err) {
+    const t = document.getElementById('cartToast');
+    t.textContent = msg;
+    t.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-lg shadow-lg text-sm font-medium text-on-primary ' + (err ? 'bg-error' : 'bg-primary');
+    t.classList.remove('hidden');
+    setTimeout(() => t.classList.add('hidden'), 2000);
+  }
+  const approvalCustomerName = <%- JSON.stringify(approval.customer.name) %>;
+  document.getElementById('approvalForm').addEventListener('submit', async (e) => {
+    if (e.target.dataset.confirmed === '1') {
+      delete e.target.dataset.confirmed;
+      return;
+    }
+    e.preventDefault();
+    const submitter = e.submitter;
+    const isReturn = submitter && submitter.id === 'confirmReturnBtn';
+    const confirmed = await KbConfirm.ask({
+      title: isReturn ? 'Confirm Return & Credit' : 'Submit Approval',
+      message: isReturn ?
+        'Finalize the credit reconciliation for this approval.' : 'Submit this approval for processing.',
+      detail: approvalCustomerName,
+      confirmLabel: isReturn ? 'Confirm Return & Credit' : 'Submit Approval',
+      destructive: false
+    });
+    if (!confirmed) return;
+    e.target.dataset.confirmed = '1';
+    e.target.requestSubmit(submitter);
+  });
+  document.addEventListener('DOMContentLoaded', renderApprovalItems);
+</script>

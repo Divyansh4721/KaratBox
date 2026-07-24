@@ -1,0 +1,395 @@
+<% activeNav = 'inventory' %>
+<% const label = "block text-[11px] font-semibold uppercase tracking-widest text-secondary mb-1.5"; %>
+<% const inputReadonly = "w-full px-4 py-3 bg-surface-container-low border border-transparent rounded-lg text-body-md text-on-surface opacity-80 cursor-not-allowed"; %>
+<% const select = "w-full px-4 py-3 bg-surface-container-low border border-transparent rounded-lg text-body-md text-on-surface placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors appearance-none cursor-pointer"; %>
+<% const sectionTitle = "text-[11px] font-semibold uppercase tracking-widest text-secondary"; %>
+<% const camBtn = "w-full min-h-[2.75rem] flex items-center justify-center gap-1 py-2.5 px-2 border border-primary-container text-primary font-semibold rounded-lg hover:bg-primary-fixed/20 transition-colors text-xs sm:text-sm text-center"; %>
+
+<%
+  const tagLabel = (stock.prefix.name + " " || "") + (stock.ornament.name || "") + (stock.tag ? " - " + stock.tag : ""); %>
+%>
+
+<div class="pb-28">
+  <div class="mb-8">
+    <h2 class="text-display-lg-mobile md:text-headline-xl font-bold text-on-surface tracking-tight mb-2">Edit Images</h2>
+    <p class="text-body-md text-secondary font-light">Update asset visuals inside the KaratBox vault. New modifications replace prior recordings.</p>
+  </div>
+
+  <form id="image-form" action="/stock/edit-image" method="post" enctype="multipart/form-data" class="space-y-8">
+    <input type="hidden" id="index" name="index" value="<%= stock.index %>">
+
+    <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper p-6 lg:p-8">
+      <h3 class="<%= sectionTitle %> mb-6 pb-3 border-b border-surface-container">Asset Identity Reference</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div>
+          <label class="<%= label %>">SKU</label>
+          <input type="text" value="<%= stock.index %>" readonly class="<%= inputReadonly %>">
+        </div>
+        <div>
+          <label class="<%= label %>">Tag Number</label>
+          <input type="text" value="<%= tagLabel %>" readonly class="<%= inputReadonly %>">
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper p-6 lg:p-8">
+      <h3 class="<%= sectionTitle %> mb-6 pb-3 border-b border-surface-container">Product Image Studio</h3>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div>
+          <p class="<%= sectionTitle %> mb-4">Live Capture System</p>
+          <div class="border-2 border-dashed border-outline-variant/50 rounded-xl p-4 bg-surface-container-low/50 space-y-4">
+            <div id="windowCapture" class="space-y-3">
+              <canvas id="canvas" width="400" height="400" class="hidden"></canvas>
+              <select id="cameraSelect" class="<%= select %> text-sm"></select>
+              <div class="flex flex-col sm:flex-row gap-4 items-start">
+                <div class="w-full sm:flex-1">
+                  <div class="relative w-full aspect-square rounded-xl overflow-hidden border border-surface-container bg-black">
+                    <video id="video" class="w-full h-full object-cover scale-x-[-1]" autoplay muted playsinline webkit-playsinline></video>
+                  </div>
+                </div>
+                <div id="cameraActionButtons" class="w-full sm:w-48 sm:shrink-0 grid grid-cols-2 sm:grid-cols-1 gap-3">
+                  <button type="button" id="capture" class="<%= camBtn %>">
+                    <i class="fas fa-camera"></i><span>Capture Image</span>
+                  </button>
+                  <button type="button" id="quickCapture" class="<%= camBtn %>">
+                    <i class="fas fa-camera"></i><span>Capture</span>
+                  </button>
+                  <label id="imageLabel" for="imageButton" class="<%= camBtn %> cursor-pointer">
+                    <i class="fas fa-folder-open"></i><span>Browse</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p class="<%= sectionTitle %> mb-4">Production Sequence Queue</p>
+          <div id="imagePreviews" class="w-full">
+            <div id="tbody" class="space-y-3">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fixed bottom-0 left-0 right-0 lg:left-80 z-30 bg-surface-container-lowest/95 backdrop-blur border-t border-surface-container px-4 sm:px-6 lg:px-8 xl:px-10 py-4">
+      <div class="w-full flex items-center justify-between gap-4">
+        <a href="/stock?id=<%= stock._id %>" class="text-sm font-semibold text-secondary hover:text-on-surface transition-colors">Cancel</a>
+        <button type="submit" class="px-8 py-3 bg-primary-container hover:brightness-105 text-on-primary text-sm font-semibold rounded-lg shadow-sm transition-all">
+          <i class="fas fa-save mr-2"></i>Update Images
+        </button>
+      </div>
+    </div>
+
+    <input id="stockImage" type="file" name="stockImage" multiple required class="hidden">
+    <input id="imageButton" type="file" onchange="AddImage()" accept="image/*" class="hidden">
+  </form>
+</div>
+
+<script>
+  let stockData = <%- JSON.stringify(stock) %>;
+  const imageRowClass = 'flex items-center gap-3 p-3 bg-surface-container-low rounded-lg border border-surface-container transition-all';
+  const camBtn = <%- JSON.stringify(camBtn) %>;
+  const maxImages = 10;
+  let cameraInitialized = false;
+  var dataTransfer = new DataTransfer();
+
+  function addCameraActivationButton() {
+    const wrap = document.getElementById('cameraActionButtons');
+    if (!wrap || document.getElementById('enableCameraBtn')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'enableCameraBtn';
+    btn.className = camBtn;
+    btn.innerHTML = '<i class="fas fa-camera"></i><span>Enable Camera</span>';
+    btn.addEventListener('click', async function() {
+      try {
+        await initializeCamera();
+        cameraInitialized = true;
+        btn.remove();
+      } catch (e) {
+        console.warn('System camera tracking initialization failed', e);
+      }
+    });
+    wrap.appendChild(btn);
+  }
+
+  function isMobile() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase()) ||
+      ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  }
+
+  async function checkCameraPermissionAndInit() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      const wrap = document.getElementById('windowCapture');
+      if (wrap) wrap.style.display = 'none';
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: isMobile() ? {
+            ideal: 'environment'
+          } : undefined
+        }
+      });
+      stream.getTracks().forEach(track => track.stop());
+      await initializeCamera();
+      cameraInitialized = true;
+    } catch (error) {
+      if (error.name === 'NotAllowedError' || error.name === 'NotFoundError') {
+        addCameraActivationButton();
+      } else {
+        const wrap = document.getElementById('windowCapture');
+        if (wrap) wrap.style.display = 'none';
+      }
+    }
+  }
+
+  function buildTable() {
+    const container = document.getElementById('imagePreviews').querySelector('#tbody');
+    container.innerHTML = '';
+    if (!dataTransfer.files.length) {
+      container.innerHTML = '<p class="text-xs text-secondary italic p-4 text-center border rounded-xl border-dashed border-surface-container">No image layers captured in queue.</p>';
+      return;
+    }
+    for (let i = 0; i < dataTransfer.files.length; i++) {
+      const reader = new FileReader();
+      const imageRow = document.createElement('div');
+      imageRow.className = imageRowClass;
+      imageRow.innerHTML = `
+        <span class="text-sm font-semibold text-secondary w-6">${i + 1}</span>
+        <div id="ImageRow${i}" class="flex-1">
+          <img src="" alt="" class="w-16 h-16 object-cover rounded-lg border border-surface-container bg-surface-container-low shadow-sm">
+        </div>
+        <div class="flex gap-1">
+          <button type="button" onclick="ImageMove(${i},-1)" class="p-2 text-primary hover:bg-primary-fixed/20 rounded-lg transition-colors" ${i === 0 ? 'disabled style="opacity:0.3"' : ''}>
+            <i class="fas fa-arrow-up text-xs"></i>
+          </button>
+          <button type="button" onclick="ImageMove(${i},1)" class="p-2 text-primary hover:bg-primary-fixed/20 rounded-lg transition-colors" ${i === dataTransfer.files.length - 1 ? 'disabled style="opacity:0.3"' : ''}>
+            <i class="fas fa-arrow-down text-xs"></i>
+          </button>
+          <button type="button" onclick="ImageDel(${i})" class="p-2 text-error hover:bg-error/10 rounded-lg transition-colors">
+            <i class="fas fa-trash text-xs"></i>
+          </button>
+        </div>`;
+      container.appendChild(imageRow);
+      reader.onload = function(e) {
+        document.getElementById('ImageRow' + i).querySelector('img').src = e.target.result;
+      };
+      reader.readAsDataURL(dataTransfer.files[i]);
+    }
+  }
+
+  function addFileToQueue(file) {
+    if (dataTransfer.files.length >= maxImages) {
+      alert('Maximum configuration boundary of ' + maxImages + ' pictures reached.');
+      return false;
+    }
+    dataTransfer.items.add(file);
+    document.getElementById('stockImage').files = dataTransfer.files;
+    buildTable();
+    return true;
+  }
+
+  async function preloadExistingImages() {
+    if (!stockData.stockImage || !stockData.stockImage.length) {
+      buildTable();
+      return;
+    }
+    for (const imgObj of stockData.stockImage) {
+      try {
+        const response = await fetch('/uploads/stock/' + imgObj.fileName);
+        const blob = await response.blob();
+        const file = new File([blob], imgObj.fileName, {
+          type: blob.type || 'image/png'
+        });
+        dataTransfer.items.add(file);
+      } catch (e) {
+        console.error('Failed processing stream sync pipeline for legacy image: ' + imgObj.fileName, e);
+      }
+    }
+    document.getElementById('stockImage').files = dataTransfer.files;
+    buildTable();
+  }
+
+  function AddImage() {
+    const fileInput = document.getElementById('imageButton');
+    if (!fileInput.files.length) return;
+    const reader = new FileReader();
+    reader.onload = function(loadEvent) {
+      const img = new Image();
+      img.onload = function() {
+        const imgSize = Math.min(img.width, img.height);
+        const startX = (img.width - imgSize) / 2;
+        const startY = (img.height - imgSize) / 2;
+        const canvasEl = document.getElementById('canvas');
+        const ctx = canvasEl.getContext('2d');
+        ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+        ctx.drawImage(img, startX, startY, imgSize, imgSize, 0, 0, canvasEl.width, canvasEl.height);
+        const dataUrl = canvasEl.toDataURL('image/png');
+        const byteString = atob(dataUrl.split(',')[1]);
+        const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+        const blob = new Blob([ab], {
+          type: mimeString
+        });
+        addFileToQueue(new File([blob], 'upload_' + Date.now() + '.png', {
+          type: 'image/png'
+        }));
+      };
+      img.src = loadEvent.target.result;
+    };
+    reader.readAsDataURL(fileInput.files[0]);
+    fileInput.value = '';
+  }
+
+  function ImageMove(index, dir) {
+    if ((index === 0 && dir === -1) || (index === dataTransfer.files.length - 1 && dir === 1)) return;
+    const temp = new DataTransfer();
+    const x = Math.min(index, index + dir);
+    for (let i = 0; i < dataTransfer.files.length; i++) {
+      if (i === x) {
+        temp.items.add(dataTransfer.files[i + 1]);
+        temp.items.add(dataTransfer.files[i]);
+        i++;
+      } else {
+        temp.items.add(dataTransfer.files[i]);
+      }
+    }
+    dataTransfer = temp;
+    document.getElementById('stockImage').files = dataTransfer.files;
+    buildTable();
+  }
+
+  function ImageDel(index) {
+    dataTransfer.items.remove(index);
+    document.getElementById('stockImage').files = dataTransfer.files;
+    buildTable();
+  }
+
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const context = canvas ? canvas.getContext('2d') : null;
+  const captureButton = document.getElementById('capture');
+  const cameraSelect = document.getElementById('cameraSelect');
+
+  async function getAvailableCameras() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    return devices.filter(device => device.kind === 'videoinput');
+  }
+
+  async function setCamera(deviceId) {
+    const constraints = {
+      video: {
+        deviceId: deviceId ? {
+          exact: deviceId
+        } : undefined,
+        facingMode: isMobile() ? {
+          ideal: 'environment'
+        } : undefined,
+        width: {
+          ideal: 1280
+        },
+        height: {
+          ideal: 720
+        }
+      }
+    };
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+  }
+
+  async function populateCameraOptions() {
+    const cameras = await getAvailableCameras();
+    cameraSelect.innerHTML = '';
+    cameras.forEach(camera => {
+      const option = document.createElement('option');
+      option.value = camera.deviceId;
+      option.text = camera.label || ('Camera ' + (cameraSelect.length + 1));
+      cameraSelect.appendChild(option);
+    });
+  }
+
+  async function initializeCamera() {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: isMobile() ? {
+          ideal: 'environment'
+        } : undefined
+      }
+    });
+    stream.getTracks().forEach(track => track.stop());
+    const cameras = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+    if (!cameras.length) throw new Error('No internal visualization devices tracking');
+    await populateCameraOptions();
+    if (isMobile()) {
+      const backCamera = cameras.find(c => /back|rear|environment/i.test(c.label));
+      await setCamera(backCamera ? backCamera.deviceId : cameras[0].deviceId);
+    } else {
+      await setCamera(cameraSelect.value);
+    }
+  }
+
+  if (cameraSelect) {
+    cameraSelect.addEventListener('change', async () => {
+      if (cameraInitialized) await setCamera(cameraSelect.value);
+    });
+  }
+
+  if (captureButton) {
+    captureButton.addEventListener('click', () => {
+      if (!cameraInitialized) {
+        alert('Active camera permissions not configured.');
+        return;
+      }
+      const imgSize = Math.min(video.videoWidth, video.videoHeight);
+      const startX = (video.videoWidth - imgSize) / 2;
+      const startY = (video.videoHeight - imgSize) / 2;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      context.save();
+      context.translate(canvas.width, 0);
+      context.scale(-1, 1);
+      context.drawImage(video, startX, startY, imgSize, imgSize, 0, 0, canvas.width, canvas.height);
+      context.restore();
+
+      const dataUrl = canvas.toDataURL('image/png');
+      const byteString = atob(dataUrl.split(',')[1]);
+      const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+      const blob = new Blob([ab], {
+        type: mimeString
+      });
+      addFileToQueue(new File([blob], 'snap_' + Date.now() + '.png', {
+        type: 'image/png'
+      }));
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    checkCameraPermissionAndInit();
+    preloadExistingImages();
+    document.getElementById('quickCapture')?.addEventListener('click', function() {
+      document.getElementById('capture')?.click();
+    });
+    const form = document.getElementById('image-form');
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        if (!dataTransfer.files.length) {
+          e.preventDefault();
+          alert(' Staging queue requires at least 1 image attachment prior to submission updates.');
+          return;
+        }
+        document.getElementById('stockImage').files = dataTransfer.files;
+      });
+    }
+  });
+</script>

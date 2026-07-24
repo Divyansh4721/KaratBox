@@ -1,0 +1,106 @@
+<% const profileUser = (typeof userlist !== 'undefined' && userlist) ? userlist : user; %>
+<% const label = "block text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1.5"; %>
+<% const field = "w-full pl-11 pr-4 py-3 bg-surface-container-low border border-transparent rounded-lg text-sm text-on-surface placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors"; %>
+<% const photoBtn = "inline-flex items-center justify-center gap-2.5 w-full sm:w-auto min-w-[10.5rem] px-4 py-2.5 rounded-lg border border-surface-container bg-surface-container-lowest text-sm font-semibold text-on-surface hover:bg-surface-container hover:border-primary-container/40 transition-colors"; %>
+<% const saveBtn = "inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary-container hover:brightness-105 text-on-primary text-sm font-semibold rounded-lg shadow-sm transition-all"; %>
+<% const cancelBtn = "inline-flex items-center justify-center gap-2 px-6 py-2.5 border border-surface-container bg-surface-container-lowest text-on-surface text-sm font-semibold rounded-lg hover:bg-surface-container transition-colors"; %>
+<% const profileParts = (profileUser.name || 'U').trim().split(/\s+/).filter(Boolean); %>
+<% let profileInitials = 'U'; %>
+<% if (profileParts.length === 1) { profileInitials = profileParts[0].charAt(0).toUpperCase(); } else if (profileParts.length > 1) { profileInitials = (profileParts[0].charAt(0) + profileParts[profileParts.length - 1].charAt(0)).toUpperCase(); } %>
+<% const currentAvatar = profileUser.avatar; %>
+<div class="w-full pb-10">
+  <div class="mb-6">
+    <h2 class="text-display-lg-mobile md:text-headline-xl font-bold text-on-surface tracking-tight mb-1">My Profile</h2>
+    <p class="text-sm text-secondary">Update your photo and display name. Sign in with Google to sync your Google profile picture.</p>
+  </div>
+  <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper overflow-hidden">
+    <div class="px-6 py-5 border-b border-surface-container flex flex-col sm:flex-row sm:items-center gap-5 bg-surface-container-low/40">
+      <div class="relative shrink-0">
+        <% if (currentAvatar) { %>
+        <img src="<%= currentAvatar %>" alt="Profile" id="profile-preview" class="w-20 h-20 rounded-full object-cover border-2 border-primary-container/40 bg-surface-container-low" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'w-20 h-20 rounded-full bg-primary-fixed/50 text-primary text-xl font-bold flex items-center justify-center border-2 border-primary-container/40',textContent:'<%= profileInitials %>'}))">
+        <% } else { %>
+        <span id="profile-preview" class="w-20 h-20 rounded-full bg-primary-fixed/50 text-primary text-xl font-bold flex items-center justify-center border-2 border-primary-container/40"><%= profileInitials %></span>
+        <% } %>
+      </div>
+      <div>
+        <h3 class="text-lg font-bold text-on-surface"><%= profileUser.name %></h3>
+        <p class="text-xs text-secondary mt-0.5"><%= profileUser.email %></p>
+        <% if (profileUser.useGoogleAvatar && profileUser.googleAvatar) { %>
+        <p class="text-[10px] text-primary mt-1.5 font-semibold uppercase tracking-wider">Using Google photo</p>
+        <% } %>
+      </div>
+    </div>
+    <form action="/user_profile_form" method="post" enctype="multipart/form-data" class="p-6 space-y-6">
+      <input type="hidden" name="avatarAction" id="avatarAction" value="">
+
+      <div class="rounded-xl border border-surface-container bg-surface-container-low/30 p-5 space-y-4">
+        <h4 class="text-sm font-bold text-on-surface">Profile Photo</h4>
+        <p class="text-xs text-secondary">Google sign-in requests profile permission to use your Google photo. You can switch to a custom upload anytime.</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <% if (profileUser.googleAvatar) { %>
+          <button type="submit" onclick="document.getElementById('avatarAction').value='google'" class="<%= photoBtn %>">
+            <img src="<%= profileUser.googleAvatar %>" alt="" class="w-6 h-6 rounded-full object-cover shrink-0">
+            Use Google Photo
+          </button>
+          <% } else { %>
+          <p class="text-xs text-secondary italic sm:col-span-2 lg:col-span-3">Sign out and sign in again with Google to import your Google profile photo.</p>
+          <% } %>
+          <label class="<%= photoBtn %> cursor-pointer">
+            <i class="fas fa-upload text-primary text-xs"></i>
+            Upload Photo
+            <input type="file" name="image" accept="image/png,image/jpeg,image/jpg" class="hidden" onchange="previewAvatar(this); document.getElementById('avatarAction').value='upload';">
+          </label>
+          <% if (currentAvatar) { %>
+          <button type="submit" onclick="document.getElementById('avatarAction').value='remove'" class="<%= photoBtn %>">
+            <i class="fas fa-user text-secondary text-xs"></i>
+            Use Initials
+          </button>
+          <% } %>
+        </div>
+      </div>
+
+      <div>
+        <label class="<%= label %>">Full Name</label>
+        <div class="relative">
+          <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-secondary text-sm"></i>
+          <input type="text" name="name" required value="<%= profileUser.name %>" placeholder="Enter your name" class="<%= field %>">
+        </div>
+      </div>
+      <div>
+        <label class="<%= label %>">Email Address</label>
+        <div class="relative">
+          <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-secondary text-sm"></i>
+          <input type="email" value="<%= profileUser.email %>" disabled class="<%= field %> opacity-70 cursor-not-allowed">
+        </div>
+        <p class="text-[10px] text-secondary mt-1.5">Email can only be changed by an administrator.</p>
+      </div>
+      <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 pt-4 border-t border-surface-container">
+        <a href="/" class="<%= cancelBtn %>">Cancel</a>
+        <button type="submit" onclick="if(!document.getElementById('avatarAction').value) document.getElementById('avatarAction').value=''" class="<%= saveBtn %>">
+          <i class="fas fa-check text-xs"></i>
+          Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  function previewAvatar(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      let el = document.getElementById('profile-preview');
+      if (el && el.tagName === 'IMG') {
+        el.src = e.target.result;
+      } else if (el) {
+        const img = document.createElement('img');
+        img.id = 'profile-preview';
+        img.src = e.target.result;
+        img.alt = 'Profile';
+        img.className = 'w-20 h-20 rounded-full object-cover border-2 border-primary-container/40 bg-surface-container-low';
+        el.replaceWith(img);
+      }
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+</script>

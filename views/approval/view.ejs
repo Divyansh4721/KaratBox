@@ -1,0 +1,121 @@
+<% activeNav = 'approval' %>
+<%- include('../partials/_table_page', {
+    filterGridClass: 'grid-cols-1 md:grid-cols-12',
+    tableFilters: [
+        { type: 'search', id: 'searchInput', label: 'Search Customer Name', placeholder: 'Enter name or phone...', span: 6, flexEnd: true },
+        { type: 'select', id: 'statusFilter', label: 'Status', span: 4, flexEnd: true, options: [
+            { value: 'all', label: 'All Approvals' },
+            { value: 'pending', label: 'Outstanding' }
+        ]},
+        { type: 'stat', id: 'pendingCount', label: 'Pending Approvals', span: 2, flexEnd: true, icon: 'fas fa-clipboard-check' }
+    ],
+    tablePage: {
+        tableTitle: 'Customer List',
+        tableId: 'approvalBody',
+        minWidth: '760px',
+        colCount: 8,
+        columns: [
+            { label: 'S.No', align: 'left', thClass: 'px-5' },
+            { label: 'Customer Name', align: 'left', thClass: 'px-4' },
+            { label: 'Items', align: 'left', thClass: 'px-4' },
+            { label: 'Name', align: 'left', thClass: 'px-4' },
+            { label: 'Date', align: 'left', thClass: 'px-4' },
+            { label: 'Status', align: 'left', thClass: 'px-4' },
+            { label: 'Actions', align: 'right', thClass: 'px-5' }
+        ]
+    }
+}) %>
+<script>
+  const rawRows = <%- JSON.stringify(approvalTable) %>;
+  const allRows = rawRows.map((a) => ({
+    id: a._id,
+    name: a.customer ? a.customer.name : '—',
+    itemCount: a.cart ? a.cart.length : 0,
+    totalCash: a.totalCash || 0,
+    givenBy: a.userGave ? a.userGave.name : '—',
+    takenBy: a.userTake ? a.userTake.name : '—',
+    givenDate: fmtApprovalDate(a.approvedDate),
+    takenDate: fmtApprovalDate(a.receivedDate),
+    isPending: !a.receivedDate,
+    searchStr: a.customer ?
+      (
+        (a.customer.name || '') + ' ' +
+        (a.customer.phNum || []).join(' ') + ' ' +
+        (a.customer.address || '')
+      ).toLowerCase() : ''
+  }));
+  const pager = new KbPagination({
+    onPageChange: renderTable,
+    formatSummary(page, rows) {
+      return rows.length ?
+        `Showing ${page.length} of ${rows.length} customer${rows.length > 1 ? 's' : ''}` :
+        'No customers';
+    }
+  });
+
+  function fmtApprovalDate(date) {
+    if (!date) return '—';
+    const d = new Date(date);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const h = String(d.getHours()).padStart(2, '0');
+    const m = String(d.getMinutes()).padStart(2, '0');
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} at ${h}:${m}`;
+  }
+
+  function initials(name) {
+    return (name || 'C').trim().charAt(0).toUpperCase();
+  }
+
+  function fmt(n) {
+    return new Intl.NumberFormat('en-IN').format(n * 1);
+  }
+
+  function filteredRows() {
+    const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+    const status = document.getElementById('statusFilter').value;
+    let rows = [...allRows];
+    if (status === 'pending') rows = rows.filter(r => r.isPending);
+    if (q) rows = rows.filter(r => r.searchStr.includes(q));
+    return rows;
+  }
+
+  function renderTable() {
+    const rows = filteredRows();
+    const {
+      page,
+      start
+    } = pager.apply(rows);
+    const tbody = document.getElementById('approvalBody');
+    if (!page.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="py-12 text-center text-secondary">No customers found.</td></tr>';
+    } else {
+      tbody.innerHTML = page.map((r, i) => `
+                <tr class="border-t border-surface-container hover:bg-surface-container-low/40 transition-colors cursor-pointer" onclick="openApproval('${r.id}')">
+                    <td class="py-4 px-5 text-secondary font-medium">${start + i + 1}</td>
+                    <td class="py-4 px-4">
+                        <div class="flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-full ${i % 2 ? 'bg-primary-fixed/50 text-primary' : 'bg-surface-container text-on-surface'} text-xs font-bold flex items-center justify-center shrink-0">${initials(r.name)}</span>
+                            <span class="font-semibold text-on-surface">${r.name}</span>
+                        </div>
+                    </td>
+                    <td class="py-4 px-4 text-secondary">${r.itemCount} item${r.itemCount !== 1 ? 's' : ''}</td>
+                    <td class="py-4 px-4"><span class="text-xs font-medium bg-surface-container px-2.5 py-1 rounded-full text-secondary">${r.isPending ? r.givenBy : r.takenBy}</span></td>
+                    <td class="py-4 px-4 text-secondary text-xs whitespace-nowrap">${r.isPending ? r.givenDate : r.takenDate}</td>
+                    <td class="py-4 px-4">
+                        <span class="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${r.isPending ? 'bg-primary-fixed/50 text-primary' : 'bg-surface-container text-secondary'}">${r.isPending ? 'Outstanding' : 'Completed'}</span>
+                    </td>
+                    <td class="py-4 px-5 text-right" onclick="event.stopPropagation()">
+                        <a href="/approvalRecvPage?id=${r.id}" class="p-2 text-secondary hover:text-primary inline-block" title="View"><i class="fas fa-arrow-up-right-from-square"></i></a>
+                    </td>
+                </tr>`).join('');
+    }
+  }
+
+  function openApproval(id) {
+    window.location.href = '/approvalRecvPage?id=' + id;
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('pendingCount').textContent = allRows.filter(r => r.isPending).length.toLocaleString('en-IN');
+    renderTable();
+  });
+</script>

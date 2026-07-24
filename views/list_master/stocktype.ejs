@@ -1,0 +1,30 @@
+<% const routes = {
+  add: '/list_master/stocktype/add-stocktype',
+  edit: '/list_master/stocktype/edit-stocktype',
+  delete: '/list_master/stocktype/delete-stocktype'
+}; %>
+<%- include('_crud_builder', { options, lm: {
+    entity: 'StockType',
+    tableId: 'stockTypeTableBody',
+    searchLabel: 'stocktype name',
+    recordLabel: 'stocktype',
+    ledgerLabel: 'StockType',
+    csvFile: 'stocktype-records.csv',
+    routes,
+    columns: [
+        { key: 'name', label: 'StockType Name', cell: 'primary' },
+        { key: 'stockCount', label: 'Stock Count', cell: 'badge' }
+    ],
+    fields: [
+        { name: 'name', editName: 'newname', editId: 'editName', label: 'StockType Name', type: 'text', placeholder: 'Enter StockType Name ....' }
+    ],
+    labels: {
+        addButton: 'Add StockType',
+        createTitle: 'Add StockType',
+        createSubmit: 'Add StockType',
+        editTitle: 'Edit StockType',
+        editSubmit: 'Edit StockType',
+        deleteQuestion: 'Delete StockType?',
+        deleteSubmit: 'Delete StockType'
+    }
+}}) %>

@@ -19,6 +19,7 @@ router.get("/api/liveGoldRate", passport.checkAuthentication, homeController.get
 router.post("/goldPriceForm", passport.checkAuthentication, common_function.checkPermission("goldPrice"), homeController.updateGoldPriceForm);
 
 router.get("/cart", passport.checkAuthentication, common_function.checkPermission("stockView"), homeController.cartPage);
+router.get("/cart/info", passport.checkAuthentication, common_function.checkPermission("stockView"), homeController.cartInfoApi);
 router.get("/addToCart", passport.checkAuthentication, common_function.checkPermission("stockView"), homeController.addToCart);
 router.get("/delFromCart/:id", passport.checkAuthentication, common_function.checkPermission("stockView"), homeController.delFromCart);
 router.get("/clearCart", passport.checkAuthentication, common_function.checkPermission("stockView"), homeController.clearCart);
@@ -37,10 +38,10 @@ router.get("/bill", passport.checkAuthentication, common_function.checkPermissio
 router.get("/inventorySelection", passport.checkAuthentication, common_function.checkPermission("stockView"), stockViewController.invertorySelectionPage);
 router.get("/inventory", passport.checkAuthentication, common_function.checkPermission("stockView"), stockViewController.inventoryPage);
 router.get("/inventory-query", passport.checkAuthentication, common_function.checkPermission("stockView"), stockViewController.inventoryQuery);
+router.get("/inventory-search", passport.checkAuthentication, common_function.checkPermission("stockView"), stockViewController.invertorySearch);
 router.get("/dataPage", passport.checkAuthentication, common_function.checkPermission("dataPage"), stockViewController.dataPage);
 router.get("/analytics", passport.checkAuthentication, common_function.checkPermission("stockView"), stockViewController.analyticsPage);
 router.get("/dailySheet", passport.checkAuthentication, common_function.checkPermission("dataDailySheet"), stockViewController.dailySheetPage);
-router.post("/customSheetPage", passport.checkAuthentication, common_function.checkPermission("dataBackDateSheet"), stockViewController.customSheetPage);
 router.post("/backDateSheet", passport.checkAuthentication, common_function.checkPermission("dataBackDateSheet"), stockViewController.backDateSheetPage);
 router.get("/allStock", passport.checkAuthentication, common_function.checkPermission("dataAllStock"), stockViewController.allStockPage);
 router.get("/allStockApi", passport.checkAuthentication, common_function.checkPermission("dataAllInStock"), stockViewController.allStockApi);

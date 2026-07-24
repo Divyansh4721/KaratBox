@@ -6,15 +6,13 @@ const Prefix = require("../models/list_master/prefix");
 const DailyUpdateList = require("../models/DailyUpdateList");
 const Stock = require("../models/stock");
 const StockType = require("../models/list_master/stocktype");
+const AuditLog = require("../models/auditlog");
 const Env_Variable = require("../models/env_variable");
 const common_function = require("../controllers/common_function");
 const breadcrumb = require("../config/breadcrumbs");
 const ejs = require("ejs");
 const path = require("path");
-const STOCK_CARD_PATH = path.join(
-  __dirname,
-  "../views/partials/_stock_item_card.ejs"
-);
+const STOCK_CARD_PATH = path.join(__dirname, "../views/partials/_card.ejs");
 function renderStockItemCard(item, options = {}) {
   const stock =
     item && typeof item.toObject === "function"
@@ -41,7 +39,7 @@ module.exports.invertorySelectionPage = async function (req, res) {
       return res.redirect("/inventory");
     }
     const filters = await getCategoryFilters();
-    return res.render("inventory/inventorySelection", {
+    return res.render("inventory/search", {
       title: "Inventory Selection",
       activeNav: "inventory",
       query: req.query,
@@ -60,7 +58,7 @@ module.exports.invertorySelectionPage = async function (req, res) {
 module.exports.inventoryPage = async function (req, res) {
   try {
     const filters = await getCategoryFilters();
-    return res.render("inventory/inventory", {
+    return res.render("inventory/index", {
       title: "Inventory",
       activeNav: "inventory",
       query: req.query || {},
@@ -91,7 +89,7 @@ module.exports.inventoryQuery = async function (req, res) {
       }
       return res
         .status(200)
-        .json({ success: true, redirectUrl: `/stock/${stock.id}`, stock });
+        .json({ success: true, redirectUrl: `/stock?id=${stock.id}`, stock });
     }
     const stockQuery = {};
     const prefixes = toFilterArray(prefix);
@@ -127,9 +125,26 @@ module.exports.inventoryQuery = async function (req, res) {
       .json({ success: false, message: "Internal Server Error" });
   }
 };
+module.exports.invertorySearch = async function (req, res) {
+  try {
+    if (!req.query.item) {
+      return res.redirect(req.get("Referrer") || "/");
+    }
+    const stock = await Stock.findOne({ index: req.query.item });
+    if (!stock) {
+      return res.redirect(req.get("Referrer") || "/");
+    }
+    return res.redirect(`/stock?id=${stock.id}`);
+  } catch (err) {
+    console.error("Error in Stock List API:", err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal Server Error" });
+  }
+};
 module.exports.dataPage = async function (req, res) {
   try {
-    return res.render("dataPage", {
+    return res.render("reports/index", {
       title: "Report",
       ...breadcrumb.label("Reports")
     });
@@ -142,7 +157,7 @@ module.exports.dataPage = async function (req, res) {
 module.exports.analyticsPage = async function (req, res) {
   try {
     const goldPrice = await Env_Variable.findOne({ name: "goldPrice" });
-    return res.render("analytics", {
+    return res.render("reports/analytics", {
       title: "Analytics",
       activeNav: "analytics",
       goldPrice,
@@ -168,15 +183,15 @@ module.exports.createLists = async function () {
     }).select("_id");
     let arrivalTable = temp.map((item) => item._id.toString());
     // editTable
-    temp = await Stock.find({
-      updatedTable: {
-        $elemMatch: {
-          date: {
-            $gte: startOfDay,
-            $lte: endOfDay
-          }
-        }
+    const modifiedStockIds = await AuditLog.distinct("targetId", {
+      targetModel: "Stock",
+      createdAt: {
+        $gte: startOfDay,
+        $lte: endOfDay
       }
+    });
+    temp = await Stock.find({
+      _id: { $in: modifiedStockIds }
     }).select("_id");
     let editTable = temp.map((item) => item._id.toString());
     // soldTable
@@ -292,7 +307,6 @@ async function createFullList(
         )
         .populate("createdBy", "email name")
         .populate("deletedBy", "email name")
-        .populate("updatedTable.user", "email name")
         .populate({
           path: "bill",
           populate: [
@@ -466,7 +480,7 @@ module.exports.dailySheetPage = async function (req, res) {
       lists[6],
       lists[7]
     );
-    return res.render("stockChangeList", {
+    return res.render("reports/summary", {
       title: "Updates List",
       date: new Date().toDateString(),
       fullList: tables[0],
@@ -485,68 +499,6 @@ module.exports.dailySheetPage = async function (req, res) {
   } catch (err) {
     console.log("Error in Daily Sheet Page!", err);
     req.flash("error", "Error in Daily Sheet Page!");
-    return res.redirect(req.get("Referrer") || "/");
-  }
-};
-module.exports.customSheetPage = async function (req, res) {
-  try {
-    let date = new Date(req.body.date);
-    let startOfDay = new Date(date.setHours(0, 0, 0, 0));
-    let endOfDay = new Date(date.setHours(23, 59, 59, 999));
-    let lists = [];
-    let tables = [];
-    if (date.toDateString() === new Date().toDateString()) {
-      lists = await module.exports.createLists();
-      tables = await createFullList(
-        lists[0],
-        lists[1],
-        lists[2],
-        lists[3],
-        lists[4],
-        lists[5],
-        lists[6],
-        lists[7]
-      );
-    } else {
-      lists = await DailyUpdateList.findOne({
-        createdAt: {
-          $gte: startOfDay,
-          $lte: endOfDay
-        }
-      });
-      if (!lists) {
-        req.flash("error", "Custom Lists not Available!");
-        return res.redirect(req.get("Referrer") || "/");
-      }
-      tables = await createFullList(
-        lists.arrival,
-        lists.edit,
-        lists.sold,
-        lists.deleted,
-        lists.totalApproval,
-        lists.approvalGive,
-        lists.approvalTake,
-        lists.closing
-      );
-    }
-    tables[0] = tables[0].filter((item) => item.name !== "Total");
-    let checkList = [];
-    for (let item of tables[0]) {
-      checkList.push(item.name);
-    }
-    return res.render("stockChangeListCustom", {
-      title: "Updates List",
-      date: new Date(req.body.date).toDateString(),
-      fullList: tables[0],
-      checkList,
-      breadcrumbs: breadcrumb.trail([
-        { label: "Reports", href: "/dataPage" },
-        { label: "Custom Lists" }
-      ])
-    });
-  } catch (err) {
-    console.log("Error in Back Date Page!", err);
-    req.flash("error", "Error in Back Date Page!");
     return res.redirect(req.get("Referrer") || "/");
   }
 };
@@ -575,7 +527,7 @@ module.exports.backDateSheetPage = async function (req, res) {
       lists.approvalTake,
       lists.closing
     );
-    return res.render("stockChangeList", {
+    return res.render("reports/summary", {
       title: "Updates List",
       date: new Date(req.body.date).toDateString(),
       fullList: tables[0],
@@ -601,7 +553,7 @@ module.exports.allStockPage = async function (req, res) {
   try {
     const filters = await getCategoryFilters();
     const totalStock = await Stock.countDocuments();
-    return res.render("stockTable", {
+    return res.render("reports/view_stock", {
       title: "All Stock",
       filters,
       totalStock,
@@ -629,7 +581,6 @@ module.exports.allStockApi = async function (req, res) {
       )
       .populate("createdBy", "email name")
       .populate("deletedBy", "email name")
-      .populate("updatedTable.user", "email name")
       .populate({
         path: "bill",
         populate: [

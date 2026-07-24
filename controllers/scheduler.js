@@ -135,6 +135,15 @@ function transformData(item) {
       };
     });
   }
+  if (item.changes && Array.isArray(item.changes)) {
+    item.changes = item.changes.map((value) => {
+      return {
+        field: value.field,
+        oldValue: value.oldValue,
+        newValue: value.newValue
+      };
+    });
+  }
   return item;
 }
 module.exports.Backup = async function (req, res) {

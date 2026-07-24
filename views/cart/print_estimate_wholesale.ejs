@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wholesale Estimate / Quotation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+
+      #maindata {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+      }
+
+      .table-container {
+        overflow: visible !important;
+        width: 100% !important;
+      }
+
+      table {
+        width: 100% !important;
+      }
+    }
+
+    @page {
+      size: A4 landscape;
+      margin: 8mm;
+    }
+  </style>
+</head>
+
+<body class="bg-stone-50 text-black p-4 md:p-6 flex flex-col items-center">
+  <!-- Print Interface Controls -->
+  <div class="no-print w-full max-w-7xl bg-white border border-stone-300 rounded-lg p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div>
+      <h1 class="text-xs font-bold uppercase tracking-wider text-stone-800">Wholesale Estimate Print Control</h1>
+      <p class="text-[12px] text-stone-500">Pure black and white rendering engine preview dashboard.</p>
+    </div>
+    <div class="flex items-center gap-2 w-full sm:w-auto">
+      <button onclick="window.close()" class="flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium text-stone-700 bg-white border border-stone-300 rounded hover:bg-stone-100 transition">
+        Cancel
+      </button>
+      <button onclick="window.print()" class="flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold text-white bg-black rounded hover:bg-stone-900 transition shadow-sm">
+        Print Document
+      </button>
+      <button id="downloadBtn" onclick="generateMonochromePDF()" class="flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold text-white bg-stone-800 rounded hover:bg-stone-700 transition shadow-sm">
+        Save PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State Panel Box -->
+  <div id="loadingIndicator" class="hidden no-print fixed inset-0 bg-black/20 backdrop-blur-xs z-50 flex items-center justify-center">
+    <div class="bg-white p-4 rounded border border-stone-400 shadow-lg flex items-center gap-3">
+      <div class="animate-spin rounded-full h-4 w-4 border-2 border-black border-t-transparent"></div>
+      <p class="text-xs font-bold uppercase tracking-wide">Compiling PDF Data Grid...</p>
+    </div>
+  </div>
+
+  <% 
+    let activeGoldPrice = parseFloat(goldrate) || 0;
+
+    let grosswt = 0, netwt = 0, purewt = 0, wastage = 0, chwt = 0, gamt = 0;
+    let stonewtct = 0, stonewtgm = 0, samt = 0, lamt = 0, tamt = 0;
+    let serialCounter = 1;
+
+    // Dynamically rebuild and compile map keys directly from transaction stream data array
+    let stoneTableData = {};
+    if (billdata && billdata.length > 0) {
+      billdata.forEach(item => {
+        if (item.type === "type2" && item.stonetype && !stoneTableData[item.stonetype]) {
+          stoneTableData[item.stonetype] = { ctWeight: 0, gmWeight: 0, total: 0 };
+        }
+      });
+    }
+  %>
+
+  <div id="maindata" class="w-full bg-white border border-stone-300 rounded-sm p-6 print:p-0 print:border-none">
+    <!-- Invoice Header Segment -->
+    <div class="invoice-header border-b border-black pb-3 mb-4 flex flex-col sm:flex-row print:flex-row sm:items-end print:items-end sm:justify-between print:justify-between gap-2">
+      <div>
+        <div class="date text-[11px] font-mono tracking-tight text-stone-600 uppercase" id="livePrintTime"></div>
+        <h2 class="title text-base font-bold tracking-tight uppercase text-black mt-0.5">Wholesale Estimate / Quotation</h2>
+        <div class="note text-[10px] text-stone-600 italic mt-0.5">Rough Valuation Layout Layer / Goods remain Itemized Inventory Property</div>
+      </div>
+      <div class="text-left sm:print:font-mono text-xs">
+        <p class="text-black font-semibold">Base Gold Rate: ₹<%= new Intl.NumberFormat('en-IN').format(activeGoldPrice) %>/10g</p>
+      </div>
+    </div>
+
+    <!-- Data Matrix Grid Workspace Layout -->
+    <div class="table-container w-full print:overflow-visible">
+      <table id="table" class="min-w-full text-center text-[11px] border border-black border-collapse table-auto text-black">
+        <thead>
+          <!-- Header Group 1 -->
+          <tr class="font-bold bg-stone-100 border-b border-black text-xs uppercase tracking-wider">
+            <th colspan="4" class="p-2 border-r border-stone-300 text-center">Design</th>
+            <th colspan="9" class="p-2 border-r border-stone-300 text-center">Metal</th>
+            <th colspan="5" class="p-2 border-r border-stone-300 text-center">Stone</th>
+            <th colspan="2" class="p-2 border-r border-stone-300 text-center">Labour</th>
+            <th colspan="1" class="p-2 text-center">Total</th>
+          </tr>
+          <!-- Header Group 2 -->
+          <tr class="font-bold bg-stone-50 border-b border-black text-[11px] uppercase tracking-wider whitespace-nowrap">
+            <th class="p-2">S. No</th>
+            <th class="p-2">Image</th>
+            <th class="p-2">SKU</th>
+            <th class="p-2 border-r border-stone-300 text-left">Ornament</th>
+            <th class="p-2">Purity</th>
+            <th class="p-2">Tounch</th>
+            <th class="p-2">Gross Wt (g)</th>
+            <th class="p-2">Net Wt (g)</th>
+            <th class="p-2">Pure Wt (g)</th>
+            <th class="p-2">Wastage (g)</th>
+            <th class="p-2">Charged Wt (g)</th>
+            <th class="p-2">Rate (g)</th>
+            <th class="p-2 border-r border-stone-300">Amount</th>
+            <th class="p-2">Type</th>
+            <th class="p-2">Wt (ct)</th>
+            <th class="p-2">Wt (g)</th>
+            <th class="p-2">Rate (ct)</th>
+            <th class="p-2 border-r border-stone-300">Amount</th>
+            <th class="p-2">Rate (g)</th>
+            <th class="p-2 border-r border-stone-300">Amount</th>
+            <th class="p-2">Amount</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-stone-200">
+          <% if (!billdata || billdata.length === 0) { %>
+          <tr>
+            <td colspan="21" class="py-6 text-stone-500 italic font-mono text-xs">
+              No active rows present inside the transaction dataset stack.
+            </td>
+          </tr>
+          <% } else { %>
+          <% billdata.forEach((item, i) => { %>
+          <% if (item.type === "type1") { %>
+          <% 
+                let purityParts = (item.purity || "").split("$");
+                let caratName = purityParts[0] || "";
+                let tounchMultiplier = parseFloat(purityParts[1]) || 0;
+                let localWastage = parseFloat(item.wastage) || 0;
+                let localLabour = parseFloat(item.labour) || 0;
+                
+                let itemNet = parseFloat(item.netweight) || 0;
+                let itemGross = parseFloat(item.grossweight) || 0;
+                
+                let itemPureWt = (itemNet * tounchMultiplier) / 100;
+                let itemWastageGms = (itemNet * localWastage) / 100;
+                let itemChargedWt = itemPureWt + itemWastageGms;
+                let itemGoldAmount = itemChargedWt * activeGoldPrice;
+                let itemLabourAmount = itemNet * localLabour;
+                
+                let itemTotalAccumulator = itemGoldAmount + itemLabourAmount;
+                
+                let targetLookahead = i + 1;
+                while (targetLookahead < billdata.length && billdata[targetLookahead].type === "type2") {
+                  let stoneLook = billdata[targetLookahead];
+                  let sWt = parseFloat(stoneLook.stoneweight) || 0;
+                  let sRate = parseFloat(stoneLook.stonerate) || 0;
+                  let calcWeight = sWt ? sWt : 1;
+                  itemTotalAccumulator += (calcWeight * sRate);
+                  targetLookahead++;
+                }
+
+                grosswt += itemGross;
+                netwt += itemNet;
+                purewt += itemPureWt;
+                wastage += itemWastageGms;
+                chwt += itemChargedWt;
+                gamt += itemGoldAmount;
+                lamt += itemLabourAmount;
+                tamt += itemTotalAccumulator;
+
+                let nextIsStone = (billdata[i + 1] && billdata[i + 1].type === "type2");
+                let stName = nextIsStone ? billdata[i + 1].stonetype : "";
+                let stCt = nextIsStone ? parseFloat(billdata[i + 1].stoneweight) || 0 : 0;
+                let stGm = nextIsStone ? stCt / 5 : 0;
+                let stRate = nextIsStone ? parseFloat(billdata[i + 1].stonerate) || 0 : 0;
+                let stAmt = nextIsStone ? (stCt ? stCt : 1) * stRate : 0;
+
+                let hasMoreStones = (billdata[i + 2] && billdata[i + 2].type === "type2");
+                let borderClass = (!nextIsStone || !hasMoreStones) ? "border-b border-stone-300" : "";
+              %>
+          <tr class="break-inside-avoid <%= borderClass %> hover:bg-stone-50 transition-colors text-sm whitespace-nowrap">
+            <td class="p-2 font-mono"><%= serialCounter++ %></td>
+            <td class="p-2">
+              <img class="w-8 h-8 object-cover rounded border border-stone-300" src="/uploads/stock/<%= item.index %>-1.png" onerror="this.style.display='none'">
+            </td>
+            <td class="p-2 font-mono"><%= (item.index === undefined || item.index === "undefined") ? "" : item.index %></td>
+            <td class="p-2 border-r border-stone-300 text-left font-medium"><%= item.prefix || "" %> <%= item.ornament || "" %><%= item.tag ? " - " + item.tag : "" %></td>
+            <td class="p-2"><%= caratName %></td>
+            <td class="p-2 font-mono"><%= tounchMultiplier.toFixed(0) %></td>
+            <td class="p-2 font-mono"><%= itemGross.toFixed(3) %></td>
+            <td class="p-2 font-mono"><%= itemNet.toFixed(3) %></td>
+            <td class="p-2 font-mono"><%= itemPureWt.toFixed(3) %></td>
+            <td class="p-2 font-mono"><%= itemWastageGms.toFixed(3) %></td>
+            <td class="p-2 font-mono"><%= itemChargedWt.toFixed(3) %></td>
+            <td class="p-2 font-mono">₹<%= new Intl.NumberFormat('en-IN').format(activeGoldPrice.toFixed(0)) %></td>
+            <td class="p-2 border-r border-stone-300 font-mono">₹<%= new Intl.NumberFormat('en-IN').format(itemGoldAmount.toFixed(0)) %></td>
+
+            <td class="p-2 text-left italic text-stone-700"><%= stName %></td>
+            <td class="p-2 font-mono"><%= nextIsStone ? stCt.toFixed(3) : "" %></td>
+            <td class="p-2 font-mono"><%= nextIsStone ? stGm.toFixed(3) : "" %></td>
+            <td class="p-2 font-mono"><%= nextIsStone ? "₹" + new Intl.NumberFormat('en-IN').format(stRate.toFixed(0)) : "" %></td>
+            <td class="p-2 border-r border-stone-300 font-mono">₹<%= nextIsStone ? new Intl.NumberFormat('en-IN').format(stAmt.toFixed(0)) : "" %></td>
+
+            <td class="p-2 font-mono">₹<%= new Intl.NumberFormat('en-IN').format(localLabour.toFixed(0)) %></td>
+            <td class="p-2 border-r border-stone-300 font-mono">₹<%= new Intl.NumberFormat('en-IN').format(itemLabourAmount.toFixed(0)) %></td>
+            <td class="p-2 font-mono">₹<%= new Intl.NumberFormat('en-IN').format(itemTotalAccumulator.toFixed(0)) %></td>
+          </tr>
+          <% } else { %>
+          <% 
+                if (i > 0 && billdata[i - 1].type !== "type1") { 
+                  let sWt = parseFloat(item.stoneweight) || 0;
+                  let sRate = parseFloat(item.stonerate) || 0;
+                  let calcWeight = sWt ? sWt : 1;
+                  let stAmt = calcWeight * sRate;
+                  let nextIsStone = (billdata[i + 1] && billdata[i + 1].type === "type2");
+                  let borderClass = !nextIsStone ? "border-b border-stone-300" : "";
+              %>
+          <tr class="break-inside-avoid <%= borderClass %> hover:bg-stone-50 transition-colors text-sm whitespace-nowrap">
+            <td class="p-2"></td>
+            <td class="p-2"></td>
+            <td class="p-2"></td>
+            <td class="p-2 border-r border-stone-300"></td>
+            <td class="p-2"></td>
+            <td class="p-2"></td>
+            <td class="p-2"></td>
+            <td class="p-2"></td>
+            <td class="p-2"></td>
+            <td class="p-2"></td>
+            <td class="p-2"></td>
+            <td class="p-2"></td>
+            <td class="p-2 border-r border-stone-300"></td>
+
+            <td class="p-2 text-left italic text-stone-700"><%= item.stonetype || "" %></td>
+            <td class="p-2 font-mono"><%= sWt.toFixed(3) %></td>
+            <td class="p-2 font-mono"><%= (sWt / 5).toFixed(3) %></td>
+            <td class="p-2 font-mono">₹<%= new Intl.NumberFormat('en-IN').format(sRate.toFixed(0)) %></td>
+            <td class="p-2 border-r border-stone-300 font-mono">₹<%= new Intl.NumberFormat('en-IN').format(stAmt.toFixed(0)) %></td>
+
+            <td class="p-2"></td>
+            <td class="p-2 border-r border-stone-300"></td>
+            <td class="p-2"></td>
+          </tr>
+          <% 
+                }
+                
+                if (stoneTableData[item.stonetype]) {
+                  let sWt = parseFloat(item.stoneweight) || 0;
+                  let sRate = parseFloat(item.stonerate) || 0;
+                  let calcWeight = sWt ? sWt : 1;
+                  stoneTableData[item.stonetype].ctWeight += sWt;
+                  stoneTableData[item.stonetype].gmWeight += (sWt / 5);
+                  stoneTableData[item.stonetype].total += (calcWeight * sRate);
+                  stonewtct += sWt;
+                  stonewtgm += (sWt / 5);
+                  samt += (calcWeight * sRate);
+                }
+              %>
+          <% } %>
+          <% }) %>
+          <% } %>
+
+          <!-- Matrix Totals Grid Line Row -->
+          <tr class="font-bold bg-stone-100 text-black text-sm whitespace-nowrap border-t-2 border-b-2 border-black">
+            <td class="p-2">Total</td>
+            <td class="p-2"></td>
+            <td class="p-2"></td>
+            <td class="p-2 border-r border-stone-300 text-left"></td>
+            <td class="p-2"></td>
+            <td class="p-2"></td>
+            <td class="p-2 font-mono"><%= grosswt.toFixed(3) %></td>
+            <td class="p-2 font-mono"><%= netwt.toFixed(3) %></td>
+            <td class="p-2 font-mono"><%= purewt.toFixed(3) %></td>
+            <td class="p-2 font-mono"><%= wastage.toFixed(3) %></td>
+            <td class="p-2 font-mono"><%= chwt.toFixed(3) %></td>
+            <td class="p-2"></td>
+            <td class="p-2 border-r border-stone-300 font-mono">₹<%= new Intl.NumberFormat('en-IN').format(gamt.toFixed(0)) %></td>
+            <td class="p-2"></td>
+            <td class="p-2 font-mono"><%= stonewtct.toFixed(3) %></td>
+            <td class="p-2 font-mono"><%= stonewtgm.toFixed(3) %></td>
+            <td class="p-2"></td>
+            <td class="p-2 border-r border-stone-300 font-mono">₹<%= new Intl.NumberFormat('en-IN').format(samt.toFixed(0)) %></td>
+            <td class="p-2"></td>
+            <td class="p-2 border-r border-stone-300 font-mono">₹<%= new Intl.NumberFormat('en-IN').format(lamt.toFixed(0)) %></td>
+            <td class="p-2 font-mono">₹<%= new Intl.NumberFormat('en-IN').format(tamt.toFixed(0)) %></td>
+          </tr>
+
+          <!-- Summary Framework Sub Headers Inside Table Block Structure -->
+          <tr class="font-bold bg-stone-100 border-b border-stone-300 text-xs uppercase tracking-wider">
+            <td colspan="4" class="p-2 border-r border-stone-300 text-center">Metal Summary</td>
+            <td colspan="4" class="p-2 border-r border-stone-300 text-center">Stone Summary</td>
+            <td colspan="4" class="p-2 text-center">Total Summary</td>
+          </tr>
+
+          <tr class="align-top text-xs">
+            <!-- Metal Breakout Block Grid Column -->
+            <td colspan="4" class="p-2 border-r border-stone-300 bg-white">
+              <table class="w-full text-left space-y-1">
+                <tbody>
+                  <tr>
+                    <th class="py-1 font-medium">Pure Gold (24ct)</th>
+                    <td class="text-right font-semibold"><%= purewt.toFixed(3) %> gm</td>
+                  </tr>
+                  <tr>
+                    <th class="py-1 font-medium">Wastage (24ct)</th>
+                    <td class="text-right font-semibold"><%= wastage.toFixed(3) %> gm</td>
+                  </tr>
+                  <tr class="border-t border-stone-200">
+                    <th class="py-1 font-bold">Charged Gold (24ct)</th>
+                    <td class="text-right font-bold"><%= chwt.toFixed(3) %> gm</td>
+                  </tr>
+                  <tr>
+                    <th class="py-1 font-medium">Gold Price</th>
+                    <td class="text-right font-semibold">₹<%= new Intl.NumberFormat('en-IN').format(activeGoldPrice.toFixed(0)) %></td>
+                  </tr>
+                  <tr class="border-t border-stone-300">
+                    <th class="py-1 font-bold">Gold Amount</th>
+                    <td class="text-right font-bold text-primary">₹<%= new Intl.NumberFormat('en-IN').format(gamt.toFixed(0)) %></td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+
+            <!-- Stone Breakout Block Grid Column -->
+            <td colspan="4" class="p-2 border-r border-stone-300 bg-white">
+              <table class="w-full text-left table-fixed">
+                <thead>
+                  <tr class="border-b border-stone-200">
+                    <th class="w-1/3 pb-1 font-semibold">Type</th>
+                    <th class="text-right font-semibold">Weight</th>
+                    <th class="text-right font-semibold">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% 
+                    let stonesRendered = false;
+                    Object.keys(stoneTableData).forEach(key => {
+                      let st = stoneTableData[key];
+                      if (st.ctWeight || st.total) {
+                        stonesRendered = true;
+                      }
+                    });
+                    if (stonesRendered) {
+                      Object.keys(stoneTableData).forEach(key => {
+                        let st = stoneTableData[key];
+                        if (st.ctWeight || st.total) {
+                    %>
+                  <tr>
+                    <td class="py-0.5 truncate text-left"><%= key %></td>
+                    <td class="text-right font-mono"><%= st.ctWeight.toFixed(3) %> ct</td>
+                    <td class="text-right font-mono font-medium">₹<%= new Intl.NumberFormat('en-IN').format(st.total.toFixed(0)) %></td>
+                  </tr>
+                  <% 
+                        }
+                      });
+                    } else { 
+                    %>
+                  <tr>
+                    <td colspan="3" class="text-center text-stone-400 italic py-2">No stones added</td>
+                  </tr>
+                  <% } %>
+                  <tr class="border-t border-stone-300 font-bold">
+                    <td class="py-1 text-left">Total</td>
+                    <td class="text-right font-mono"><%= stonewtct.toFixed(3) %> ct</td>
+                    <td class="text-right font-mono text-primary">₹<%= new Intl.NumberFormat('en-IN').format(samt.toFixed(0)) %></td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+
+            <!-- Total Framework Block Grid Column -->
+            <td colspan="4" class="p-2 bg-white">
+              <table class="w-full text-left space-y-1">
+                <tbody>
+                  <tr>
+                    <th class="py-0.5 font-medium">Fine Gold (24ct)</th>
+                    <td class="text-right font-semibold font-mono"><%= chwt.toFixed(3) %> gm</td>
+                  </tr>
+                  <tr>
+                    <th class="py-0.5 font-medium">Gold Price</th>
+                    <td class="text-right font-semibold font-mono">₹<%= new Intl.NumberFormat('en-IN').format(activeGoldPrice.toFixed(0)) %></td>
+                  </tr>
+                  <tr class="border-t border-stone-100">
+                    <th class="py-1 font-medium text-stone-500">Gold Amount</th>
+                    <td class="text-right font-semibold font-mono">₹<%= new Intl.NumberFormat('en-IN').format(gamt.toFixed(0)) %></td>
+                  </tr>
+                  <tr>
+                    <th class="py-0.5 font-medium text-stone-500">Labour</th>
+                    <td class="text-right font-semibold font-mono">₹<%= new Intl.NumberFormat('en-IN').format(lamt.toFixed(0)) %></td>
+                  </tr>
+                  <tr>
+                    <th class="py-0.5 font-medium text-stone-500">Stone Amount</th>
+                    <td class="text-right font-semibold font-mono">₹<%= new Intl.NumberFormat('en-IN').format(samt.toFixed(0)) %></td>
+                  </tr>
+                  <tr class="border-t-2 border-stone-400 font-bold text-sm bg-stone-50">
+                    <th class="p-1 text-black">Total Amount</th>
+                    <td class="p-1 text-right font-mono text-black">₹<%= new Intl.NumberFormat('en-IN').format(tamt.toFixed(0)) %></td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    function getFormattedTimeString() {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const now = new Date();
+      return `${days[now.getDay()]} ${now.getDate()}-${months[now.getMonth()]}-${now.getFullYear()} at ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    }
+    document.getElementById('livePrintTime').innerText = getFormattedTimeString();
+
+    function generateMonochromePDF() {
+      const targetOverlay = document.getElementById('loadingIndicator');
+      const actionButton = document.getElementById('downloadBtn');
+      targetOverlay.classList.remove('hidden');
+      actionButton.disabled = true;
+
+      const captureNode = document.getElementById('maindata');
+      html2canvas(captureNode, {
+        scale: 2.2,
+        useCORS: true,
+        logging: false,
+        allowTaint: true
+      }).then(canvas => {
+        const {
+          jsPDF
+        } = window.jspdf;
+        const pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'mm',
+          format: 'a4',
+          compress: true
+        });
+
+        const pdfW = 297;
+        const targetMargin = 8;
+        const contentW = pdfW - (targetMargin * 2);
+        const imgH = contentW / (canvas.width / canvas.height);
+
+        pdf.addImage(
+          canvas.toDataURL('image/jpeg', 0.95),
+          'JPEG',
+          targetMargin,
+          8,
+          contentW,
+          imgH
+        );
+
+        const dateStamp = new Date().toISOString().slice(0, 10);
+        pdf.save(`Wholesale_Estimate_${dateStamp}.pdf`);
+        targetOverlay.classList.add('hidden');
+        actionButton.disabled = false;
+      }).catch(err => {
+        console.error('PDF Canvas Capture Process Failed:', err);
+        alert('Exception encountered during dynamic canvas transformation.');
+        targetOverlay.classList.add('hidden');
+        actionButton.disabled = false;
+      });
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,69 @@
+<% const tp = typeof tablePage !== 'undefined' ? tablePage : {}; %>
+<% const colCount = tp.colCount || (tp.columns ? tp.columns.length : 1); %>
+<% const minWidth = tp.minWidth || '720px'; %>
+<% const emptyColspan = tp.emptyColspan || colCount; %>
+<div class="pb-10">
+  <% if (typeof tableFilters !== 'undefined' && tableFilters && tableFilters.length) { %>
+  <% const flabel = typeof label !== 'undefined' ? label : "block text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1.5"; %>
+  <% const ffield = typeof field !== 'undefined' ? field : "w-full px-4 py-3 bg-surface-container-low border border-transparent rounded-lg text-sm text-on-surface placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors"; %>
+  <% const items = tableFilters; %>
+  <% const gridClass = typeof filterGridClass !== 'undefined' ? filterGridClass : 'grid-cols-1 xl:grid-cols-12'; %>
+  <% const colPrefix = gridClass.includes('md:grid-cols') ? 'md:col-span-' : 'xl:col-span-'; %>
+  <div class="bg-surface-container-lowest rounded-[22px] border border-surface-container shadow-whisper p-5 mb-6">
+    <div class="grid <%= gridClass %> gap-4 items-stretch">
+      <% items.forEach(function(f) { %>
+      <div class="<%= f.wrapperClass || (colPrefix + (f.span || 12)) %> <%= f.flexEnd ? 'flex flex-col justify-end' : '' %>">
+        <% if (f.type === 'search') { %>
+        <label class="<%= flabel %>"><%= f.label %></label>
+        <div class="relative">
+          <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-secondary text-sm"></i>
+          <input type="search" id="<%= f.id %>" oninput="pager.resetPage();renderTable()" placeholder="<%= f.placeholder || '' %>" class="<%= ffield %> pl-11">
+        </div>
+        <% } else if (f.type === 'select') { %>
+        <label class="<%= flabel %>"><%= f.label %></label>
+        <select id="<%= f.id %>" onchange="pager.resetPage();renderTable()" class="<%= ffield %> cursor-pointer">
+          <% (f.options || []).forEach(function(opt) { %>
+          <option value="<%= opt.value %>"><%= opt.label %></option>
+          <% }); %>
+        </select>
+        <% } else if (f.type === 'stat') { %>
+        <label class="<%= flabel %>"><%= f.label %></label>
+        <div class="relative w-full px-4 py-3 bg-primary-container border border-transparent rounded-lg flex items-center min-h-[46px]">
+          <p id="<%= f.id %>" class="text-sm font-bold text-on-primary leading-none">0</p>
+          <% if (f.icon) { %>
+          <i class="<%= f.icon %> absolute right-4 top-1/2 -translate-y-1/2 text-base text-on-primary/25 pointer-events-none"></i>
+          <% } %>
+        </div>
+        <% } else if (f.type === 'custom') { %>
+        <%- f.html %>
+        <% } %>
+      </div>
+      <% }); %>
+    </div>
+  </div>
+  <% } %>
+  <div class="bg-surface-container-lowest rounded-[22px] border border-surface-container shadow-whisper overflow-hidden <%= tp.tableClass || '' %>">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 border-b border-surface-container">
+      <h3 class="text-sm font-bold text-on-surface shrink-0"><%= tp.tableTitle %></h3>
+      <% if (tp.headerActions) { %>
+      <div class="flex items-center gap-2 sm:ml-auto"><%- tp.headerActions %></div>
+      <% } %>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm min-w-[<%= minWidth %>]">
+        <thead>
+          <tr class="bg-surface-container-low text-[10px] font-semibold uppercase tracking-widest text-secondary">
+            <% (tp.columns || []).forEach(function(col) { %>
+            <th class="text-<%= col.align || 'left' %> py-3 <%= col.thClass || 'px-4' %>"><%= col.label %></th>
+            <% }); %>
+          </tr>
+        </thead>
+        <tbody id="<%= tp.tableId %>"></tbody>
+      </table>
+    </div>
+    <%- include('_table', tp.pagination || {}) %>
+  </div>
+  <% if (typeof tablePageAfter !== 'undefined' && tablePageAfter) { %>
+  <%- tablePageAfter %>
+  <% } %>
+</div>

@@ -1,0 +1,278 @@
+<% activeNav = 'inventory' %>
+<% const items = typeof stockTable !== 'undefined' ? stockTable : []; %>
+<% let totalPrice = 0; items.forEach(function(i) { totalPrice += (i.sellingPrice || 0) * 1; }); %>
+<% const cartActions = [
+    { type: 'link', href: '/print/inventory?path=cart', icon: 'fa-print', label: 'Print Table' },
+    { type: 'link', href: '/stock/print-multiple-tags', icon: 'fa-tags', label: 'Print Tags' },
+    { type: 'link', href: '/estimateRetail', icon: 'fa-file-invoice', label: 'Estimate Retail' },
+    { type: 'link', href: '/estimateWholesale', icon: 'fa-file-invoice-dollar', label: 'Estimate Wholesale' },
+    { type: 'link', href: '/soldRetailPage', icon: 'fa-hand-holding-dollar', label: 'Sold Retail' },
+    { type: 'link', href: '/soldWholesalePage', icon: 'fa-sack-dollar', label: 'Sold Wholesale' },
+    { type: 'link', href: '/stock/transfer', icon: 'fa-pen-to-square', label: 'Stock Transfer' },
+    { type: 'link', href: '/approvalPage', icon: 'fa-shield-halved', label: 'Approval' }
+]; %>
+<% const actionRow = "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold text-on-surface hover:bg-surface-container transition-colors text-left"; %>
+<% const cartBarIconBtn = "w-11 h-11 shrink-0 rounded-lg border flex items-center justify-center transition-colors"; %>
+<style>
+  #layout-main {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  #layout-main.is-scrolling {
+    scrollbar-color: rgba(120, 120, 120, 0.45) transparent;
+  }
+
+  #layout-main::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  #layout-main::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  #layout-main::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 9999px;
+    transition: background 0.25s ease;
+  }
+
+  #layout-main.is-scrolling::-webkit-scrollbar-thumb {
+    background: rgba(120, 120, 120, 0.45);
+  }
+</style>
+<% if (items.length) { %>
+<style>
+  @media (min-width: 1024px) {
+    #layout-main {
+      width: calc(100% - 20rem);
+    }
+
+    #layout-main>div {
+      padding-right: 0.25rem;
+    }
+
+    #layout-main>footer {
+      max-width: 100%;
+    }
+
+    #layout-main>footer>div {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 0.75rem;
+    }
+
+    #layout-main>footer>div>div {
+      padding-right: 0;
+      text-align: center;
+    }
+
+    #layout-main>footer span.hidden.sm\:inline {
+      display: inline !important;
+    }
+  }
+</style>
+<% } %>
+<div class="<%= items.length ? 'pb-28 lg:pb-4' : 'pb-8' %>">
+  <% if (items.length) { %>
+  <div class="space-y-6 lg:min-h-[calc(100dvh-13rem)]">
+    <nav class="text-[10px] font-semibold uppercase tracking-widest text-secondary">
+      <a href="/" class="hover:text-primary">Dashboard</a>
+      <span class="mx-1.5">/</span>
+      <span class="text-primary"><%= typeof breadcrumbLabel !== 'undefined' ? breadcrumbLabel : 'Cart' %></span>
+    </nav>
+
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <h2 class="text-lg font-bold text-on-surface dark:text-dark-text">Shopping Cart</h2>
+        <p class="text-sm text-secondary mt-1"><%= items.length %> item<%= items.length !== 1 ? 's' : '' %> selected</p>
+      </div>
+      <button type="button" onclick="openCartActions()" class="lg:hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-outline bg-surface-container-lowest dark:bg-dark-container text-sm font-semibold text-on-surface dark:text-dark-text hover:bg-surface-container transition-colors shrink-0">
+        <i class="fas fa-layer-group text-primary"></i>
+        Actions
+      </button>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+      <% items.forEach(function(item) { %>
+      <%- include('../partials/_card', { item, generateTagName, action: 'remove', wrapForFilter: false }) %>
+      <% }); %>
+    </div>
+
+    <div class="hidden lg:block h-24" aria-hidden="true"></div>
+  </div>
+
+  <aside id="cartRightBar" class="hidden lg:flex fixed right-0 z-20 flex-col w-80 bg-surface-container-lowest dark:bg-dark-container border-l border-surface-container dark:border-white/10">
+    <div class="px-5 py-4 border-b border-surface-container dark:border-white/10 shrink-0">
+      <h3 class="text-base font-bold text-on-surface dark:text-dark-text">Cart Actions</h3>
+    </div>
+    <nav class="shrink-0 p-3 space-y-1">
+      <% cartActions.forEach(function(action) { %>
+      <% if (action.type === 'button') { %>
+      <button type="button" onclick="<%= action.onclick %>" class="<%= actionRow %>">
+        <span class="w-9 h-9 shrink-0 rounded-lg bg-primary-fixed/40 flex items-center justify-center text-primary"><i class="fas <%= action.icon %> text-sm"></i></span>
+        <%= action.label %>
+      </button>
+      <% } else { %>
+      <a href="<%= action.href %>" class="<%= actionRow %>">
+        <span class="w-9 h-9 shrink-0 rounded-lg bg-primary-fixed/40 flex items-center justify-center text-primary"><i class="fas <%= action.icon %> text-sm"></i></span>
+        <%= action.label %>
+      </a>
+      <% } %>
+      <% }); %>
+    </nav>
+    <div class="mt-auto shrink-0 border-t border-surface-container dark:border-white/10 p-4 space-y-4">
+      <div class="flex items-baseline justify-between gap-3">
+        <span class="text-[10px] font-semibold uppercase tracking-widest text-secondary whitespace-nowrap">Estimated Total</span>
+        <span class="text-2xl font-bold text-on-surface dark:text-dark-text truncate">₹<%= new Intl.NumberFormat('en-IN').format(Math.round(totalPrice / 1000) * 1000) %></span>
+      </div>
+      <a href="/clearCart" class="group flex items-center gap-2.5 px-4 py-2.5 rounded-lg border border-error/30 bg-surface-container-lowest dark:bg-dark-container hover:bg-error/5 transition-colors w-full">
+        <span class="w-8 h-8 shrink-0 rounded-lg bg-error/10 flex items-center justify-center text-error group-hover:bg-error/20 transition-colors"><i class="fas fa-trash-can text-xs"></i></span>
+        <span>
+          <span class="block text-sm font-bold text-error leading-tight">Clear Cart</span>
+          <span class="block text-[11px] text-secondary font-light leading-tight">Remove all items</span>
+        </span>
+      </a>
+    </div>
+  </aside>
+
+  <div id="cartActionsOverlay" class="fixed inset-0 z-[200] hidden opacity-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 lg:hidden" onclick="closeCartActions()"></div>
+
+  <div id="cartActionsSheet" class="fixed bottom-0 left-0 right-0 z-[210] lg:hidden flex flex-col max-h-[85vh] bg-surface-container-lowest dark:bg-dark-container rounded-t-3xl shadow-2xl translate-y-full transition-transform duration-300 overflow-hidden">
+    <div class="flex justify-center pt-3 pb-1 shrink-0">
+      <div class="w-12 h-1.5 bg-surface-container rounded-full"></div>
+    </div>
+    <div class="flex items-center justify-between px-4 py-3 border-b border-surface-container dark:border-white/10 shrink-0">
+      <h3 class="text-base font-bold text-on-surface dark:text-dark-text">Cart Actions</h3>
+      <button type="button" onclick="closeCartActions()" class="p-2 rounded-lg hover:bg-surface-container transition-colors" aria-label="Close cart actions">
+        <i class="fas fa-times text-on-surface dark:text-dark-text"></i>
+      </button>
+    </div>
+    <nav class="flex-1 overflow-y-auto p-3 space-y-1 pb-6">
+      <% cartActions.forEach(function(action) { %>
+      <% if (action.type === 'button') { %>
+      <button type="button" onclick="<%= action.onclick %>; closeCartActions();" class="<%= actionRow %>">
+        <span class="w-9 h-9 shrink-0 rounded-lg bg-primary-fixed/40 flex items-center justify-center text-primary"><i class="fas <%= action.icon %> text-sm"></i></span>
+        <%= action.label %>
+      </button>
+      <% } else { %>
+      <a href="<%= action.href %>" class="<%= actionRow %>">
+        <span class="w-9 h-9 shrink-0 rounded-lg bg-primary-fixed/40 flex items-center justify-center text-primary"><i class="fas <%= action.icon %> text-sm"></i></span>
+        <%= action.label %>
+      </a>
+      <% } %>
+      <% }); %>
+    </nav>
+  </div>
+
+  <div class="fixed bottom-0 left-0 right-0 lg:hidden z-30 border-t border-surface-container dark:border-white/10 bg-surface-container-lowest/95 dark:bg-dark-container/95 backdrop-blur">
+    <div class="w-full px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-3">
+      <div class="flex-1 min-w-0 flex items-baseline gap-2 sm:gap-3">
+        <span class="text-[10px] font-semibold uppercase tracking-widest text-secondary whitespace-nowrap">Estimated Total</span>
+        <span class="text-lg sm:text-2xl font-bold text-on-surface dark:text-dark-text truncate">₹<%= new Intl.NumberFormat('en-IN').format(Math.round(totalPrice / 1000) * 1000) %></span>
+      </div>
+      <a href="/clearCart" class="<%= cartBarIconBtn %> border-error/30 bg-surface-container-lowest dark:bg-dark-container text-error hover:bg-error/5" aria-label="Clear cart">
+        <i class="fas fa-trash-can text-sm"></i>
+      </a>
+    </div>
+  </div>
+  <% } else { %>
+  <div class="space-y-6">
+    <nav class="text-[10px] font-semibold uppercase tracking-widest text-secondary">
+      <a href="/" class="hover:text-primary">Dashboard</a>
+      <span class="mx-1.5">/</span>
+      <span class="text-primary"><%= typeof breadcrumbLabel !== 'undefined' ? breadcrumbLabel : 'Cart' %></span>
+    </nav>
+    <div>
+      <h2 class="text-lg font-bold text-on-surface dark:text-dark-text">Shopping Cart</h2>
+      <p class="text-sm text-secondary mt-1">0 items selected</p>
+    </div>
+    <div class="rounded-xl border border-dashed border-outline-variant/50 dark:border-white/15 bg-surface-container-lowest/50 dark:bg-dark-container/40 px-6 py-16 text-center">
+      <span class="inline-flex w-14 h-14 rounded-full bg-primary-fixed/30 items-center justify-center text-primary mb-4">
+        <i class="fas fa-shopping-cart text-xl"></i>
+      </span>
+      <h3 class="text-base font-bold text-on-surface dark:text-dark-text mb-2">Your cart is empty</h3>
+      <p class="text-sm text-secondary mb-6">Add items from inventory or stock reports to get started.</p>
+      <a href="/inventory" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-container hover:brightness-105 text-on-primary text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors">
+        <i class="fas fa-gem text-sm"></i> Browse Inventory
+      </a>
+    </div>
+  </div>
+  <% } %>
+</div>
+<script>
+  function mountCartLayers() {
+    ['cartRightBar', 'cartActionsOverlay', 'cartActionsSheet'].forEach(function(id) {
+      const el = document.getElementById(id);
+      if (el && el.parentElement !== document.body) document.body.appendChild(el);
+    });
+  }
+
+  function positionCartRightBar() {
+    const bar = document.getElementById('cartRightBar');
+    const header = document.querySelector('.flex-1.flex.flex-col.min-w-0 > header');
+    if (!bar || !header || window.innerWidth < 1024) {
+      if (bar) {
+        bar.style.top = '';
+        bar.style.height = '';
+      }
+      return;
+    }
+    const top = header.getBoundingClientRect().bottom;
+    bar.style.top = top + 'px';
+    bar.style.height = Math.max(0, window.innerHeight - top) + 'px';
+  }
+
+  function openCartActions() {
+    if (window.innerWidth >= 1024) return;
+    mountCartLayers();
+    const overlay = document.getElementById('cartActionsOverlay');
+    const sheet = document.getElementById('cartActionsSheet');
+    if (!overlay) return;
+    overlay.classList.remove('hidden');
+    requestAnimationFrame(function() {
+      overlay.classList.remove('opacity-0');
+      sheet?.classList.remove('translate-y-full');
+    });
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeCartActions() {
+    const overlay = document.getElementById('cartActionsOverlay');
+    const sheet = document.getElementById('cartActionsSheet');
+    overlay?.classList.add('opacity-0');
+    sheet?.classList.add('translate-y-full');
+    document.body.style.overflow = '';
+    setTimeout(function() {
+      overlay?.classList.add('hidden');
+    }, 300);
+  }
+
+  function initCartMacScrollbar() {
+    const main = document.getElementById('layout-main');
+    if (!main) return;
+    let timer;
+    main.addEventListener('scroll', function() {
+      main.classList.add('is-scrolling');
+      clearTimeout(timer);
+      timer = setTimeout(function() {
+        main.classList.remove('is-scrolling');
+      }, 700);
+    }, {
+      passive: true
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    mountCartLayers();
+    positionCartRightBar();
+    initCartMacScrollbar();
+  });
+
+  window.addEventListener('resize', function() {
+    positionCartRightBar();
+    if (window.innerWidth >= 1024) closeCartActions();
+  });
+</script>

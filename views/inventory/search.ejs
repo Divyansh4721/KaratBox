@@ -1,0 +1,1248 @@
+<% activeNav = 'inventory' %>
+<% const label = "block text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1.5"; %>
+<% const sideField = "w-full px-3 py-2.5 bg-surface-container-low border border-transparent rounded-lg text-sm text-on-surface placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors appearance-none"; %>
+<% const checkLabel = "flex items-start gap-2.5 cursor-pointer text-sm text-on-surface hover:text-primary leading-snug"; %>
+<% const mobileNavW = "w-[120px] min-w-[120px] max-w-[120px] shrink-0 grow-0 basis-[120px] flex-none"; %>
+<% const mobileNavBtn = "mobile-filter-tab w-full min-h-[44px] text-left px-2.5 py-3 text-xs leading-snug font-medium border-l-[3px] box-border"; %>
+<% const checkInput = "mt-0.5 rounded border-outline-variant text-primary focus:ring-primary-container shrink-0 cursor-pointer"; %>
+<% const filterActions = "flex items-center gap-2 shrink-0 text-xs font-semibold"; %>
+<% const filterBoxShell = "h-48 flex flex-col rounded-lg border border-surface-container bg-surface-container-low/30 overflow-hidden"; %>
+<% const filterBoxBar = "flex items-center justify-end gap-2 px-3 py-2 border-b border-surface-container/80 shrink-0 " + filterActions; %>
+<% const filterBoxList = "filter-box-list flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 space-y-2"; %>
+<% const desktopCheck = checkInput + " w-4 h-4"; %>
+<% const mobileSortDirBtn = "sort-dir-mobile-btn min-w-[2.35rem] px-1.5 py-1 text-[10px] font-bold uppercase tracking-wide rounded-md transition-colors"; %>
+<% const q = typeof query !== 'undefined' ? query : {}; %>
+<% const prefixes = typeof prefixTable !== 'undefined' ? prefixTable : []; %>
+<% const ornaments = typeof ornamentTable !== 'undefined' ? ornamentTable : []; %>
+<% const stockTypes = typeof stockTypeTable !== 'undefined' ? stockTypeTable : []; %>
+<% function parseQueryMulti(val) {
+  if (val === undefined || val === null || val === '') return null;
+  if (Array.isArray(val)) return val.map(String);
+  return String(val).split(',').map((s) => s.trim()).filter(Boolean);
+} %>
+<% const selPrefix = parseQueryMulti(q.prefix); %>
+<% const selOrnament = parseQueryMulti(q.ornament); %>
+<% const selStockType = parseQueryMulti(q.stockType); %>
+<% let selectedOrnament = 'Inventory'; %>
+<% if (selOrnament && selOrnament.length) {
+  const names = selOrnament.map((id) => ornaments.find((o) => String(o._id) === String(id))?.name).filter(Boolean);
+  if (names.length) selectedOrnament = names.join(', ');
+} %>
+
+<style>
+  .filter-box-list {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .filter-box-list::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .card-slideshow-img {
+    transition: opacity 0.35s ease;
+  }
+</style>
+
+<div class="pb-10">
+  <!-- Header with Sort and Filter Button -->
+  <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+    <div class="text-left">
+      <p id="resultSummary" class="text-sm text-secondary">Loading products...</p>
+    </div>
+    <div class="flex items-center gap-3 shrink-0 sm:pb-1">
+      <!-- Mobile Filter Button -->
+      <button type="button" id="mobileFilterBtn" class="lg:hidden p-2.5 rounded-lg border border-surface-container bg-surface-container-lowest hover:bg-surface-container transition-colors" aria-label="Open filters">
+        <i class="fas fa-sliders-h text-primary text-lg"></i>
+      </button>
+
+      <!-- Sort & Order -->
+      <label class="text-[10px] font-semibold uppercase tracking-widest text-secondary whitespace-nowrap hidden sm:inline">Sort By:</label>
+      <div class="relative flex-1 sm:flex-none">
+        <select id="sortOrder" onchange="LoadTable()" class="<%= sideField %> w-full sm:w-36 cursor-pointer pr-8">
+          <option value="tag" selected>Tag Number</option>
+          <option value="grossWt">Cross Weight</option>
+          <option value="netWt">Net Weight</option>
+          <option value="sellingPrice">Price</option>
+        </select>
+        <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-secondary text-[10px] pointer-events-none"></i>
+      </div>
+      <label class="text-[10px] font-semibold uppercase tracking-widest text-secondary whitespace-nowrap hidden sm:inline">Order By:</label>
+      <div class="flex sm:hidden items-center gap-0.5 shrink-0 rounded-lg border border-surface-container bg-surface-container-low p-0.5" role="group" aria-label="Sort order">
+        <button type="button" data-sort-dir="asc" onclick="setSortDirection('asc')" class="<%= mobileSortDirBtn %> bg-primary text-on-primary">ASC</button>
+        <button type="button" data-sort-dir="desc" onclick="setSortDirection('desc')" class="<%= mobileSortDirBtn %> text-secondary">DESC</button>
+      </div>
+      <div class="relative hidden sm:block shrink-0">
+        <select id="sortDirection" onchange="LoadTable()" class="<%= sideField %> w-24 cursor-pointer pr-8">
+          <option value="asc" selected>ASC</option>
+          <option value="desc">DESC</option>
+        </select>
+        <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-secondary text-[10px] pointer-events-none"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Desktop Layout (unchanged) -->
+  <div class="flex flex-col lg:flex-row gap-4 lg:gap-8">
+    <!-- Desktop Sidebar -->
+    <aside class="hidden lg:block w-full lg:w-72 shrink-0">
+      <div id="filterPanel" class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper p-5">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-sm font-bold text-on-surface">Filters</h3>
+          <button type="button" onclick="clearAllFilters()" class="text-xs font-semibold text-error hover:opacity-80">Clear All</button>
+        </div>
+        <form id="filterForm" method="get" action="/inventorySelection" class="space-y-4">
+          <div>
+            <p class="<%= label %> mb-2">Select Prefix</p>
+            <div class="<%= filterBoxShell %>">
+              <div class="<%= filterBoxBar %>">
+                <button type="button" onclick="selectAllDesktopGroup('prefix')" class="text-primary hover:opacity-80">Select All</button>
+                <span class="text-outline-variant">|</span>
+                <button type="button" onclick="clearAllDesktopGroup('prefix')" class="text-error hover:opacity-80">Clear All</button>
+              </div>
+              <div class="<%= filterBoxList %>">
+                <% for (let i of prefixes) { %>
+                <label class="<%= checkLabel %>">
+                  <input type="checkbox" name="prefixFilter" value="<%= i._id %>" <%= selPrefix ? (selPrefix.includes(String(i._id)) ? 'checked' : '') : 'checked' %> class="<%= desktopCheck %>">
+                  <span><%= i.name || '-' %></span>
+                </label>
+                <% } %>
+              </div>
+            </div>
+          </div>
+          <div>
+            <p class="<%= label %> mb-2">Select Ornament</p>
+            <div class="<%= filterBoxShell %>">
+              <div class="<%= filterBoxBar %>">
+                <button type="button" onclick="selectAllDesktopGroup('ornament')" class="text-primary hover:opacity-80">Select All</button>
+                <span class="text-outline-variant">|</span>
+                <button type="button" onclick="clearAllDesktopGroup('ornament')" class="text-error hover:opacity-80">Clear All</button>
+              </div>
+              <div class="<%= filterBoxList %>">
+                <% for (let i of ornaments) { %>
+                <label class="<%= checkLabel %>">
+                  <input type="checkbox" name="ornamentSelectFilter" value="<%= i._id %>" <%= selOrnament ? (selOrnament.includes(String(i._id)) ? 'checked' : '') : 'checked' %> class="<%= desktopCheck %>">
+                  <span><%= i.name %></span>
+                </label>
+                <% } %>
+              </div>
+            </div>
+          </div>
+          <div>
+            <p class="<%= label %> mb-2">Select Stock Type</p>
+            <div class="<%= filterBoxShell %>">
+              <div class="<%= filterBoxBar %>">
+                <button type="button" onclick="selectAllDesktopGroup('stockType')" class="text-primary hover:opacity-80">Select All</button>
+                <span class="text-outline-variant">|</span>
+                <button type="button" onclick="clearAllDesktopGroup('stockType')" class="text-error hover:opacity-80">Clear All</button>
+              </div>
+              <div class="<%= filterBoxList %>">
+                <% for (let i of stockTypes) { %>
+                <label class="<%= checkLabel %>">
+                  <input type="checkbox" name="stockTypeFilter" value="<%= i._id %>" <%= selStockType ? (selStockType.includes(String(i._id)) ? 'checked' : '') : 'checked' %> class="<%= desktopCheck %>">
+                  <span><%= i.name %></span>
+                </label>
+                <% } %>
+              </div>
+            </div>
+          </div>
+          <div class="pt-3 border-t border-surface-container space-y-3">
+            <div id="purityFilter" class="hidden">
+              <p class="<%= label %> mb-2">Gold Purity</p>
+              <div class="<%= filterBoxShell %>">
+                <div class="<%= filterBoxBar %>">
+                  <button type="button" onclick="selectAllDesktopNamed('purityFilter')" class="text-primary hover:opacity-80">Select All</button>
+                  <span class="text-outline-variant">|</span>
+                  <button type="button" onclick="clearAllDesktopNamed('purityFilter')" class="text-error hover:opacity-80">Clear All</button>
+                </div>
+                <div id="purityFilterList" class="<%= filterBoxList %>"></div>
+              </div>
+            </div>
+            <div>
+              <p class="<%= label %> mb-2">Availability</p>
+              <label class="flex items-center gap-2.5 cursor-pointer text-sm text-on-surface">
+                <input id="checkbox" type="checkbox" onchange="filterTable()" checked class="rounded border-outline-variant text-primary focus:ring-primary-container">
+                In Stock Only
+              </label>
+            </div>
+          </div>
+        </form>
+      </div>
+    </aside>
+
+    <!-- Content Area -->
+    <div class="flex-1 min-w-0 w-full flex flex-col">
+      <div id="stockTable" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 items-stretch"></div>
+      <div id="emptyState" class="hidden py-16 text-center text-secondary col-span-full">No stock items match your filters.</div>
+      <div class="w-full text-center mt-8">
+        <div id="pagination" class="inline-flex items-center justify-center gap-1.5 sm:gap-2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile Filter Drawer (Amazon-style) -->
+<div id="filterDrawerOverlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden transition-opacity duration-300" onclick="closeFilterDrawer()"></div>
+
+<div id="filterDrawer" class="fixed bottom-0 left-0 right-0 h-[90vh] min-h-[90vh] max-h-[90vh] w-full bg-surface-container-lowest z-50 hidden lg:hidden transform translate-y-full rounded-t-3xl shadow-2xl flex flex-col overflow-hidden" style="transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);">
+  <div id="drawerHandle" class="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing select-none shrink-0">
+    <div class="w-12 h-1.5 bg-surface-container rounded-full"></div>
+  </div>
+
+  <div class="flex items-center justify-between px-4 py-2 border-b border-surface-container shrink-0">
+    <h2 class="text-lg font-bold text-on-surface">Filters <span id="mobileFilterCount" class="text-secondary font-semibold"></span></h2>
+    <button type="button" onclick="closeFilterDrawer()" class="p-2 hover:bg-surface-container rounded-lg transition-colors" aria-label="Close filters">
+      <i class="fas fa-times text-on-surface text-xl"></i>
+    </button>
+  </div>
+
+  <div class="flex flex-1 min-h-0 h-0 overflow-hidden">
+    <nav id="mobileFilterNav" class="<%= mobileNavW %> h-full bg-surface-container-low border-r border-surface-container overflow-y-auto">
+      <button type="button" data-mobile-tab="prefix" class="<%= mobileNavBtn %> border-primary bg-surface-container-lowest text-on-surface">Prefix</button>
+      <button type="button" data-mobile-tab="ornament" class="<%= mobileNavBtn %> border-transparent text-secondary hover:bg-surface-container/60">Ornament</button>
+      <button type="button" data-mobile-tab="stockType" class="<%= mobileNavBtn %> border-transparent text-secondary hover:bg-surface-container/60">Stock Type</button>
+      <button type="button" id="mobileNavPurity" data-mobile-tab="purity" class="<%= mobileNavBtn %> border-transparent text-secondary hover:bg-surface-container/60 hidden">Gold Purity</button>
+      <button type="button" data-mobile-tab="availability" class="<%= mobileNavBtn %> border-transparent text-secondary hover:bg-surface-container/60">Availability</button>
+    </nav>
+
+    <div class="flex-1 min-w-0 h-full relative overflow-hidden bg-surface-container-lowest">
+      <form id="mobileFilterForm" method="get" action="/inventorySelection" class="absolute inset-0">
+        <input type="hidden" name="prefix" value="<%= selPrefix ? selPrefix.join(',') : '' %>">
+        <input type="hidden" name="ornament" value="<%= selOrnament ? selOrnament.join(',') : '' %>">
+        <input type="hidden" name="stockType" value="<%= selStockType ? selStockType.join(',') : '' %>">
+
+        <div id="mobilePanelPrefix" class="mobile-filter-panel absolute inset-0 overflow-y-auto">
+          <h3 class="px-4 pt-4 pb-2 text-base font-bold text-on-surface">Prefix</h3>
+          <div class="px-4 pb-6">
+            <div class="<%= filterBoxShell %>">
+              <div class="<%= filterBoxBar %>">
+                <button type="button" onclick="selectAllMobileGroup('prefix')" class="text-primary hover:opacity-80">Select All</button>
+                <span class="text-outline-variant">|</span>
+                <button type="button" onclick="clearAllMobileGroup('prefix')" class="text-error hover:opacity-80">Clear All</button>
+              </div>
+              <div class="<%= filterBoxList %>">
+                <% for (let i of prefixes) { %>
+                <label class="<%= checkLabel %>">
+                  <input type="checkbox" data-filter-group="prefix" data-filter-value="<%= i._id %>" <%= selPrefix ? (selPrefix.includes(String(i._id)) ? 'checked' : '') : 'checked' %> class="<%= checkInput %> w-5 h-5">
+                  <span><%= i.name || '-' %></span>
+                </label>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="mobilePanelOrnament" class="mobile-filter-panel absolute inset-0 overflow-y-auto hidden">
+          <h3 class="px-4 pt-4 pb-2 text-base font-bold text-on-surface">Ornament</h3>
+          <div class="px-4 pb-6">
+            <div class="<%= filterBoxShell %>">
+              <div class="<%= filterBoxBar %>">
+                <button type="button" onclick="selectAllMobileGroup('ornament')" class="text-primary hover:opacity-80">Select All</button>
+                <span class="text-outline-variant">|</span>
+                <button type="button" onclick="clearAllMobileGroup('ornament')" class="text-error hover:opacity-80">Clear All</button>
+              </div>
+              <div class="<%= filterBoxList %>">
+                <% for (let i of ornaments) { %>
+                <label class="<%= checkLabel %>">
+                  <input type="checkbox" data-filter-group="ornament" data-filter-value="<%= i._id %>" <%= selOrnament ? (selOrnament.includes(String(i._id)) ? 'checked' : '') : 'checked' %> class="<%= checkInput %> w-5 h-5">
+                  <span><%= i.name %></span>
+                </label>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="mobilePanelStockType" class="mobile-filter-panel absolute inset-0 overflow-y-auto hidden">
+          <h3 class="px-4 pt-4 pb-2 text-base font-bold text-on-surface">Stock Type</h3>
+          <div class="px-4 pb-6">
+            <div class="<%= filterBoxShell %>">
+              <div class="<%= filterBoxBar %>">
+                <button type="button" onclick="selectAllMobileGroup('stockType')" class="text-primary hover:opacity-80">Select All</button>
+                <span class="text-outline-variant">|</span>
+                <button type="button" onclick="clearAllMobileGroup('stockType')" class="text-error hover:opacity-80">Clear All</button>
+              </div>
+              <div class="<%= filterBoxList %>">
+                <% for (let i of stockTypes) { %>
+                <label class="<%= checkLabel %>">
+                  <input type="checkbox" data-filter-group="stockType" data-filter-value="<%= i._id %>" <%= selStockType ? (selStockType.includes(String(i._id)) ? 'checked' : '') : 'checked' %> class="<%= checkInput %> w-5 h-5">
+                  <span><%= i.name %></span>
+                </label>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="mobilePanelPurity" class="mobile-filter-panel absolute inset-0 overflow-y-auto hidden">
+          <h3 class="px-4 pt-4 pb-2 text-base font-bold text-on-surface">Gold Purity</h3>
+          <div class="px-4 pb-6">
+            <div class="<%= filterBoxShell %>">
+              <div class="<%= filterBoxBar %>">
+                <button type="button" onclick="selectAllMobileNamed('purityFilterMobile')" class="text-primary hover:opacity-80">Select All</button>
+                <span class="text-outline-variant">|</span>
+                <button type="button" onclick="clearAllMobileNamed('purityFilterMobile')" class="text-error hover:opacity-80">Clear All</button>
+              </div>
+              <div id="mobilePurityFilterList" class="<%= filterBoxList %>"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="mobilePanelAvailability" class="mobile-filter-panel absolute inset-0 overflow-y-auto hidden">
+          <h3 class="px-4 pt-4 pb-3 text-base font-bold text-on-surface">Availability</h3>
+          <div class="px-4 pb-6 space-y-2.5">
+            <label class="<%= checkLabel %>">
+              <input id="mobileCheckbox" type="checkbox" checked class="<%= checkInput %> w-5 h-5">
+              <span>In Stock Only</span>
+            </label>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="border-t border-surface-container bg-surface-container-lowest p-3 flex items-center gap-3 shrink-0">
+    <button type="button" onclick="clearMobileFilters()" class="px-4 py-3 rounded-full border border-outline text-sm font-semibold text-on-surface hover:bg-surface-container transition-colors whitespace-nowrap">Clear Filters</button>
+    <button type="button" onclick="applyMobileFilters()" id="mobileShowResultsBtn" class="flex-1 px-4 py-3 rounded-full bg-primary text-on-primary text-sm font-bold hover:opacity-90 transition-opacity">Show results</button>
+  </div>
+</div>
+
+<!-- Cart Toast -->
+<div id="cartToast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 hidden px-5 py-3 rounded-lg shadow-lg text-sm font-medium text-on-primary bg-primary"></div>
+
+<script>
+  window.categoryOrnamentLabelDefault = <%- JSON.stringify(selectedOrnament) %>;
+
+  let activeMobileTab = 'prefix';
+
+  function onMobileFilterChange() {
+    updateMobileHiddenFilters();
+    if (typeof filterTable === 'function') filterTable();
+    updateMobileFilterUI();
+  }
+
+  function syncSortDirectionUI(dir) {
+    document.querySelectorAll('.sort-dir-mobile-btn').forEach((btn) => {
+      const active = btn.dataset.sortDir === dir;
+      btn.classList.toggle('bg-primary', active);
+      btn.classList.toggle('text-on-primary', active);
+      btn.classList.toggle('text-secondary', !active);
+    });
+  }
+
+  function setSortDirection(dir) {
+    const select = document.getElementById('sortDirection');
+    if (select) select.value = dir;
+    syncSortDirectionUI(dir);
+    if (typeof LoadTable === 'function') LoadTable();
+  }
+
+  document.getElementById('sortDirection')?.addEventListener('change', function() {
+    syncSortDirectionUI(this.value);
+  });
+  syncSortDirectionUI(document.getElementById('sortDirection')?.value || 'asc');
+
+  function selectMobileFilterTab(tabId) {
+    activeMobileTab = tabId;
+    document.querySelectorAll('.mobile-filter-tab').forEach((btn) => {
+      const isActive = btn.dataset.mobileTab === tabId;
+      btn.classList.toggle('border-primary', isActive);
+      btn.classList.toggle('border-transparent', !isActive);
+      btn.classList.toggle('bg-surface-container-lowest', isActive);
+      btn.classList.toggle('text-on-surface', isActive);
+      btn.classList.toggle('text-secondary', !isActive);
+    });
+    document.querySelectorAll('.mobile-filter-panel').forEach((panel) => {
+      panel.classList.add('hidden');
+    });
+    const panel = document.getElementById('mobilePanel' + tabId.charAt(0).toUpperCase() + tabId.slice(1));
+    panel?.classList.remove('hidden');
+  }
+
+  function getMobileGroupSelection(group) {
+    const form = document.getElementById('mobileFilterForm');
+    if (!form) return {
+      selected: [],
+      total: 0
+    };
+    const selected = Array.from(form.querySelectorAll('[data-filter-group="' + group + '"]:checked:not([data-filter-value=""])'))
+      .map((el) => el.dataset.filterValue);
+    const total = form.querySelectorAll('[data-filter-group="' + group + '"]:not([data-filter-value=""])').length;
+    return {
+      selected,
+      total
+    };
+  }
+
+  function updateMobileHiddenFilters() {
+    const form = document.getElementById('mobileFilterForm');
+    if (!form) return;
+    ['prefix', 'ornament', 'stockType'].forEach((group) => {
+      const {
+        selected,
+        total
+      } = getMobileGroupSelection(group);
+      const hidden = form.querySelector('[name="' + group + '"]');
+      if (hidden) hidden.value = !selected.length || selected.length >= total ? '' : selected.join(',');
+    });
+  }
+
+  function selectAllMobileGroup(group) {
+    const form = document.getElementById('mobileFilterForm');
+    if (!form) return;
+    form.querySelectorAll('[data-filter-group="' + group + '"]').forEach((cb) => {
+      cb.checked = true;
+    });
+    onMobileFilterChange();
+  }
+
+  function clearAllMobileGroup(group) {
+    const form = document.getElementById('mobileFilterForm');
+    if (!form) return;
+    form.querySelectorAll('[data-filter-group="' + group + '"]').forEach((cb) => {
+      cb.checked = false;
+    });
+    onMobileFilterChange();
+  }
+
+  function selectAllMobileNamed(name) {
+    document.querySelectorAll('input[name="' + name + '"]').forEach((cb) => {
+      cb.checked = true;
+    });
+    if (typeof filterTable === 'function') filterTable();
+    updateMobileFilterUI();
+  }
+
+  function clearAllMobileNamed(name) {
+    document.querySelectorAll('input[name="' + name + '"]').forEach((cb) => {
+      cb.checked = false;
+    });
+    if (typeof filterTable === 'function') filterTable();
+    updateMobileFilterUI();
+  }
+
+  function getDesktopFilterName(group) {
+    return group === 'ornament' ? 'ornamentSelectFilter' : group + 'Filter';
+  }
+
+  function onDesktopFilterChange() {
+    if (typeof syncDesktopToMobileFilters === 'function') syncDesktopToMobileFilters();
+    if (typeof filterTable === 'function') filterTable();
+    if (typeof applyServerFilters === 'function') applyServerFilters();
+  }
+
+  function onDesktopClientFilterChange() {
+    if (typeof filterTable === 'function') filterTable();
+    if (typeof updateMobileFilterUI === 'function') updateMobileFilterUI();
+  }
+
+  function selectAllDesktopGroup(group) {
+    const filterName = getDesktopFilterName(group);
+    document.querySelectorAll('input[name="' + filterName + '"]').forEach((cb) => {
+      cb.checked = true;
+    });
+    onDesktopFilterChange();
+  }
+
+  function clearAllDesktopGroup(group) {
+    const filterName = getDesktopFilterName(group);
+    document.querySelectorAll('input[name="' + filterName + '"]').forEach((cb) => {
+      cb.checked = false;
+    });
+    onDesktopFilterChange();
+  }
+
+  function selectAllDesktopNamed(name) {
+    document.querySelectorAll('input[name="' + name + '"]').forEach((cb) => {
+      cb.checked = true;
+    });
+    onDesktopClientFilterChange();
+  }
+
+  function clearAllDesktopNamed(name) {
+    document.querySelectorAll('input[name="' + name + '"]').forEach((cb) => {
+      cb.checked = false;
+    });
+    onDesktopClientFilterChange();
+  }
+
+  function syncDesktopToMobileFilters() {
+    const mobile = document.getElementById('mobileFilterForm');
+    const desktop = document.getElementById('filterForm');
+    if (!mobile || !desktop) return;
+    ['prefix', 'ornament', 'stockType'].forEach((group) => {
+      const filterName = getDesktopFilterName(group);
+      const checked = Array.from(desktop.querySelectorAll('input[name="' + filterName + '"]:checked')).map((el) => el.value);
+      mobile.querySelectorAll('[data-filter-group="' + group + '"]:not([data-filter-value=""])').forEach((cb) => {
+        cb.checked = checked.includes(cb.dataset.filterValue);
+      });
+    });
+    updateMobileHiddenFilters();
+  }
+
+  function syncMobileToDesktopFilters() {
+    const mobile = document.getElementById('mobileFilterForm');
+    const desktop = document.getElementById('filterForm');
+    if (!mobile || !desktop) return;
+    ['prefix', 'ornament', 'stockType'].forEach((group) => {
+      const {
+        selected,
+        total
+      } = getMobileGroupSelection(group);
+      const filterName = getDesktopFilterName(group);
+      desktop.querySelectorAll('input[name="' + filterName + '"]').forEach((cb) => {
+        cb.checked = !selected.length || selected.length >= total ? true : selected.includes(cb.value);
+      });
+    });
+    const mobileStock = document.getElementById('mobileCheckbox');
+    const desktopStock = document.getElementById('checkbox');
+    if (mobileStock && desktopStock) desktopStock.checked = mobileStock.checked;
+  }
+
+  function countActiveMobileFilters() {
+    const form = document.getElementById('mobileFilterForm');
+    if (!form) return 0;
+    let count = 0;
+    ['prefix', 'ornament', 'stockType'].forEach((group) => {
+      const {
+        selected,
+        total
+      } = getMobileGroupSelection(group);
+      if (total && selected.length && selected.length < total) count++;
+    });
+    const purityTotal = document.querySelectorAll('input[name="purityFilterMobile"]').length;
+    const purityChecked = document.querySelectorAll('input[name="purityFilterMobile"]:checked').length;
+    if (purityTotal && purityChecked < purityTotal) count++;
+    if (!document.getElementById('mobileCheckbox')?.checked) count++;
+    return count;
+  }
+
+  function updateMobileFilterUI() {
+    const count = countActiveMobileFilters();
+    const countEl = document.getElementById('mobileFilterCount');
+    if (countEl) countEl.textContent = count ? '(' + count + ')' : '';
+    const resultCount = typeof getFiltered === 'function' ? getFiltered().length : 0;
+    const btn = document.getElementById('mobileShowResultsBtn');
+    if (btn) btn.textContent = 'Show ' + resultCount + ' result' + (resultCount !== 1 ? 's' : '');
+  }
+
+  function clearAllFilters() {
+    const desktop = document.getElementById('filterForm');
+    if (desktop) {
+      ['prefix', 'ornament', 'stockType'].forEach((group) => {
+        const filterName = getDesktopFilterName(group);
+        desktop.querySelectorAll('input[name="' + filterName + '"]').forEach((cb) => {
+          cb.checked = true;
+        });
+      });
+    }
+    const mobile = document.getElementById('mobileFilterForm');
+    if (mobile) {
+      ['prefix', 'ornament', 'stockType'].forEach((group) => {
+        mobile.querySelectorAll('[data-filter-group="' + group + '"]').forEach((cb) => {
+          cb.checked = true;
+        });
+        const hidden = mobile.querySelector('[name="' + group + '"]');
+        if (hidden) hidden.value = '';
+      });
+      updateMobileHiddenFilters();
+    }
+    document.querySelectorAll('input[name="purityFilter"], input[name="purityFilterMobile"]').forEach((cb) => {
+      cb.checked = true;
+    });
+    const desktopStock = document.getElementById('checkbox');
+    const mobileStock = document.getElementById('mobileCheckbox');
+    if (desktopStock) desktopStock.checked = true;
+    if (mobileStock) mobileStock.checked = true;
+    if (typeof filterTable === 'function') filterTable();
+    updateMobileFilterUI();
+    if (typeof applyServerFilters === 'function') applyServerFilters();
+  }
+
+  function clearMobileFilters() {
+    clearAllFilters();
+  }
+
+  let isDragging = false;
+  let startY = 0;
+  let currentY = 0;
+
+  function openFilterDrawer() {
+    const drawer = document.getElementById('filterDrawer');
+    const overlay = document.getElementById('filterDrawerOverlay');
+    syncDesktopToMobileFilters();
+    drawer.classList.remove('hidden');
+    overlay.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      drawer.style.transform = 'translateY(0)';
+    });
+    selectMobileFilterTab(activeMobileTab || 'prefix');
+    updateMobileFilterUI();
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeFilterDrawer() {
+    const drawer = document.getElementById('filterDrawer');
+    const overlay = document.getElementById('filterDrawerOverlay');
+    drawer.style.transform = 'translateY(100%)';
+    overlay.classList.add('hidden');
+    document.body.style.overflow = 'auto';
+    setTimeout(() => {
+      drawer.classList.add('hidden');
+    }, 500);
+  }
+
+  function getUrlFilterValue(name) {
+    const params = new URLSearchParams(window.location.search);
+    const vals = params.getAll(name);
+    if (vals.length > 1) return vals.slice().sort().join(",");
+    const single = params.get(name) || "";
+    if (single.includes(",")) return single.split(",").map((v) => v.trim()).filter(Boolean).sort().join(",");
+    return single;
+  }
+
+  function applyMobileFilters() {
+    updateMobileHiddenFilters();
+    syncMobileToDesktopFilters();
+    const mobile = document.getElementById('mobileFilterForm');
+    let serverChanged = false;
+    ['prefix', 'ornament', 'stockType'].forEach((name) => {
+      const val = mobile.querySelector('[name="' + name + '"]')?.value || '';
+      const cur = getUrlFilterValue(name);
+      const next = val.split(',').filter(Boolean).sort().join(',');
+      const current = cur.split(',').filter(Boolean).sort().join(',');
+      if (next !== current) serverChanged = true;
+    });
+    if (typeof filterTable === 'function') filterTable();
+    closeFilterDrawer();
+    if (serverChanged && typeof applyServerFilters === 'function') applyServerFilters();
+  }
+
+  function bindMobileMultiSelectFilters() {
+    const form = document.getElementById('mobileFilterForm');
+    if (!form) return;
+    ['prefix', 'ornament', 'stockType'].forEach((group) => {
+      form.querySelectorAll('[data-filter-group="' + group + '"]').forEach((cb) => {
+        cb.addEventListener('change', onMobileFilterChange);
+      });
+    });
+    updateMobileHiddenFilters();
+  }
+
+  bindMobileMultiSelectFilters();
+
+  document.getElementById('mobileFilterBtn').addEventListener('click', openFilterDrawer);
+  document.getElementById('filterDrawerOverlay').addEventListener('click', closeFilterDrawer);
+
+  document.querySelectorAll('.mobile-filter-tab').forEach((btn) => {
+    btn.addEventListener('click', () => selectMobileFilterTab(btn.dataset.mobileTab));
+  });
+
+  document.getElementById('mobileCheckbox').addEventListener('change', function() {
+    const desktopCheckbox = document.getElementById('checkbox');
+    if (desktopCheckbox) desktopCheckbox.checked = this.checked;
+    if (typeof filterTable === 'function') filterTable();
+    updateMobileFilterUI();
+  });
+
+  document.getElementById('checkbox')?.addEventListener('change', function() {
+    const mobileCheckbox = document.getElementById('mobileCheckbox');
+    if (mobileCheckbox) mobileCheckbox.checked = this.checked;
+  });
+
+  document.getElementById('mobileFilterForm')?.addEventListener('change', () => {
+    if (typeof filterTable === 'function') filterTable();
+    updateMobileFilterUI();
+  });
+
+  const drawerHandle = document.getElementById('drawerHandle');
+  const drawer = document.getElementById('filterDrawer');
+
+  drawerHandle?.addEventListener('touchstart', (e) => {
+    isDragging = true;
+    startY = e.touches[0].clientY;
+    drawer.style.transition = 'none';
+  });
+
+  document.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    currentY = e.touches[0].clientY - startY;
+    if (currentY > 0) drawer.style.transform = 'translateY(' + currentY + 'px)';
+  });
+
+  document.addEventListener('touchend', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (currentY > 100) {
+      closeFilterDrawer();
+    } else {
+      drawer.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+      drawer.style.transform = 'translateY(0)';
+    }
+    currentY = 0;
+  });
+</script>
+
+<%- include('../partials/_table', { footer: false }) %>
+<script>
+  function getPerPage() {
+    return window.innerWidth < 1024 ? 10 : 12;
+  }
+
+  function getWindowSize() {
+    return window.innerWidth < 640 ? 3 : 5;
+  }
+  const pager = new KbPagination({
+    perPage: getPerPage(),
+    windowSize: getWindowSize(),
+    activeClass: "bg-primary text-on-primary shadow-sm",
+    onPageChange: LoadTable
+  });
+
+  function syncPerPage() {
+    const nextPerPage = getPerPage();
+    const nextWindow = getWindowSize();
+    let changed = false;
+    if (pager.perPage !== nextPerPage) {
+      pager.perPage = nextPerPage;
+      changed = true;
+    }
+    if (pager.windowSize !== nextWindow) {
+      pager.windowSize = nextWindow;
+      changed = true;
+    }
+    if (!changed) return;
+    pager.resetPage();
+    LoadTable();
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function getSearchParams() {
+    return new URLSearchParams(window.location.search);
+  }
+
+  function getFilterParams() {
+    const form = document.getElementById("filterForm");
+    if (!form) return getSearchParams();
+    const params = new URLSearchParams();
+    ["prefix", "ornament", "stockType"].forEach((key) => {
+      const selected = getSelectedServerFilters(key);
+      if (selected === null) return;
+      if (!selected.length) return;
+      selected.forEach((val) => params.append(key, val));
+    });
+    const fd = new FormData(form);
+    ["tag", "item"].forEach((key) => {
+      const val = (fd.get(key) || "").toString().trim();
+      if (val) params.set(key, val);
+    });
+    return params;
+  }
+
+  function getDesktopFilterInputName(group) {
+    return group === "ornament" ? "ornamentSelectFilter" : group + "Filter";
+  }
+
+  function getSelectedServerFilters(group) {
+    if (isMobileFilters()) {
+      const form = document.getElementById("mobileFilterForm");
+      if (!form) return null;
+      const selected = Array.from(
+        form.querySelectorAll('[data-filter-group="' + group + '"]:checked:not([data-filter-value=""])')
+      ).map((el) => el.dataset.filterValue);
+      const total = form.querySelectorAll('[data-filter-group="' + group + '"]:not([data-filter-value=""])').length;
+      if (!total) return null;
+      if (!selected.length) return [];
+      if (selected.length >= total) return null;
+      return selected;
+    }
+    const inputName = getDesktopFilterInputName(group);
+    const selected = Array.from(document.querySelectorAll('input[name="' + inputName + '"]:checked')).map((el) => el.value);
+    const total = document.querySelectorAll('input[name="' + inputName + '"]').length;
+    if (!total) return null;
+    if (!selected.length) return [];
+    if (selected.length >= total) return null;
+    return selected;
+  }
+
+  function generateTagName(item) {
+    return (
+      (item.prefix ? item.prefix.name + " " : "") +
+      (item.ornament ? item.ornament.name : "") +
+      (item.tag ? " - " + item.tag : "")
+    );
+  }
+
+  function isMobileFilters() {
+    return window.innerWidth < 1024;
+  }
+
+  function buildPurityHtml(purities, inputName, isMobile) {
+    const labelClass = "flex items-start gap-2.5 cursor-pointer text-sm text-on-surface hover:text-primary leading-snug";
+    const inputClass = (isMobile ? "w-5 h-5 " : "w-4 h-4 ") + "mt-0.5 rounded border-outline-variant text-primary focus:ring-primary-container shrink-0 cursor-pointer";
+    return purities
+      .map(
+        (name) =>
+        '<label class="' + labelClass + '">' +
+        '<input type="checkbox" name="' + inputName + '" value="' +
+        escapeHtml(name) +
+        '" checked onchange="filterTable();if(typeof updateMobileFilterUI===\'function\')updateMobileFilterUI()" class="' + inputClass + '">' +
+        "<span>" + escapeHtml(name) + " Gold</span></label>"
+      )
+      .join("");
+  }
+
+  function updateDynamicFilters(items) {
+    const purities = [];
+    const seenPur = {};
+    items.forEach((item) => {
+      if (item.purity && !seenPur[item.purity.name]) {
+        seenPur[item.purity.name] = 1;
+        purities.push(item.purity.name);
+      }
+    });
+    const purityWrap = document.getElementById("purityFilter");
+    const purityList = document.getElementById("purityFilterList");
+    const mobilePurityNav = document.getElementById("mobileNavPurity");
+    const mobilePurityList = document.getElementById("mobilePurityFilterList");
+    if (purityWrap) purityWrap.classList.toggle("hidden", !purities.length);
+    if (mobilePurityNav) mobilePurityNav.classList.toggle("hidden", !purities.length);
+    const purityHtml = purities.length ? buildPurityHtml(purities, "purityFilter", false) : "";
+    const mobilePurityHtml = purities.length ? buildPurityHtml(purities, "purityFilterMobile", true) : "";
+    if (purityList) purityList.innerHTML = purityHtml;
+    if (mobilePurityList) mobilePurityList.innerHTML = mobilePurityHtml;
+    if (typeof updateMobileFilterUI === "function") updateMobileFilterUI();
+  }
+
+  function getFiltered() {
+    const cards = Array.from(document.querySelectorAll("[data-stock-card]"));
+    let rows = cards.map((el) => ({
+      el,
+      ...el.dataset
+    }));
+    const inStockOnly = isMobileFilters() ?
+      document.getElementById("mobileCheckbox") || document.getElementById("checkbox") :
+      document.getElementById("checkbox") || document.getElementById("mobileCheckbox");
+    if (inStockOnly && inStockOnly.checked) {
+      rows = rows.filter((row) => row.inStock === "true");
+    }
+    const purityName = isMobileFilters() ? "purityFilterMobile" : "purityFilter";
+    const purityChecks = document.querySelectorAll('input[name="' + purityName + '"]:checked');
+    if (purityChecks.length) {
+      const names = Array.from(purityChecks).map((el) => el.value);
+      const purityTotal = document.querySelectorAll('input[name="' + purityName + '"]').length;
+      if (names.length < purityTotal) {
+        rows = rows.filter((row) => names.includes(row.purity));
+      }
+    } else if (document.querySelectorAll('input[name="' + purityName + '"]').length) {
+      rows = [];
+    }
+    for (const [group, attr] of [
+        ["prefix", "prefix"],
+        ["ornament", "ornament"],
+        ["stockType", "stockTypeId"]
+      ]) {
+      const selected = getSelectedServerFilters(group);
+      if (selected === null) continue;
+      if (!selected.length) {
+        rows = [];
+        break;
+      }
+      rows = rows.filter((row) => selected.includes(row[attr]));
+    }
+    const sortField = document.getElementById("sortOrder") ? document.getElementById("sortOrder").value : "tag";
+    const sortDir = document.getElementById("sortDirection") ? document.getElementById("sortDirection").value : "asc";
+    const ascMul = sortDir === "asc" ? 1 : -1;
+    rows.sort((a, b) => {
+      let cmp = 0;
+      if (sortField === "tag") cmp = (a.tag * 1 || 0) - (b.tag * 1 || 0);
+      else if (sortField === "grossWt") cmp = (a.grossWt * 1 || 0) - (b.grossWt * 1 || 0);
+      else if (sortField === "netWt") cmp = (a.netWt * 1 || 0) - (b.netWt * 1 || 0);
+      else if (sortField === "sellingPrice") cmp = (a.sellingPrice * 1 || 0) - (b.sellingPrice * 1 || 0);
+      return cmp * ascMul;
+    });
+    return rows;
+  }
+
+  function updateSummary(total) {
+    const el = document.getElementById("resultSummary");
+    if (!el) return;
+    let label = window.categoryOrnamentLabelDefault || "Inventory";
+    const selectedOrnaments = getSelectedServerFilters("ornament");
+    if (selectedOrnaments && selectedOrnaments.length) {
+      const names = selectedOrnaments.map((id) => {
+        const input = isMobileFilters() ?
+          document.querySelector('[data-filter-group="ornament"][data-filter-value="' + id + '"]') :
+          document.querySelector('input[name="ornamentSelectFilter"][value="' + id + '"]');
+        return input?.closest("label")?.querySelector("span")?.textContent?.trim() || "";
+      }).filter(Boolean);
+      if (names.length) label = names.join(", ");
+    }
+    if (!total) {
+      el.innerHTML = `No products found in <span class="text-primary font-medium">${escapeHtml(label)}</span>`;
+      return;
+    }
+    el.innerHTML = `Showing ${total} exquisite product${total > 1 ? "s" : ""} in <span class="text-primary font-medium">${escapeHtml(label)}</span>`;
+  }
+
+  function filterTable() {
+    pager.resetPage();
+    LoadTable();
+  }
+
+  function LoadTable() {
+    const allCards = Array.from(document.querySelectorAll("[data-stock-card]"));
+    const filteredRows = getFiltered();
+    const {
+      page
+    } = pager.apply(filteredRows);
+    const emptyState = document.getElementById("emptyState");
+    updateSummary(filteredRows.length);
+    allCards.forEach((card) => card.classList.add("hidden"));
+    page.forEach((row) => row.el.classList.remove("hidden"));
+    if (emptyState) {
+      emptyState.classList.toggle("hidden", page.length > 0);
+    }
+    if (typeof updateMobileFilterUI === "function") updateMobileFilterUI();
+    initCardSlideshows();
+  }
+
+  function showToast(message) {
+    const toast = document.getElementById("cartToast");
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.remove("hidden");
+    setTimeout(() => toast.classList.add("hidden"), 2500);
+  }
+  async function searchByTagOrSku() {
+    const form = document.getElementById("filterForm");
+    if (!form) return;
+    const fd = new FormData(form);
+    const tag = (fd.get("tag") || "").toString().trim();
+    const item = (fd.get("item") || "").toString().trim();
+    if (!tag && !item) return;
+    const params = new URLSearchParams();
+    ["prefix", "ornament", "stockType", "tag", "item"].forEach((key) => {
+      const val = (fd.get(key) || "").toString().trim();
+      if (val) params.set(key, val);
+    });
+    try {
+      const res = await fetch("/inventory-query?" + params.toString(), {
+        headers: {
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      });
+      const data = await res.json();
+      if (data.success && data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+        return;
+      }
+      showToast(data.message || "Tag Number Not Found!");
+    } catch (err) {
+      showToast("Could not search inventory");
+    }
+  }
+  async function applyServerFilters() {
+    const form = document.getElementById("filterForm");
+    if (!form) return;
+    const fd = new FormData(form);
+    const tag = (fd.get("tag") || "").toString().trim();
+    const item = (fd.get("item") || "").toString().trim();
+    if (tag || item) {
+      await searchByTagOrSku();
+      return;
+    }
+    const hasEmptyGroup = ["prefix", "ornament", "stockType"].some((key) => {
+      const selected = getSelectedServerFilters(key);
+      return Array.isArray(selected) && !selected.length;
+    });
+    if (hasEmptyGroup) {
+      filterTable();
+      return;
+    }
+    const params = getFilterParams();
+    const nextUrl = "/inventorySelection?" + params.toString();
+    window.history.replaceState(null, "", nextUrl);
+    await fetchInventory();
+  }
+  async function fetchInventory() {
+    const summary = document.getElementById("resultSummary");
+    const grid = document.getElementById("stockTable");
+    if (!grid) return;
+    const params = getFilterParams();
+    if (summary) summary.textContent = "Loading products...";
+    try {
+      const res = await fetch("/inventory-query?" + params.toString(), {
+        headers: {
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Could not load inventory");
+      }
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+        return;
+      }
+      const items = data.stockTable || [];
+      grid.innerHTML = (data.cardHtml || []).join("");
+      updateDynamicFilters(items);
+      pager.resetPage();
+      LoadTable();
+    } catch (err) {
+      grid.innerHTML = "";
+      if (summary) summary.textContent = err.message || "Could not load inventory";
+      showToast(err.message || "Could not load inventory");
+    }
+  }
+
+  const cardSlideshow = {
+    observer: null,
+    timers: new Map()
+  };
+
+  function parseCardImages(el) {
+    try {
+      const urls = JSON.parse(el.getAttribute("data-images") || "[]");
+      return Array.isArray(urls) ? urls.filter(Boolean) : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function updateCardSlideshowDots(slideshowEl, index) {
+    slideshowEl.querySelectorAll(".card-slideshow-dot").forEach((dot, i) => {
+      dot.classList.toggle("bg-white", i === index);
+      dot.classList.toggle("bg-white/50", i !== index);
+    });
+  }
+
+  function resetCardSlideshow(slideshowEl) {
+    const urls = slideshowEl._slideshowUrls;
+    if (!urls || !urls.length) return;
+    slideshowEl._slideshowIndex = 0;
+    const img = slideshowEl.querySelector(".card-slideshow-img");
+    if (img) {
+      img.src = urls[0];
+      img.style.opacity = "1";
+    }
+    updateCardSlideshowDots(slideshowEl, 0);
+  }
+
+  function advanceCardSlideshow(slideshowEl) {
+    const urls = slideshowEl._slideshowUrls;
+    if (!urls || urls.length <= 1) return;
+    const nextIndex = ((slideshowEl._slideshowIndex || 0) + 1) % urls.length;
+    slideshowEl._slideshowIndex = nextIndex;
+    const img = slideshowEl.querySelector(".card-slideshow-img");
+    if (!img) return;
+    img.style.opacity = "0";
+    window.setTimeout(() => {
+      img.onload = () => {
+        img.style.opacity = "1";
+      };
+      img.src = urls[nextIndex];
+      if (img.complete) img.style.opacity = "1";
+    }, 180);
+    updateCardSlideshowDots(slideshowEl, nextIndex);
+  }
+
+  function startCardSlideshow(slideshowEl) {
+    if (cardSlideshow.timers.has(slideshowEl)) return;
+    const timer = window.setInterval(() => advanceCardSlideshow(slideshowEl), 3000);
+    cardSlideshow.timers.set(slideshowEl, timer);
+  }
+
+  function stopCardSlideshow(slideshowEl) {
+    const timer = cardSlideshow.timers.get(slideshowEl);
+    if (!timer) return;
+    window.clearInterval(timer);
+    cardSlideshow.timers.delete(slideshowEl);
+    resetCardSlideshow(slideshowEl);
+  }
+
+  function stopAllCardSlideshows() {
+    cardSlideshow.timers.forEach((timer, slideshowEl) => {
+      window.clearInterval(timer);
+      resetCardSlideshow(slideshowEl);
+    });
+    cardSlideshow.timers.clear();
+    if (cardSlideshow.observer) {
+      cardSlideshow.observer.disconnect();
+      cardSlideshow.observer = null;
+    }
+  }
+
+  function isCardFullyVisible(cardEl) {
+    const rect = cardEl.getBoundingClientRect();
+    return (
+      rect.top >= 0 &&
+      rect.left >= 0 &&
+      rect.bottom <= window.innerHeight &&
+      rect.right <= window.innerWidth &&
+      rect.width > 0 &&
+      rect.height > 0
+    );
+  }
+
+  function syncCardSlideshowVisibility(cardEl) {
+    const slideshowEl = cardEl._slideshowEl;
+    if (!slideshowEl || cardEl.classList.contains("hidden")) {
+      if (slideshowEl) stopCardSlideshow(slideshowEl);
+      return;
+    }
+    if (isCardFullyVisible(cardEl)) startCardSlideshow(slideshowEl);
+    else stopCardSlideshow(slideshowEl);
+  }
+
+  function syncAllCardSlideshows() {
+    document.querySelectorAll("[data-stock-card]").forEach((cardEl) => {
+      if (cardEl._slideshowEl) syncCardSlideshowVisibility(cardEl);
+    });
+  }
+
+  function initCardSlideshows() {
+    stopAllCardSlideshows();
+
+    const watchedCards = [];
+    document.querySelectorAll("[data-stock-card]").forEach((cardEl) => {
+      const slideshowEl = cardEl.querySelector("[data-card-slideshow]");
+      if (!slideshowEl) return;
+      const urls = parseCardImages(slideshowEl);
+      if (urls.length <= 1) return;
+      slideshowEl._slideshowUrls = urls;
+      slideshowEl._slideshowIndex = 0;
+      cardEl._slideshowEl = slideshowEl;
+      resetCardSlideshow(slideshowEl);
+      watchedCards.push(cardEl);
+    });
+
+    if (!watchedCards.length) return;
+
+    cardSlideshow.observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          syncCardSlideshowVisibility(entry.target);
+        });
+      }, {
+        threshold: [0, 0.25, 0.5, 0.75, 1]
+      }
+    );
+
+    watchedCards.forEach((cardEl) => {
+      cardSlideshow.observer.observe(cardEl);
+      syncCardSlideshowVisibility(cardEl);
+    });
+
+    if (!cardSlideshow._scrollBound) {
+      cardSlideshow._scrollBound = true;
+      window.addEventListener("scroll", syncAllCardSlideshows, {
+        passive: true
+      });
+      window.addEventListener("resize", syncAllCardSlideshows);
+    }
+  }
+
+  function SlideShow() {
+    initCardSlideshows();
+  }
+
+  function goPage(page) {
+    pager.goPage(page);
+    document.getElementById("stockTable")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
+  function setFilterAction(url) {
+    document.getElementById("filterForm").action = url;
+    document.getElementById("filterForm").submit();
+  }
+  let filterTimer = null;
+
+  function bindMobileFilter() {
+    const btn = document.getElementById("mobileFilterToggle");
+    const wrap = document.getElementById("filterPanelWrap");
+    const chevron = document.getElementById("mobileFilterChevron");
+    if (!btn || !wrap) return;
+    btn.addEventListener("click", () => {
+      wrap.classList.toggle("hidden");
+      chevron?.classList.toggle("rotate-180");
+    });
+  }
+
+  function bindServerFilterCheckboxes(formId, autoApply) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    form.querySelectorAll("[data-filter-group]").forEach((cb) => {
+      cb.addEventListener("change", function() {
+        const group = this.dataset.filterGroup;
+        const hidden = form.querySelector('[name="' + group + '"]');
+        if (this.checked) {
+          form.querySelectorAll('[data-filter-group="' + group + '"]').forEach((el) => {
+            if (el !== this) el.checked = false;
+          });
+          if (hidden) hidden.value = this.dataset.filterValue || "";
+        } else if (hidden && hidden.value === (this.dataset.filterValue || "")) {
+          hidden.value = group === "prefix" ? (this.dataset.filterValue || "") : "";
+          this.checked = true;
+        }
+        if (autoApply) {
+          const tagInput = form.querySelector('[name="tag"]');
+          const itemInput = form.querySelector('[name="item"]');
+          if (tagInput) tagInput.value = "";
+          if (itemInput) itemInput.value = "";
+          applyServerFilters();
+        }
+        if (typeof updateMobileFilterUI === "function") updateMobileFilterUI();
+      });
+    });
+  }
+
+  function bindFilterForm() {
+    const form = document.getElementById("filterForm");
+    if (!form) return;
+    form.addEventListener("submit", (e) => {
+      if (form.action && form.action.includes("/addToCart")) return;
+      e.preventDefault();
+    });
+    ["prefix", "ornament", "stockType"].forEach((group) => {
+      const inputName = getDesktopFilterInputName(group);
+      form.querySelectorAll('input[name="' + inputName + '"]').forEach((el) => {
+        el.addEventListener("change", () => {
+          if (typeof syncDesktopToMobileFilters === "function") syncDesktopToMobileFilters();
+          const tagInput = form.querySelector('[name="tag"]');
+          const itemInput = form.querySelector('[name="item"]');
+          if (tagInput) tagInput.value = "";
+          if (itemInput) itemInput.value = "";
+          filterTable();
+          applyServerFilters();
+        });
+      });
+    });
+    const tagInput = form.querySelector('[name="tag"]');
+    const itemInput = form.querySelector('[name="item"]');
+    const scheduleTagSkuSearch = () => {
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(applyServerFilters, 400);
+    };
+    tagInput?.addEventListener("input", scheduleTagSkuSearch);
+    itemInput?.addEventListener("input", scheduleTagSkuSearch);
+  }
+  document.addEventListener("DOMContentLoaded", () => {
+    bindMobileFilter();
+    bindFilterForm();
+    fetchInventory();
+  });
+  window.addEventListener("resize", syncPerPage);
+</script>

@@ -1,0 +1,62 @@
+<% const rows = typeof listRows !== 'undefined' ? listRows : []; %>
+<% const tblId = typeof tableId !== 'undefined' ? tableId : 'dailySummary'; %>
+<% const isHidden = typeof hidden !== 'undefined' && hidden; %>
+<% const stoneMul = typeof stoneMultiplier !== 'undefined' ? stoneMultiplier : 5; %>
+<% const tblWrap = isHidden ? 'hidden' : sectionCard; %>
+<% const sheetCell = function(row, section, field) {
+    if (!row[section] || row[section][field] == null || row[section][field] === '') return '';
+    if (field === 'stoneWt') return (row[section].stoneWt * stoneMul).toFixed(3);
+    if (field === 'grossWt') return (row[section].grossWt * 1).toFixed(3);
+    return row[section][field];
+}; %>
+<div class="<%= tblWrap %> <%= isHidden ? '' : 'mb-6' %>">
+  <% if (!isHidden && typeof tableTitle !== 'undefined' && tableTitle) { %>
+  <div class="px-5 py-4 border-b border-surface-container dark:border-white/10">
+    <h3 class="text-sm font-bold text-on-surface dark:text-dark-text"><%= tableTitle %></h3>
+  </div>
+  <% } %>
+  <div class="overflow-x-auto">
+    <table id="<%= tblId %>" class="w-full text-xs sm:text-sm min-w-[960px]">
+      <thead>
+        <tr class="bg-primary-container/90 text-on-primary text-[10px] font-semibold uppercase tracking-wider">
+          <th class="px-3 py-2 text-left" rowspan="2">Item</th>
+          <th class="px-2 py-2 text-center" colspan="3">Opening</th>
+          <th class="px-2 py-2 text-center" colspan="3">Day Arrival</th>
+          <th class="px-2 py-2 text-center" colspan="3">Day Sale</th>
+          <th class="px-2 py-2 text-center" colspan="3">Day Delete</th>
+          <th class="px-2 py-2 text-center" colspan="3">Approval</th>
+          <th class="px-2 py-2 text-center" colspan="3">Closing</th>
+          <th class="px-2 py-2 text-center" colspan="3">Total</th>
+        </tr>
+        <tr class="bg-surface-container-low dark:bg-dark-container text-[10px] font-semibold uppercase tracking-widest text-secondary">
+          <% for (let g = 0; g < 7; g++) { %>
+          <th class="px-2 py-2 text-center">No.</th>
+          <th class="px-2 py-2 text-center">St Wt</th>
+          <th class="px-2 py-2 text-center">Gr Wt</th>
+          <% } %>
+        </tr>
+      </thead>
+      <tbody id="<%= tblId %>Body" class="divide-y divide-surface-container dark:divide-white/10">
+        <% rows.forEach(function(row, idx) { %>
+        <tr class="<%= row.name === 'Total' || row.name === 'Grand Total' ? 'bg-primary-fixed/25 font-semibold pager-skip' : (idx % 2 ? 'bg-surface-container-low/40 dark:bg-dark-container/30' : '') %>">
+          <td class="px-3 py-2 font-medium text-on-surface dark:text-dark-text whitespace-nowrap"><%= row.name %></td>
+          <% ['opening', 'arrival', 'sold', 'delete', 'approval', 'closing', 'total'].forEach(function(section) { %>
+          <td class="px-2 py-2 text-center text-on-surface dark:text-dark-text"><%= sheetCell(row, section, 'total') %></td>
+          <td class="px-2 py-2 text-center text-on-surface dark:text-dark-text"><%= sheetCell(row, section, 'stoneWt') %></td>
+          <td class="px-2 py-2 text-center text-on-surface dark:text-dark-text"><%= sheetCell(row, section, 'grossWt') %></td>
+          <% }); %>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <% if (!isHidden && typeof paginate !== 'undefined' && paginate) { %>
+  <% const summaryId = tblId + 'Summary'; %>
+  <% const paginationId = tblId + 'Pagination'; %>
+  <% const perPageSelectId = tblId + 'PerPage'; %>
+  <% const pgSummaryId = typeof summaryId !== 'undefined' ? summaryId : 'tableSummary'; %>
+  <% const pgPaginationId = typeof paginationId !== 'undefined' ? paginationId : 'pagination'; %>
+  <% const pgPerPageId = typeof perPageSelectId !== 'undefined' ? perPageSelectId : 'perPageSelect'; %>
+  <%- include('../partials/_table', { summaryId: pgSummaryId, paginationId: pgPaginationId, perPageSelectId: pgPerPageId }) %>
+  <% } %>
+</div>

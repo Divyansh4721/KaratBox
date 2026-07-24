@@ -13,8 +13,8 @@ router.get("/stock/transfer", passport.checkAuthentication, common_function.chec
 router.get("/stock/print-tag", passport.checkAuthentication, common_function.checkPermission("tags"), stockController.printTagPage);
 router.get("/stock/print-multiple-tags", passport.checkAuthentication, common_function.checkPermission("tags"), stockController.printMultipleTagsPage);
 
-router.post("/stock/add-stock", passport.checkAuthentication, common_function.checkPermission("stockAdd"), stockController.addStockApi);
-router.post("/stock/edit-stock", passport.checkAuthentication, common_function.checkPermission("stockEdit"), stockController.editStockApi);
+router.post("/stock/add", passport.checkAuthentication, common_function.checkPermission("stockAdd"), stockController.addStockApi);
+router.post("/stock/edit", passport.checkAuthentication, common_function.checkPermission("stockEdit"), stockController.editStockApi);
 router.post("/stock/edit-image", passport.checkAuthentication, common_function.checkPermission("stockImageEdit"), stockController.editStockImageApi);
 router.post("/stock/transfer", passport.checkAuthentication, common_function.checkPermission("stockEditMultiple"), stockController.stockTransferApi);
 

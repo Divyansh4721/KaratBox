@@ -1,0 +1,483 @@
+<% activeNav = 'inventory' %>
+<%- include('../partials/_tokens') %>
+
+<% const label = "block text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1.5"; %>
+<% const field = "w-full px-4 py-3 bg-surface-container-low dark:bg-dark-container border border-outline-variant/40 dark:border-white/10 rounded-lg text-sm text-on-surface dark:text-dark-text placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors"; %>
+<% const select = field + " appearance-none cursor-pointer"; %>
+<% const btn = "inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:brightness-110 text-on-primary text-sm font-semibold rounded-lg transition-all"; %>
+<% const btnOutline = "inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-transparent border border-outline/30 hover:bg-surface-container text-on-surface dark:text-dark-text text-sm font-semibold rounded-lg transition-all"; %>
+<% const pageSubtitle = stockTable.length + ' cart item' + (stockTable.length !== 1 ? 's' : '') + ' for retail estimate'; %>
+
+<div class="pb-10 space-y-6">
+  <% const backLink = typeof backHref !== 'undefined' ? backHref : '/cart'; %>
+  <% const subtitle = typeof pageSubtitle !== 'undefined' ? pageSubtitle : ''; %>
+
+  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+    <div>
+      <h2 class="text-display-lg-mobile md:text-headline-xl font-bold text-on-surface dark:text-dark-text tracking-tight mb-1"><%= title %></h2>
+      <% if (subtitle) { %><p class="text-sm text-secondary"><%= subtitle %></p><% } %>
+    </div>
+  </div>
+
+  <!-- 1. Separate Gold Rate Global configuration Card -->
+  <div class="<%= formCard %> p-5 bg-surface-container-low dark:bg-dark-container rounded-xl border border-outline-variant/30">
+    <h3 class="text-sm font-bold text-on-surface dark:text-dark-text mb-4 flex items-center gap-2">
+      <i class="fas fa-coins text-warning"></i> Master Gold Rate Settings
+    </h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="<%= label %>">Gold Rate</label>
+        <input type="number" id="goldrate" onchange="goldRateUpdate()" placeholder="Gold Rate" step="0.01" class="<%= field %>">
+      </div>
+      <div>
+        <label class="<%= label %>">Gold Rate Purity</label>
+        <input type="number" id="goldratepurity" onchange="goldRateUpdate()" value="100" placeholder="Gold Rate Purity" step="0.001" class="<%= field %>">
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Transaction Item Entry Blocks Split Side-by-Side -->
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+    <!-- Gold Item Entry Form -->
+    <div class="<%= formCard %>">
+      <h3 class="text-sm font-bold text-on-surface dark:text-dark-text mb-4">Add Gold Item</h3>
+      <form id="itemform" onsubmit="itemForm(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="sm:col-span-2">
+          <label class="<%= label %>">Prefix</label>
+          <select id="prefix" class="<%= select %>">
+            <% for (let i of prefixTable) { %>
+            <option value="<%= i.name %>"><%= i.name ? i.name : 'Select Prefix...' %></option>
+            <% } %>
+          </select>
+        </div>
+        <div>
+          <label class="<%= label %>">Ornament</label>
+          <select id="ornament" required class="<%= select %>">
+            <option value="">Select Ornament...</option>
+            <% for (let i of ornamentTable) { %>
+            <option value="<%= i.name %>"><%= i.name %></option>
+            <% } %>
+          </select>
+        </div>
+        <div>
+          <label class="<%= label %>">Purity</label>
+          <select id="purity" required class="<%= select %>">
+            <option value="">Select Purity...</option>
+            <% for (let i of purityTable) { %>
+            <option value="<%= i.name + '$' + i.wholesaleMultiplier + '$' + i.retailMultiplier + '$' + i.wastage %>"><%= i.name + ' | ' + i.wholesaleMultiplier + ' | ' + i.retailMultiplier + ' | ' + i.wastage %></option>
+            <% } %>
+          </select>
+        </div>
+        <div>
+          <label class="<%= label %>">Gross Weight</label>
+          <input type="number" id="grossweight" placeholder="Gross Weight" step="0.001" required class="<%= field %>">
+        </div>
+        <div>
+          <label class="<%= label %>">Net Weight</label>
+          <input type="number" id="netweight" placeholder="Net Weight" step="0.001" required class="<%= field %>">
+        </div>
+        <div class="sm:col-span-2">
+          <label class="<%= label %>">Wastage</label>
+          <input type="number" id="wastage" placeholder="Wastage" value="20" step="0.001" required class="<%= field %>">
+        </div>
+        <div class="sm:col-span-2">
+          <button type="submit" class="<%= btn %> w-full sm:w-auto">Add Item</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Stone Entry Form Only -->
+    <div class="<%= formCard %>">
+      <h3 class="text-sm font-bold text-on-surface dark:text-dark-text mb-4">Add Stone Item</h3>
+      <form id="stoneform" onsubmit="stoneForm(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="sm:col-span-2">
+          <label class="<%= label %>">Stone Type</label>
+          <select id="stonetype" required class="<%= select %>">
+            <option value="">Select Stone Type...</option>
+            <% for (let i of stoneTypeTable) { %>
+            <option value="<%= i.name %>"><%= i.name %></option>
+            <% } %>
+          </select>
+        </div>
+        <div>
+          <label class="<%= label %>">Stone Weight</label>
+          <input type="number" id="stoneweight" placeholder="Stone Weight" step="0.001" class="<%= field %>">
+        </div>
+        <div>
+          <label class="<%= label %>">Stone Rate</label>
+          <input type="number" id="stonerate" placeholder="Stone Rate" step="0.01" class="<%= field %>">
+        </div>
+        <div class="sm:col-span-2 mt-2">
+          <button type="submit" class="<%= btn %> w-full sm:w-auto">Add Stone</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Line Items Section -->
+  <div class="<%= sectionCard %> overflow-x-auto">
+    <div class="px-5 py-4 border-b border-surface-container dark:border-white/10">
+      <h3 class="text-sm font-bold text-on-surface dark:text-dark-text">Edit Line Items</h3>
+    </div>
+    <form id="editorForm" onsubmit="submitEditor(event)" class="p-4">
+      <table id="editor" class="w-full text-sm min-w-[640px]"></table>
+      <div class="mt-4">
+        <button type="submit" class="<%= btnOutline %>">Update Table</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Estimate Table Section -->
+  <div class="<%= sectionCard %> overflow-x-auto">
+    <div class="px-5 py-4 border-b border-surface-container dark:border-white/10 flex flex-wrap items-center justify-between gap-3">
+      <h3 class="text-sm font-bold text-on-surface dark:text-dark-text">Estimate Table</h3>
+      <div class="flex flex-wrap gap-2">
+        <form id="printPostForm" method="POST" action="print/estimate/retail" target="_blank" class="inline-flex gap-2">
+          <input type="hidden" name="billdata" id="postBillData">
+          <input type="hidden" name="goldrate" id="postGoldRate">
+          <button type="button" onclick="submitPrintForm()" class="<%= btnOutline %>"><i class="fas fa-print text-xs"></i> Print Table</button>
+        </form>
+      </div>
+    </div>
+    <div class="p-4 overflow-x-auto">
+      <table id="table" class="w-full text-sm min-w-[640px]"></table>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Server injected variables
+  let stockTable = <%- JSON.stringify(stockTable) %>;
+  let ornamentTable = <%- JSON.stringify(ornamentTable) %>;
+  let prefixTable = <%- JSON.stringify(prefixTable) %>;
+  let purityTable = <%- JSON.stringify(purityTable) %>;
+  let stoneTypeTable = <%- JSON.stringify(stoneTypeTable) %>;
+  let goldPrice = <%= goldPrice %> * 1;
+
+  // In-memory state tracking replaced localStorage
+  let billDataState = [];
+  let activeGoldRate = goldPrice;
+
+  function goldRateUpdate() {
+    let rate = document.getElementById("goldrate").value;
+    let purity = document.getElementById("goldratepurity").value;
+    rate = Math.round(((rate / purity) * 100));
+    if (String(rate).length === 5) {
+      activeGoldRate = rate;
+      buildTable();
+    } else {
+      window.alert("Gold Rate not correct. Please check the values.");
+    }
+  }
+
+  document.getElementById("grossweight").addEventListener("change", () => {
+    document.getElementById("netweight").value = document.getElementById("grossweight").value
+  });
+
+  function parseInitialBilling() {
+    let temp = [];
+    for (let i = 0; i < stockTable.length; i++) {
+      temp.push({
+        "type": "type1",
+        "prefix": stockTable[i].prefix ? stockTable[i].prefix.name : '',
+        "ornament": stockTable[i].ornament ? stockTable[i].ornament.name : '',
+        "tag": stockTable[i].tag,
+        "purity": stockTable[i].purity ? (stockTable[i].purity.name + "$" + stockTable[i].purity.wholesaleMultiplier + "$" + stockTable[i].purity.retailMultiplier + "$" + stockTable[i].purity.wastage) : '',
+        "grossweight": stockTable[i].grossWt,
+        "netweight": stockTable[i].netWt,
+        "isKDM": stockTable[i].isKDM || false,
+        "index": stockTable[i].index,
+        "wastage": stockTable[i].purity ? stockTable[i].purity.wastage : 20,
+      });
+      if (stockTable[i].stoneTable) {
+        for (let j = 0; j < stockTable[i].stoneTable.length; j++) {
+          temp.push({
+            "type": "type2",
+            "stonetype": stockTable[i].stoneTable[j].type ? stockTable[i].stoneTable[j].type.name : '',
+            "stoneweight": stockTable[i].stoneTable[j].ctWeight,
+            "stonerate": stockTable[i].stoneTable[j].sellRate,
+          });
+        }
+      }
+    }
+    billDataState = temp;
+  }
+
+  // Application Entry Point
+  parseInitialBilling();
+  document.getElementById("goldrate").value = activeGoldRate;
+  buildTable();
+  buildEditor();
+
+  function submitPrintForm() {
+    document.getElementById('postBillData').value = JSON.stringify(billDataState);
+    document.getElementById('postGoldRate').value = activeGoldRate;
+    let form = document.getElementById('printPostForm');
+    form.submit();
+  }
+
+  function itemForm(event) {
+    event.preventDefault();
+    let temp = {
+      "type": "type1",
+      "prefix": document.getElementById("prefix").value,
+      "ornament": document.getElementById("ornament").value,
+      "purity": document.getElementById("purity").value,
+      "grossweight": document.getElementById("grossweight").value,
+      "netweight": document.getElementById("netweight").value,
+      "wastage": document.getElementById("wastage").value,
+      "isKDM": false,
+      "index": ""
+    }
+    billDataState.push(temp);
+    buildTable();
+    buildEditor();
+    document.getElementById("itemform").reset();
+  }
+
+  function stoneForm(event) {
+    event.preventDefault();
+    let temp = {
+      "type": "type2",
+      "stonetype": document.getElementById("stonetype").value,
+      "stoneweight": document.getElementById("stoneweight").value,
+      "stonerate": document.getElementById("stonerate").value,
+    }
+    billDataState.push(temp);
+    buildTable();
+    buildEditor();
+    document.getElementById("stoneform").reset();
+  }
+
+  function submitEditor(event) {
+    event.preventDefault();
+    let table = document.getElementById("editor");
+    let rows = table.getElementsByTagName("tr");
+    let json = [];
+    for (let i = 1; i < rows.length; i++) {
+      let currentRow = rows[i];
+      if (currentRow.id === "type1") {
+        json.push({
+          "type": "type1",
+          "prefix": currentRow.querySelector("#prefix").value,
+          "ornament": currentRow.querySelector("#ornament").value,
+          "tag": currentRow.querySelector("#tag") ? currentRow.querySelector("#tag").value : "",
+          "purity": currentRow.querySelector("#purity").value,
+          "grossweight": currentRow.querySelector("#grossweight").value,
+          "netweight": currentRow.querySelector("#netweight").value,
+          "wastage": currentRow.querySelector("#wastage").value,
+          "isKDM": currentRow.querySelector("#isKDM").checked,
+          "index": currentRow.querySelector("#index") ? currentRow.querySelector("#index").value : ""
+        });
+      } else if (currentRow.id === "type2") {
+        json.push({
+          "type": "type2",
+          "stonetype": currentRow.querySelector("#stonetype").value,
+          "stoneweight": currentRow.querySelector("#stoneweight").value,
+          "stonerate": currentRow.querySelector("#stonerate").value
+        });
+      }
+    }
+    billDataState = json;
+    buildTable();
+  }
+
+  function buildEditor() {
+    let editorTable = document.getElementById("editor");
+    editorTable.innerHTML = "";
+    let tempHTML = `<tr class="font-bold bg-surface-container dark:bg-white/5 text-left uppercase">
+      <th class="p-2">Prefix</th>
+      <th class="p-2">Ornament</th>
+      <th class="p-2">Purity</th>
+      <th class="p-2">Gross Wt</th>
+      <th class="p-2">Net Wt</th>
+      <th class="p-2">Wastage</th>
+      <th class="p-2">Is KDM</th>
+      <th class="p-2">Delete</th>
+    </tr>`;
+
+    billDataState.forEach(in1 => {
+      if (in1.type === "type1") {
+        tempHTML += `<tr id="type1" class="border-b border-outline-variant/30">
+          <td class="p-2">
+            <select id="prefix" class="p-1 rounded bg-transparent border border-outline/20">`;
+        for (let i of prefixTable) {
+          tempHTML += `<option ${in1.prefix === i.name ? "selected" : ""} value="${i.name}">${i.name ? i.name : "Select Prefix ..."}</option>`;
+        }
+        tempHTML += `</select>
+          </td>
+          <td class="p-2">
+            <select id="ornament" required class="p-1 rounded bg-transparent border border-outline/20">
+              <option value="">Select Ornament ...</option>`;
+        for (let i of ornamentTable) {
+          tempHTML += `<option ${in1.ornament === i.name ? "selected" : ""} value="${i.name}">${i.name}</option>`;
+        }
+        tempHTML += `</select>
+          </td>
+          <td hidden><input value="${in1.tag || ''}" type="number" id="tag" step="0.001"></td>
+          <td class="p-2">
+            <select id="purity" required class="p-1 rounded bg-transparent border border-outline/20">
+              <option value="">Select Purity ...</option>`;
+        for (let i of purityTable) {
+          let pureValue = i.name + '$' + i.wholesaleMultiplier + '$' + i.retailMultiplier + '$' + i.wastage;
+          tempHTML += `<option ${in1.purity === pureValue ? "selected" : ""} value="${pureValue}">${i.name} | ${i.wholesaleMultiplier} | ${i.retailMultiplier} | ${i.wastage}</option>`;
+        }
+        tempHTML += `</select>
+          </td>
+          <td class="p-2"><input value="${in1.grossweight}" type="number" id="grossweight" step="0.001" required class="p-1 w-20 rounded bg-transparent border border-outline/20"></td>
+          <td class="p-2"><input value="${in1.netweight}" type="number" id="netweight" step="0.001" required class="p-1 w-20 rounded bg-transparent border border-outline/20"></td>
+          <td class="p-2"><input type="number" id="wastage" value="${in1.wastage}" step="0.001" required class="p-1 w-16 rounded bg-transparent border border-outline/20"></td>
+          <td class="p-2 text-center"><input id="isKDM" type="checkbox" ${in1.isKDM ? "checked" : ""}></td>
+          <td hidden><input id="index" type="hidden" value="${in1.index || ''}"></td>
+          <td class="p-2"><button type="button" class="text-error font-medium" onclick="deleteRow(this)">Delete</button></td>
+        </tr>`;
+      } else {
+        tempHTML += `<tr id="type2" class="border-b border-outline-variant/30">
+          <td class="p-2"></td>
+          <td class="p-2">
+            <select id="stonetype" required class="p-1 rounded bg-transparent border border-outline/20">
+              <option value="">Select Stone Type ...</option>`;
+        for (let i of stoneTypeTable) {
+          tempHTML += `<option ${in1.stonetype === i.name ? "selected" : ""} value="${i.name}">${i.name}</option>`;
+        }
+        tempHTML += `</select>
+          </td>
+          <td class="p-2"><input value="${in1.stoneweight}" type="number" id="stoneweight" step="0.001" required class="p-1 w-20 rounded bg-transparent border border-outline/20"></td>
+          <td class="p-2"><input value="${in1.stonerate}" type="number" id="stonerate" step="0.01" required class="p-1 w-20 rounded bg-transparent border border-outline/20"></td>
+          <td></td><td></td><td></td>
+          <td class="p-2"><button type="button" class="text-error font-medium" onclick="deleteRow(this)">Delete</button></td>
+        </tr>`;
+      }
+    });
+    editorTable.innerHTML = tempHTML;
+  }
+
+  function buildTable() {
+    let mainTable = document.getElementById("table");
+    mainTable.innerHTML = `<tr class="font-bold bg-surface-container dark:bg-white/5 text-left uppercase">
+      <th class="p-2">S. No</th>
+      <th class="p-2">SKU</th>
+      <th class="p-2">Ornament</th>
+      <th class="p-2">Stone Wt (ct)</th>
+      <th class="p-2">Carat</th>
+      <th class="p-2">Gross Wt (gms)</th>
+      <th class="p-2">Net Wt (gms)</th>
+      <th class="p-2">Wastage (gms)</th>
+      <th class="p-2">Charged Wt (gms)</th>
+      <th class="p-2">Gold Rate</th>
+      <th class="p-2">KDM Rate</th>
+      <th class="p-2">Rate</th>
+      <th class="p-2">Amount</th>
+    </tr>`;
+
+    let wstg = 0,
+      grosswt = 0,
+      netwt = 0,
+      stonewt = 0,
+      chwt = 0,
+      amt = 0;
+
+    for (let i = 0; i < billDataState.length; i++) {
+      let item = billDataState[i];
+      let columns = [];
+      if (item.type === "type1") {
+        let purityParts = item.purity.split("$");
+        let carat = purityParts[0] || "";
+        let purityMultiplier = parseFloat(purityParts[1]) || 100;
+        let retailMultiplier = parseFloat(purityParts[2]) || 100;
+        let localWastage = parseFloat(item.wastage) || 0;
+        let baseRate = (activeGoldRate * retailMultiplier) / 100;
+        let kdmRate = item.isKDM ? (baseRate / 10) : 0;
+        let calculatedRate = item.isKDM ? (baseRate * 1.10) : baseRate;
+        let itemNet = parseFloat(item.netweight) || 0;
+        let itemGross = parseFloat(item.grossweight) || 0;
+        let calculatedWastage = (itemNet * localWastage) / 100;
+        let chargedWeight = itemNet + calculatedWastage;
+        let itemAmount = chargedWeight * calculatedRate;
+
+        wstg += calculatedWastage;
+        grosswt += itemGross;
+        netwt += itemNet;
+        chwt += chargedWeight;
+        amt += itemAmount;
+
+        columns = [
+          i + 1,
+          (item.index === undefined || item.index === "undefined") ? "" : item.index,
+          (item.prefix || "") + " " + (item.ornament || "") + (item.tag ? (" - " + item.tag) : ""),
+          "",
+          carat,
+          itemGross.toFixed(3),
+          itemNet.toFixed(3),
+          calculatedWastage.toFixed(3),
+          chargedWeight.toFixed(3),
+          baseRate.toFixed(0),
+          kdmRate.toFixed(0),
+          calculatedRate.toFixed(0),
+          new Intl.NumberFormat('en-IN').format(itemAmount.toFixed(0)),
+        ];
+      } else {
+        let itemStoneWt = parseFloat(item.stoneweight) || 0;
+        let itemStoneRate = parseFloat(item.stonerate) || 0;
+        let multiplierWeight = itemStoneWt ? itemStoneWt : 1;
+        let itemAmount = multiplierWeight * itemStoneRate;
+
+        stonewt += itemStoneWt;
+        amt += itemAmount;
+
+        columns = [
+          i + 1,
+          "",
+          item.stonetype || "",
+          itemStoneWt.toFixed(3),
+          "", "", "", "", "", "", "",
+          itemStoneRate.toFixed(0),
+          new Intl.NumberFormat('en-IN').format(itemAmount.toFixed(0)),
+        ];
+      }
+      appendRowToTable(mainTable, columns, item.type, false);
+    }
+
+    let totals = [
+      "Total", "", "",
+      stonewt.toFixed(3), "",
+      grosswt.toFixed(3),
+      netwt.toFixed(3),
+      wstg.toFixed(3),
+      chwt.toFixed(3),
+      "", "", "",
+      new Intl.NumberFormat('en-IN').format(amt.toFixed(0)),
+    ];
+    appendRowToTable(mainTable, totals, "totalRow", true);
+  }
+
+  function appendRowToTable(tableElement, dataArray, rowId, isBold) {
+    let row = document.createElement("tr");
+    row.id = rowId;
+    if (isBold) {
+      row.className = "font-bold bg-surface-container dark:bg-white/5 border-t-2 border-outline";
+    } else {
+      row.className = "border-b border-outline-variant/30 hover:bg-surface-container-low/50";
+    }
+    dataArray.forEach(cellData => {
+      let td = document.createElement("td");
+      td.className = "p-2";
+      td.innerHTML = cellData;
+      row.appendChild(td);
+    });
+    tableElement.appendChild(row);
+  }
+
+  function deleteRow(input) {
+    let tr = input.closest("tr");
+    if (tr) {
+      // Find row index relative to table to sync state structure
+      let rowIndex = tr.rowIndex - 1; // accounting for headers
+      if (rowIndex >= 0 && rowIndex < billDataState.length) {
+        billDataState.splice(rowIndex, 1);
+      }
+      tr.remove();
+      buildTable();
+    }
+  }
+</script>

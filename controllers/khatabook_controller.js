@@ -8,7 +8,7 @@ const path = require("path");
 module.exports.allBooksPage = async function (req, res) {
   try {
     let books = await KhataBook.find().sort({ createdAt: -1 });
-    return res.render("khatabook/books_table", {
+    return res.render("khatabook/index", {
       title: "Books List",
       books,
       convertDate: common_function.convertDate,
@@ -145,7 +145,7 @@ module.exports.allClientsPage = async function (req, res) {
       })
     );
 
-    return res.render("khatabook/clients_table", {
+    return res.render("khatabook/book", {
       title: "Clients List",
       clients: clientsWithBalances,
       convertDate: common_function.convertDate,
@@ -303,7 +303,7 @@ module.exports.allEntriesPage = async function (req, res) {
         date: i.createdAt
       });
     }
-    return res.render("khatabook/client_view", {
+    return res.render("khatabook/client", {
       title: "Client Ledger",
       client,
       entries,
@@ -312,7 +312,10 @@ module.exports.allEntriesPage = async function (req, res) {
       convertDate: common_function.convertDate,
       breadcrumbs: breadcrumb.trail([
         { label: "Books", href: "/khatabook" },
-        { label: client.book.name, href: "/khatabook/clients?book=" + client.book._id },
+        {
+          label: client.book.name,
+          href: "/khatabook/clients?book=" + client.book._id
+        },
         { label: client.name }
       ])
     });
@@ -335,18 +338,22 @@ module.exports.addEntryApi = async function (req, res) {
       try {
         let provideCount = 0;
         if (req.file) provideCount++;
-        if (req.body.amount !== undefined && req.body.amount !== "") provideCount++;
-        if (req.body.weight !== undefined && req.body.weight !== "") provideCount++;
+        if (req.body.amount !== undefined && req.body.amount !== "")
+          provideCount++;
+        if (req.body.weight !== undefined && req.body.weight !== "")
+          provideCount++;
         if (provideCount !== 1) {
           return res.status(400).json({
             success: false,
-            message: "An Entry must contain exactly ONE field: either Amount, Weight, or an Image upload!"
+            message:
+              "An Entry must contain exactly ONE field: either Amount, Weight, or an Image upload!"
           });
         }
         if ((req.body.amount || req.body.weight) && !req.body.type) {
           return res.status(400).json({
             success: false,
-            message: "Transaction type (debit/credit) is required for Amount or Weight entries!"
+            message:
+              "Transaction type (debit/credit) is required for Amount or Weight entries!"
           });
         }
         let entryData = {
@@ -356,9 +363,13 @@ module.exports.addEntryApi = async function (req, res) {
             : ""
         };
         if (req.file) {
-          let imageName = Date.now() + "." + req.file.originalname.split(".").pop();
+          let imageName =
+            Date.now() + "." + req.file.originalname.split(".").pop();
           entryData.image = path.join(KhataBookEntry.imagePath, imageName);
-          await fs.promises.writeFile(path.join(KhataBookEntry.imageFullPath, imageName), req.file.buffer);
+          await fs.promises.writeFile(
+            path.join(KhataBookEntry.imageFullPath, imageName),
+            req.file.buffer
+          );
           entryData.type = undefined;
           entryData.amount = undefined;
           entryData.weight = undefined;
@@ -413,27 +424,35 @@ module.exports.editEntryApi = async function (req, res) {
         }
         let provideCount = 0;
         if (req.file) provideCount++;
-        if (req.body.amount !== undefined && req.body.amount !== "") provideCount++;
-        if (req.body.weight !== undefined && req.body.weight !== "") provideCount++;
+        if (req.body.amount !== undefined && req.body.amount !== "")
+          provideCount++;
+        if (req.body.weight !== undefined && req.body.weight !== "")
+          provideCount++;
         if (provideCount !== 1) {
           return res.status(400).json({
             success: false,
-            message: "An Entry must contain exactly ONE field: either Amount, Weight, or an Image upload!"
+            message:
+              "An Entry must contain exactly ONE field: either Amount, Weight, or an Image upload!"
           });
         }
         if ((req.body.amount || req.body.weight) && !req.body.type) {
           return res.status(400).json({
             success: false,
-            message: "Transaction type (debit/credit) is required for Amount or Weight entries!"
+            message:
+              "Transaction type (debit/credit) is required for Amount or Weight entries!"
           });
         }
         entry.remark = req.body.remark
           ? req.body.remark.replace(/[^a-zA-Z0-9 ]/g, " ")
           : "";
         if (req.file) {
-          let imageName = Date.now() + "." + req.file.originalname.split(".").pop();
+          let imageName =
+            Date.now() + "." + req.file.originalname.split(".").pop();
           entry.image = path.join(KhataBookEntry.imagePath, imageName);
-          await fs.promises.writeFile(path.join(KhataBookEntry.imageFullPath, imageName), req.file.buffer);
+          await fs.promises.writeFile(
+            path.join(KhataBookEntry.imageFullPath, imageName),
+            req.file.buffer
+          );
           entry.type = undefined;
           entry.amount = undefined;
           entry.weight = undefined;

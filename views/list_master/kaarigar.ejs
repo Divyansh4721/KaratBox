@@ -1,0 +1,30 @@
+<% const routes = {
+  add: '/list_master/kaarigar/add-kaarigar',
+  edit: '/list_master/kaarigar/edit-kaarigar',
+  delete: '/list_master/kaarigar/delete-kaarigar'
+}; %>
+<%- include('_crud_builder', { options, lm: {
+    entity: 'Kaarigar',
+    tableId: 'kaarigarTableBody',
+    searchLabel: 'kaarigar name',
+    recordLabel: 'kaarigar',
+    ledgerLabel: 'Kaarigar',
+    csvFile: 'kaarigar-records.csv',
+    routes,
+    columns: [
+        { key: 'name', label: 'Kaarigar Name', cell: 'primary' },
+        { key: 'stockCount', label: 'Stock Count', cell: 'badge' }
+    ],
+    fields: [
+        { name: 'name', editName: 'newname', editId: 'editName', label: 'Kaarigar Name', type: 'text', placeholder: 'Enter Kaarigar Name ....' }
+    ],
+    labels: {
+        addButton: 'Add Kaarigar',
+        createTitle: 'Add Kaarigar',
+        createSubmit: 'Add Kaarigar',
+        editTitle: 'Edit Kaarigar',
+        editSubmit: 'Edit Kaarigar',
+        deleteQuestion: 'Delete Kaarigar?',
+        deleteSubmit: 'Delete Kaarigar'
+    }
+}}) %>

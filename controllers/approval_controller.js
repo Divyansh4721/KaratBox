@@ -47,7 +47,7 @@ module.exports.approvalAddPage = async function (req, res) {
       await common_function.calculatePrice(i);
       totalCash += i.sellingPrice;
     }
-    return res.render("approval_add", {
+    return res.render("approval/add", {
       title: "Approval",
       activeNav: "inventory",
       stockTable,
@@ -109,7 +109,7 @@ module.exports.approvalViewPage = async function (req, res) {
         userTake: 1,
         approvedDate: -1
       });
-    return res.render("approval/approval_view", {
+    return res.render("approval/view", {
       title: "Approval List",
       approvalTable,
       breadcrumbLabel: "Approval List"
@@ -137,14 +137,15 @@ module.exports.approvalRecvPage = async function (req, res) {
         ornament: 1,
         tag: 1
       });
-    return res.render("approval/approval_recv", {
+    return res.render("approval/recieved", {
       title: "View Approval",
       approval,
       stockTable,
       breadcrumbs: breadcrumb.trail([
         { label: "Approval List", href: "/approvalViewPage" },
         { label: "View Approval" }
-      ])
+      ]),
+      convertDate: common_function.convertDate,
     });
   } catch (err) {
     console.log("Error in Approval Receive Page!", err);

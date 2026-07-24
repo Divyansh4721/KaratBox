@@ -1,0 +1,261 @@
+<% activeNav = 'permission' %>
+<% const label = "block text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1.5"; %>
+<% const modalField = "w-full pl-11 pr-4 py-3 bg-surface-container-low border border-transparent rounded-lg text-sm text-on-surface placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors"; %>
+<%- include('../partials/_table_page', {
+    label,
+    tableFilters: [
+        { type: 'custom', span: 10, flexEnd: true, html: `
+            <label class="${label}">Search Member</label>
+            <div class="flex flex-col sm:flex-row gap-2">
+                <div class="relative flex-1 min-w-0">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-secondary text-sm"></i>
+                    <input type="search" id="searchInput" oninput="pager.resetPage();renderTable()" placeholder="Enter name or email..." class="w-full pl-11 pr-4 py-3 bg-surface-container-low border border-transparent rounded-lg text-sm text-on-surface placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors">
+                </div>
+                <button type="button" onclick="openCreateModal()" title="Create New User" class="inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary-container hover:brightness-105 text-on-primary text-sm font-semibold rounded-lg shadow-sm transition-all shrink-0 whitespace-nowrap">
+                    <i class="fas fa-user-plus text-xs"></i> Create New User
+                </button>
+            </div>
+        ` },
+        { type: 'stat', id: 'memberCount', label: 'Total Members', span: 2, icon: 'fas fa-users' }
+    ],
+    tablePage: {
+        tableTitle: 'Access Registry',
+        tableId: 'userBody',
+        minWidth: '760px',
+        colCount: 4,
+        headerActions: `<a href="/admin/session" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-surface-container text-secondary text-sm font-semibold rounded-lg hover:text-primary hover:bg-surface-container-low transition-all shrink-0"><i class="fas fa-clock-rotate-left text-xs"></i> Session Registry</a>`,
+        columns: [
+            { label: 'S.No', align: 'left', thClass: 'px-5' },
+            { label: 'Member Details', align: 'left', thClass: 'px-4' },
+            { label: 'Role', align: 'left', thClass: 'px-4' },
+            { label: 'Administrative Actions', align: 'right', thClass: 'px-5' }
+        ],
+        pagination: { summaryClass: 'text-[10px] font-semibold uppercase tracking-widest text-secondary' }
+    }
+}) %>
+<div id="createModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+  <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper w-full max-w-lg">
+    <div class="flex items-start justify-between px-6 py-4 border-b border-surface-container bg-surface-container-low/40">
+      <div>
+        <h3 class="text-lg font-bold text-on-surface">Create New User</h3>
+        <p class="text-sm text-secondary mt-0.5">Assign roles and credentials for new asset managers.</p>
+      </div>
+      <button type="button" onclick="closeCreateModal()" class="p-1 text-secondary hover:text-on-surface"><i class="fas fa-times"></i></button>
+    </div>
+    <form id="createUserForm" action="/admin/user/create" method="post" class="p-6 space-y-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="<%= label %>">Full Name</label>
+          <div class="relative">
+            <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-secondary text-sm"></i>
+            <input type="text" name="name" required placeholder="e.g. Marcus Aurelius" class="<%= modalField %>">
+          </div>
+        </div>
+        <div>
+          <label class="<%= label %>">Email Address</label>
+          <div class="relative">
+            <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-secondary text-sm"></i>
+            <input type="email" name="email" required placeholder="m.aurelius@karatbox.luxury" class="<%= modalField %>">
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 pt-2 border-t border-surface-container">
+        <button type="button" onclick="closeCreateModal()" class="px-6 py-2.5 border-2 border-primary text-primary text-sm font-semibold rounded-lg hover:bg-primary-fixed/20 transition-colors">Cancel</button>
+        <button type="submit" class="px-6 py-2.5 bg-primary hover:brightness-110 text-on-primary text-sm font-semibold rounded-lg transition-all">Create User</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  function notify(text, type) {
+    if (typeof Noty !== 'undefined') {
+      new Noty({ theme: 'nest', text, type, layout: 'topCenter', timeout: 2000 }).show();
+    } else {
+      alert(text);
+    }
+  }
+
+  async function postForm(url, form) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(new FormData(form))
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Request failed');
+    return json;
+  }
+
+  async function postData(url, data) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(data)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Request failed');
+    return json;
+  }
+</script>
+
+<script>
+  const rawRows = <%- JSON.stringify(userlist) %>;
+  const allRows = rawRows.map(u => ({
+    id: u._id,
+    name: u.name || '',
+    email: u.email || '',
+    avatar: u.avatar || u.picture || u.profileImage || '',
+    isSuper: !!u.adminPermissionPerm,
+    isManager: !!u.adminPermissionTemp,
+    searchStr: ((u.name || '') + ' ' + (u.email || '')).toLowerCase()
+  }));
+  const pager = new KbPagination({
+    onPageChange: renderTable,
+    formatSummary(page, rows, start) {
+      const end = start + page.length;
+      return rows.length ?
+        `Showing ${start + 1}-${end} of ${rows.length} authorized member${rows.length > 1 ? 's' : ''}` :
+        'No authorized members';
+    }
+  });
+
+  function initials(name) {
+    const parts = (name || 'U').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return 'U';
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+
+  function avatarHtml(r, i) {
+    const bg = i % 2 ? 'bg-primary-fixed/50 text-primary' : 'bg-surface-container text-on-surface';
+    const base = `w-10 h-10 rounded-full ${bg} text-sm font-bold flex items-center justify-center shrink-0 overflow-hidden`;
+    const letters = initials(r.name);
+    if (r.avatar) {
+      return `<span class="${base}" data-fallback="${letters}"><img src="${r.avatar}" alt="" class="w-full h-full object-cover user-avatar-img"></span>`;
+    }
+    return `<span class="${base}">${letters}</span>`;
+  }
+
+  function tierBadge(r) {
+    if (r.isSuper) {
+      return `<span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider bg-primary-fixed/50 text-primary px-3 py-1.5 rounded-full"><i class="fas fa-star text-[9px]"></i> Administration</span>`;
+    }
+    if (r.isManager) {
+      return `<span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider bg-surface-container text-secondary px-3 py-1.5 rounded-full"><i class="fas fa-shield-halved text-[9px]"></i> Manager</span>`;
+    }
+    return `<span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider bg-surface-container text-secondary px-3 py-1.5 rounded-full"><i class="fas fa-user text-[9px]"></i> Staff</span>`;
+  }
+
+  function tempAccessHtml(r) {
+    if (r.isSuper) {
+      return `<span class="inline-flex h-6 w-11 items-center justify-center rounded-full border border-primary-container/40 bg-primary-fixed/25 text-primary" title="Always allowed"><i class="fas fa-lock text-[10px]"></i></span>`;
+    }
+    const on = r.isManager;
+    return `<button type="button" onclick="toggleTempAccess('${r.id}')" class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${on ? 'bg-green-500' : 'bg-error'}" title="${on ? 'Day access on' : 'Day access off'}" role="switch" aria-checked="${on}">
+            <span class="inline-block h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${on ? 'translate-x-5' : 'translate-x-0.5'}"></span>
+        </button>`;
+  }
+
+  function filteredRows() {
+    const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+    let rows = [...allRows];
+    if (q) rows = rows.filter(r => r.searchStr.includes(q));
+    return rows;
+  }
+
+  function renderTable() {
+    const rows = filteredRows();
+    const {
+      page,
+      start
+    } = pager.apply(rows);
+    const tbody = document.getElementById('userBody');
+    if (!page.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="py-12 text-center text-secondary">No authorized members found.</td></tr>';
+    } else {
+      tbody.innerHTML = page.map((r, i) => `
+                <tr class="border-t border-surface-container hover:bg-surface-container-low/30 transition-colors">
+                    <td class="py-4 px-5 text-secondary font-medium">${start + i + 1}</td>
+                    <td class="py-4 px-4">
+                        <div class="flex items-center gap-3">
+                            ${avatarHtml(r, i)}
+                            <div>
+                                <p class="font-semibold text-on-surface">${r.name}</p>
+                                <p class="text-xs text-secondary">${r.email}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-4 px-4">${tierBadge(r)}</td>
+                    <td class="py-4 px-5">
+                        <div class="flex items-center justify-end gap-1.5">
+                            <a href="/admin/permissions/user?id=${r.id}" class="w-9 h-9 inline-flex items-center justify-center rounded-lg border border-surface-container text-secondary hover:text-primary hover:bg-surface-container-low transition-colors" title="Edit"><i class="fas fa-pen text-xs"></i></a>
+                            ${tempAccessHtml(r)}
+                        </div>
+                    </td>
+                </tr>`).join('');
+    }
+    document.getElementById('memberCount').textContent = rows.length.toLocaleString('en-IN');
+  }
+
+  function openCreateModal() {
+    document.getElementById('createModal').classList.replace('hidden', 'flex');
+  }
+
+  function closeCreateModal() {
+    document.getElementById('createModal').classList.replace('flex', 'hidden');
+  }
+
+  function mapUserToRow(u) {
+    return {
+      id: u._id,
+      name: u.name || '',
+      email: u.email || '',
+      avatar: u.avatar || u.picture || u.profileImage || '',
+      isSuper: !!u.adminPermissionPerm,
+      isManager: !!u.adminPermissionTemp,
+      searchStr: ((u.name || '') + ' ' + (u.email || '')).toLowerCase()
+    };
+  }
+
+  async function toggleTempAccess(id) {
+    const row = allRows.find((r) => String(r.id) === String(id));
+    if (!row || row.isSuper) return;
+    try {
+      const json = await postData(`/admin/permissions/user/toggle?id=${id}`, {});
+      row.isManager = !!json.adminPermissionTemp;
+      const raw = rawRows.find((r) => String(r._id) === String(id));
+      if (raw) raw.adminPermissionTemp = row.isManager;
+      renderTable();
+      notify(json.message, 'success');
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  }
+
+  document.getElementById('createUserForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const json = await postForm('/admin/user/create', e.target);
+      rawRows.unshift(json.data);
+      allRows.unshift(mapUserToRow(json.data));
+      e.target.reset();
+      closeCreateModal();
+      pager.resetPage();
+      renderTable();
+      notify(json.message, 'success');
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.body.addEventListener('error', e => {
+      if (e.target.classList.contains('user-avatar-img')) {
+        const wrap = e.target.parentElement;
+        if (wrap && wrap.dataset.fallback) wrap.textContent = wrap.dataset.fallback;
+      }
+    }, true);
+    renderTable();
+    if (new URLSearchParams(window.location.search).get('create') === '1') openCreateModal();
+  });
+</script>

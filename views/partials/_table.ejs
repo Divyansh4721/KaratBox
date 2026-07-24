@@ -1,0 +1,135 @@
+<% const pgSummaryId = typeof summaryId !== 'undefined' ? summaryId : 'tableSummary'; %>
+<% const pgPaginationId = typeof paginationId !== 'undefined' ? paginationId : 'pagination'; %>
+<% const pgPerPageId = typeof perPageSelectId !== 'undefined' ? perPageSelectId : 'perPageSelect'; %>
+<% const pgShowPerPage = typeof showPerPage === 'undefined' ? true : showPerPage; %>
+<% const pgSummaryClass = typeof summaryClass !== 'undefined' ? summaryClass : 'text-xs text-secondary'; %>
+<% const pgFooter = typeof footer === 'undefined' ? true : footer; %>
+<% if (pgFooter) { %>
+<div class="flex flex-col items-center justify-center text-center sm:flex-row sm:items-center sm:justify-between sm:text-left gap-3 px-5 py-4 border-t border-surface-container">
+  <div class="flex items-center justify-center gap-3 flex-wrap">
+    <p id="<%= pgSummaryId %>" class="<%= pgSummaryClass %>"></p>
+    <% if (pgShowPerPage) { %>
+    <div class="flex items-center justify-center gap-1">
+      <label for="<%= pgPerPageId %>" class="text-xs text-secondary">Show</label>
+      <select id="<%= pgPerPageId %>" title="Select records per page" class="text-xs font-semibold text-on-surface bg-surface-container-low border border-surface-container rounded-lg pl-2.5 pr-2.5 py-2.5 cursor-pointer hover:border-primary-container focus:outline-none focus:border-primary-container transition-colors">
+        <option value="10">10</option>
+        <option value="20" selected>20</option>
+        <option value="30">30</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+    <% } %>
+  </div>
+  <div id="<%= pgPaginationId %>" class="flex items-center justify-center gap-1.5 w-full sm:w-auto"></div>
+</div>
+<% } %>
+<script>
+  if (!window.KbPagination) {
+    (function(global) {
+      class KbPagination {
+        constructor(opts) {
+          opts = opts || {};
+          this.perPage = opts.perPage || 10;
+          this.currentPage = 1;
+          this.windowSize = opts.windowSize || 3;
+          this.activeClass = opts.activeClass || 'bg-primary-container text-on-primary';
+          this.paginationId = opts.paginationId || 'pagination';
+          this.summaryId = opts.summaryId || 'tableSummary';
+          this.perPageSelectId = opts.perPageSelectId || 'perPageSelect';
+          this.paginationEl = null;
+          this.summaryEl = null;
+          this.perPageSelectEl = null;
+          this._controlsBound = false;
+          this.onPageChange = opts.onPageChange || function() {};
+          this.formatSummary = opts.formatSummary || null;
+          this._bindControls();
+        }
+        _bindControls() {
+          if (!this.paginationEl) {
+            this.paginationEl = document.getElementById(this.paginationId);
+          }
+          if (!this.summaryEl) {
+            this.summaryEl = document.getElementById(this.summaryId);
+          }
+          if (!this.perPageSelectEl) {
+            this.perPageSelectEl = document.getElementById(this.perPageSelectId);
+          }
+          if (this._controlsBound) return;
+          this._controlsBound = true;
+          if (this.paginationEl) {
+            this.paginationEl.addEventListener('click', (e) => {
+              const btn = e.target.closest('[data-pg-page]');
+              if (!btn || btn.disabled) return;
+              const p = parseInt(btn.dataset.pgPage, 10);
+              if (!isNaN(p)) this.goPage(p);
+            });
+          }
+          if (this.perPageSelectEl) {
+            this.perPageSelectEl.value = String(this.perPage);
+            this.perPageSelectEl.addEventListener('change', (e) => this.changePerPage(e.target.value));
+          }
+        }
+        resetPage() {
+          this.currentPage = 1;
+        }
+        changePerPage(val) {
+          this.perPage = parseInt(val, 10) || 10;
+          this.currentPage = 1;
+          this.onPageChange();
+        }
+        goPage(p) {
+          this.currentPage = p;
+          this.onPageChange();
+        }
+        apply(rows, opts) {
+          opts = opts || {};
+          this._bindControls();
+          const total = opts.total != null ? opts.total : rows.length;
+          const pages = Math.max(1, Math.ceil(total / this.perPage));
+          if (this.currentPage > pages) this.currentPage = pages;
+          const start = (this.currentPage - 1) * this.perPage;
+          const page = opts.pageRows || rows.slice(start, start + this.perPage);
+          if (this.summaryEl && this.formatSummary) {
+            this.summaryEl.textContent = this.formatSummary(page, rows, start, this, total);
+          }
+          this._renderButtons(pages);
+          return {
+            page,
+            pages,
+            start,
+            total
+          };
+        }
+        _renderButtons(pages) {
+          if (!this.paginationEl) return;
+          if (pages <= 1) {
+            this.paginationEl.innerHTML = '';
+            return;
+          }
+          const ws = Math.min(this.windowSize, pages);
+          const half = Math.floor(ws / 2);
+          let winStart = this.currentPage - half;
+          winStart = Math.max(1, Math.min(winStart, pages - ws + 1));
+          const winEnd = winStart + ws - 1;
+          const inactive = 'border border-surface-container text-secondary hover:bg-surface-container-low';
+          const disabled = 'border border-surface-container text-secondary opacity-40 cursor-not-allowed';
+          const btn = 'w-9 h-9 rounded-lg text-sm font-semibold transition-colors';
+          let html = '';
+          const atStart = this.currentPage <= 1;
+          html += atStart ?
+            `<button type="button" disabled title="Previous page" class="${btn} ${disabled}"><i class="fas fa-chevron-left text-xs"></i></button>` :
+            `<button type="button" data-pg-page="${this.currentPage - 1}" title="Previous page" class="${btn} ${inactive}"><i class="fas fa-chevron-left text-xs"></i></button>`;
+          for (let p = winStart; p <= winEnd; p++) {
+            html += `<button type="button" data-pg-page="${p}" title="Go to page ${p}" class="${btn} ${p === this.currentPage ? this.activeClass : inactive}">${p}</button>`;
+          }
+          const atEnd = this.currentPage >= pages;
+          html += atEnd ?
+            `<button type="button" disabled title="Next page" class="${btn} ${disabled}"><i class="fas fa-chevron-right text-xs"></i></button>` :
+            `<button type="button" data-pg-page="${this.currentPage + 1}" title="Next page" class="${btn} ${inactive}"><i class="fas fa-chevron-right text-xs"></i></button>`;
+          this.paginationEl.innerHTML = html;
+        }
+      }
+      global.KbPagination = KbPagination;
+    })(window);
+  }
+</script>

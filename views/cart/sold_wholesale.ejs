@@ -1,0 +1,196 @@
+<% activeNav = 'inventory' %>
+<%- include('../partials/_tokens') %>
+<% const label = "block text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1.5"; %>
+<% const field = "w-full px-4 py-3 bg-surface-container-low dark:bg-dark-container border border-outline-variant/40 dark:border-white/10 rounded-lg text-sm text-on-surface dark:text-dark-text placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors"; %>
+<% const select = field + " appearance-none cursor-pointer"; %>
+<% const btn = "inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary hover:brightness-110 text-on-primary text-sm font-semibold rounded-lg transition-all"; %>
+<% const pageSubtitle = stockTable.length + ' item' + (stockTable.length !== 1 ? 's' : '') + ' ready for wholesale sale'; %>
+<div class="pb-10 space-y-6">
+  <% const backLink = typeof backHref !== 'undefined' ? backHref : '/cart'; %>
+  <% const subtitle = typeof pageSubtitle !== 'undefined' ? pageSubtitle : ''; %>
+  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+    <div>
+      <h2 class="text-display-lg-mobile md:text-headline-xl font-bold text-on-surface dark:text-dark-text tracking-tight mb-1"><%= title %></h2>
+      <% if (subtitle) { %><p class="text-sm text-secondary"><%= subtitle %></p><% } %>
+    </div>
+  </div>
+
+
+  <div class="flex flex-wrap gap-2">
+    <a href="/addCustomer" class="<%= btnOutline %>"><i class="fas fa-user-plus text-xs"></i> Add Customer</a>
+  </div>
+
+  <form id="soldWholesaleForm" action="/soldWholesaleForm" method="post" class="space-y-6">
+    <div class="<%= formCard %>">
+      <h3 class="text-sm font-bold text-on-surface dark:text-dark-text mb-5">Sale Details</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="space-y-2">
+          <label class="<%= label %>">Search Customer</label>
+          <input type="text" id="customerinput" placeholder="Search by name, phone, or address..." autocomplete="off" class="<%= field %>">
+          <label class="<%= label %>">Customer <span class="text-error">*</span></label>
+          <select id="customeroptions" name="customer" class="<%= select %>" required>
+            <option value="">Select customer...</option>
+            <% for (let i of customerTable) { %>
+            <option value="<%= i._id %>"><%= i.name %><% if (i.phNum && i.phNum.length) { %> — <%= i.phNum.join(', ') %><% } %></option>
+            <% } %>
+          </select>
+        </div>
+        <script>
+          (function() {
+            const customers = <%- JSON.stringify(customerTable.map(function(c) { return { _id: c._id, searchStr: c.searchStr }; })) %>;
+            const input = document.getElementById('customerinput');
+            const select = document.getElementById('customeroptions');
+            if (!input || !select) return;
+            const defaultLabel = 'Select customer...';
+
+            function fillOptions(list) {
+              select.innerHTML = '<option value="">' + defaultLabel + '</option>';
+              list.forEach(function(c) {
+                const opt = document.createElement('option');
+                opt.value = c._id;
+                opt.textContent = c.searchStr;
+                select.appendChild(opt);
+              });
+            }
+            fillOptions(customers);
+            input.addEventListener('input', function() {
+              const q = input.value.toLowerCase().trim();
+              if (!q) {
+                fillOptions(customers);
+                return;
+              }
+              const matches = customers.filter(function(c) {
+                return c.searchStr.toLowerCase().includes(q);
+              });
+              select.innerHTML = '<option value="">' + (matches.length ? defaultLabel : 'No customer found') + '</option>';
+              matches.forEach(function(c) {
+                const opt = document.createElement('option');
+                opt.value = c._id;
+                opt.textContent = c.searchStr;
+                select.appendChild(opt);
+              });
+            });
+          })();
+        </script>
+
+        <div class="space-y-2">
+          <label class="<%= label %>">Total Charged Wt</label>
+          <input id="inputTotalWt" name="totalWt" step="0.001" type="number" readonly required class="<%= field %> opacity-80">
+        </div>
+        <div class="space-y-2">
+          <label class="<%= label %>">Gold Rate</label>
+          <input id="inputGoldRate" name="goldRate" step="1" value="<%= goldPrice %>" onchange="calculateTotal()" type="number" required class="<%= field %>">
+        </div>
+        <div class="space-y-2">
+          <label class="<%= label %>">Total Cash</label>
+          <input id="inputTotalCash" name="totalCash" step="1" type="number" readonly required class="<%= field %> opacity-80">
+        </div>
+      </div>
+      <input type="hidden" name="stoneTable">
+      <div class="mt-6 pt-5 border-t border-surface-container dark:border-white/10">
+        <button type="submit" class="<%= btn %>">
+          <i class="fas fa-sack-dollar text-xs"></i> Complete Sale
+        </button>
+      </div>
+    </div>
+
+    <div class="<%= sectionCard %> overflow-x-auto">
+      <div class="px-5 py-4 border-b border-surface-container dark:border-white/10">
+        <h3 class="text-sm font-bold text-on-surface dark:text-dark-text">Item Breakdown</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs sm:text-sm min-w-[900px]">
+          <thead>
+            <tr class="bg-surface-container-low dark:bg-dark-container text-[10px] font-semibold uppercase tracking-widest text-secondary">
+              <th class="px-4 py-3 text-left">S.No</th>
+              <th class="px-3 py-3 text-left">Tag No</th>
+              <th class="px-3 py-3 text-left">Purity</th>
+              <th class="px-3 py-3 text-right">Net Wt</th>
+              <th class="px-3 py-3 text-left">Wastage</th>
+              <th class="px-3 py-3 text-right">Total Fine Wt</th>
+              <th class="px-3 py-3 text-left">Labour</th>
+              <th class="px-3 py-3 text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-surface-container dark:divide-white/10">
+            <% for (let i = 0; i < stockTable.length; i++) { %>
+            <tr id="eachLine" class="eachLineStock hover:bg-surface-container-low/50">
+              <td class="px-4 py-2.5"><%= i + 1 %></td>
+              <td class="px-3 py-2.5 whitespace-nowrap"><%= stockTable[i].prefix.name + ' ' + stockTable[i].ornament.name + (stockTable[i].tag ? ('-' + stockTable[i].tag) : '') %></td>
+              <td class="px-3 py-2.5"><%= stockTable[i].purity.name + ' | ' + stockTable[i].purity.wholesaleMultiplier %></td>
+              <td class="px-3 py-2.5 text-right"><%= (stockTable[i].netWt * 1).toFixed(3) %> gm</td>
+              <td class="px-3 py-2.5">
+                <input type="number" id="netWt" value="<%= stockTable[i].netWt %>" hidden>
+                <input type="number" id="wholesaleMultiplier" value="<%= stockTable[i].purity.wholesaleMultiplier %>" hidden>
+                <input type="number" name="tounch" placeholder="Tounch..." id="inputTounch" onchange="calculateTotal()" class="<%= field %> py-2 text-sm max-w-[120px]">
+              </td>
+              <td class="px-3 py-2.5 text-right" id="totalFine"></td>
+              <td class="px-3 py-2.5">
+                <input type="number" name="labour" placeholder="Labour..." id="inputLabour" onchange="calculateTotal()" class="<%= field %> py-2 text-sm max-w-[120px]">
+              </td>
+              <td class="px-3 py-2.5 text-right font-semibold" id="total"></td>
+            </tr>
+            <% for (let j = 0; j < stockTable[i].stoneTable.length; j++) { %>
+            <tr id="eachLine" class="eachLineStone hover:bg-surface-container-low/50">
+              <td class="px-4 py-2.5"></td>
+              <td class="px-3 py-2.5"><%= (stockTable[i].stoneTable[j].ctWeight * 1).toFixed(3) %> ct</td>
+              <td class="px-3 py-2.5"><%= (stockTable[i].stoneTable[j].gmWeight * 1).toFixed(3) %> gm</td>
+              <td class="px-3 py-2.5"><%= stockTable[i].stoneTable[j].type.name %></td>
+              <td class="px-3 py-2.5">
+                <input type="number" id="weight" value="<%= (stockTable[i].stoneTable[j].ctWeight * 1).toFixed(3) %>" hidden>
+                <input type="number" name="rate" placeholder="Rate..." id="rate" value="<%= stockTable[i].stoneTable[j].sellRate %>" onchange="calculateTotal()" class="<%= field %> py-2 text-sm max-w-[120px]">
+              </td>
+              <td class="px-3 py-2.5"></td>
+              <td class="px-3 py-2.5">
+                <select id="rateType" onchange="calculateTotal()" class="<%= select %> py-2 text-sm max-w-[140px]">
+                  <option value="1">per Gram</option>
+                  <option value="2" selected>per Carat</option>
+                  <option value="3">Whole Price</option>
+                </select>
+              </td>
+              <td class="px-3 py-2.5 text-right font-semibold" id="totalLinePrice"></td>
+            </tr>
+            <% } %>
+            <% } %>
+          </tbody>
+          <tfoot>
+            <tr class="bg-surface-container-low dark:bg-dark-container font-bold text-on-surface dark:text-dark-text">
+              <td class="px-4 py-3"><%= stockTable.length %></td>
+              <td class="px-3 py-3"><%= (stockTable.reduce((total, item) => total + (item.stoneWt * 5), 0)).toFixed(3) %> ct</td>
+              <td class="px-3 py-3"><%= (stockTable.reduce((total, item) => total + (item.stoneWt * 1), 0)).toFixed(3) %> gm</td>
+              <td class="px-3 py-3" id="totalNetWt"></td>
+              <td class="px-3 py-3"></td>
+              <td class="px-3 py-3" id="totalChargedWt"></td>
+              <td class="px-3 py-3"></td>
+              <td class="px-3 py-3" id="totalRate"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </form>
+</div>
+<script>
+  let stockTable = <%- JSON.stringify(stockTable) %>;
+  let customerTable = <%- JSON.stringify(customerTable) %>;
+</script>
+<script src="/assets/js/soldWholesale.js"></script>
+<script>
+  document.getElementById('soldWholesaleForm').addEventListener('submit', async (e) => {
+    if (e.target.dataset.confirmed === '1') {
+      delete e.target.dataset.confirmed;
+      return;
+    }
+    e.preventDefault();
+    const confirmed = await KbConfirm.ask({
+      title: 'Complete Wholesale Sale',
+      message: 'Confirm wholesale sale for the selected cart items.',
+      detail: '<%= stockTable.length %> item<%= stockTable.length !== 1 ? "s" : "" %> in cart',
+      confirmLabel: 'Complete Sale',
+      destructive: false
+    });
+    if (!confirmed) return;
+    e.target.dataset.confirmed = '1';
+    e.target.requestSubmit();
+  });
+</script>

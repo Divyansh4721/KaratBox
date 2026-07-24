@@ -1,0 +1,85 @@
+<div id="kbConfirmDialog" class="fixed inset-0 z-[60] hidden items-center justify-center p-4 bg-black/40 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="kbConfirmTitle">
+  <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper w-full max-w-md overflow-hidden">
+    <div class="flex items-start justify-between px-6 py-4 border-b border-surface-container">
+      <div class="flex items-center gap-3 min-w-0">
+        <span class="w-10 h-10 rounded-lg bg-error-container/50 flex items-center justify-center text-error shrink-0">
+          <i class="fas fa-trash-alt text-sm"></i>
+        </span>
+        <div class="min-w-0 text-left">
+          <h3 id="kbConfirmTitle" class="text-lg font-bold text-on-surface truncate"></h3>
+          <p id="kbConfirmSubtitle" class="text-[10px] font-semibold uppercase tracking-widest text-error">Permanent Action</p>
+        </div>
+      </div>
+      <button type="button" id="kbConfirmClose" title="Close" class="p-1 text-secondary hover:text-on-surface shrink-0 ml-2">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="px-6 py-5 text-left space-y-3">
+      <p id="kbConfirmMessage" class="text-sm text-secondary leading-relaxed"></p>
+      <div id="kbConfirmDetailWrap" class="hidden rounded-lg bg-surface-container-low border border-surface-container px-4 py-3">
+        <p class="text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1">Selected Record</p>
+        <p id="kbConfirmDetail" class="text-sm font-semibold text-on-surface break-words"></p>
+      </div>
+      <p class="text-xs text-secondary/80">This action cannot be undone.</p>
+    </div>
+    <div class="flex gap-3 px-6 py-4 border-t border-surface-container bg-surface-container-low/30">
+      <button type="button" id="kbConfirmCancel" title="Cancel" class="flex-1 px-6 py-3 bg-surface-container-low text-on-surface text-sm font-semibold rounded-lg hover:bg-surface-container transition-colors">Cancel</button>
+      <button type="button" id="kbConfirmOk" title="Confirm" class="flex-1 py-3 bg-error hover:brightness-110 text-on-error text-sm font-bold uppercase tracking-wider rounded-lg transition-all"></button>
+    </div>
+  </div>
+</div>
+<script>
+  window.KbConfirm = (function() {
+    const dialog = document.getElementById('kbConfirmDialog');
+    const titleEl = document.getElementById('kbConfirmTitle');
+    const subtitleEl = document.getElementById('kbConfirmSubtitle');
+    const messageEl = document.getElementById('kbConfirmMessage');
+    const detailWrap = document.getElementById('kbConfirmDetailWrap');
+    const detailEl = document.getElementById('kbConfirmDetail');
+    const okBtn = document.getElementById('kbConfirmOk');
+    const cancelBtn = document.getElementById('kbConfirmCancel');
+    const closeBtn = document.getElementById('kbConfirmClose');
+    let resolver = null;
+
+    function close(result) {
+      dialog.classList.replace('flex', 'hidden');
+      if (resolver) {
+        resolver(result);
+        resolver = null;
+      }
+    }
+
+    okBtn.addEventListener('click', () => close(true));
+    cancelBtn.addEventListener('click', () => close(false));
+    closeBtn.addEventListener('click', () => close(false));
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) close(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !dialog.classList.contains('hidden')) close(false);
+    });
+
+    function ask(opts) {
+      opts = opts || {};
+      titleEl.textContent = opts.title || 'Confirm Delete';
+      subtitleEl.textContent = opts.subtitle || 'Permanent Action';
+      messageEl.textContent = opts.message || 'Are you sure you want to continue?';
+      messageEl.classList.toggle('hidden', !opts.message);
+      if (opts.detail) {
+        detailEl.textContent = opts.detail;
+        detailWrap.classList.remove('hidden');
+      } else {
+        detailEl.textContent = '';
+        detailWrap.classList.add('hidden');
+      }
+      okBtn.textContent = opts.confirmLabel || 'Delete';
+      dialog.classList.replace('hidden', 'flex');
+      cancelBtn.focus();
+      return new Promise((resolve) => {
+        resolver = resolve;
+      });
+    }
+
+    return { ask };
+  })();
+</script>

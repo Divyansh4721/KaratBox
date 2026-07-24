@@ -8,7 +8,7 @@ const breadcrumb = require("../config/breadcrumbs");
 const db = mongoose.connection;
 module.exports.DeveloperConsolePage = async function (req, res) {
   try {
-    return res.render("admin_developerConsole", {
+    return res.render("admin/dev", {
       title: "Developer Console"
     });
   } catch (err) {
@@ -52,8 +52,11 @@ module.exports.settingsPage = async function (req, res) {
     );
     let daysAllowedVar = variables.find((v) => v.name === "daysAllowed");
     let daysAllowed = daysAllowedVar.value.split(" ").map((i) => i === "true");
-    variables.splice(variables.findIndex((v) => v.name === "daysAllowed"), 1);
-    return res.render("admin/admin_environment", {
+    variables.splice(
+      variables.findIndex((v) => v.name === "daysAllowed"),
+      1
+    );
+    return res.render("admin/settings", {
       title: "Settings",
       variables,
       daysAllowed
@@ -83,13 +86,15 @@ module.exports.sessionPage = async function (req, res) {
     }
     newSession.sort((a, b) => b.expires - a.expires);
     for (let i = 0; i < newSession.length; i++) {
-      newSession[i].expires = common_function.convertTime(newSession[i].expires);
+      newSession[i].expires = common_function.convertTime(
+        newSession[i].expires
+      );
     }
-    return res.render("admin/admin_session", {
+    return res.render("admin/session", {
       title: "Session Page",
       sessionlist: newSession,
       breadcrumbs: breadcrumb.trail([
-        { label: "Staff Management", href: "/permission" },
+        { label: "Staff Management", href: "/admin/permissions" },
         { label: "Session Page" }
       ])
     });
@@ -103,25 +108,43 @@ module.exports.sessionPage = async function (req, res) {
 module.exports.updateSettingsApi = async function (req, res) {
   try {
     let envVariables = [
-      "AppName", "TagName", "goldPrice", "XDaysToDelete", "startHour", "endHour",
-      "daysAllowed", "mailUser", "mailPassword", "mailFrom", "backUpMail",
-      "google_clientID", "google_clientSecret", "google_callbackURL"
+      "AppName",
+      "TagName",
+      "goldPrice",
+      "XDaysToDelete",
+      "startHour",
+      "endHour",
+      "daysAllowed",
+      "mailUser",
+      "mailPassword",
+      "mailFrom",
+      "backUpMail",
+      "google_clientID",
+      "google_clientSecret",
+      "google_callbackURL"
     ];
     await Promise.all(
       envVariables.map(async (name) => {
         let variable = await Env_Variable.findOne({ name });
         if (name === "daysAllowed") {
-          variable.value = req.body[name].map((value) => value === "on").join(" ");
+          variable.value = req.body[name]
+            .map((value) => value === "on")
+            .join(" ");
         } else {
           variable.value = req.body[name];
         }
         await variable.save();
       })
     );
-    return res.status(200).json({ success: true, message: "Settings updated successfully!" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Settings updated successfully!" });
   } catch (err) {
     console.log("Error in Update Settings API!", err);
-    return res.status(500).json({ success: false, message: "Internal Server Error while updating settings." });
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error while updating settings."
+    });
   }
 };
 module.exports.deleteSessionApi = async function (req, res) {
@@ -131,17 +154,23 @@ module.exports.deleteSessionApi = async function (req, res) {
     } else {
       await db.collection("sessions").findOneAndDelete({ _id: req.body.id });
     }
-    return res.status(200).json({ success: true, message: "Session(s) deleted successfully!" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Session(s) deleted successfully!" });
   } catch (err) {
     console.log("Error in Deleting Session API!", err);
-    return res.status(500).json({ success: false, message: "Error in deleting session metadata." });
+    return res
+      .status(500)
+      .json({ success: false, message: "Error in deleting session metadata." });
   }
 };
 module.exports.createUserApi = async function (req, res) {
   try {
     let temp = await User.find({ email: req.body.email });
     if (temp.length != 0) {
-      return res.status(409).json({ success: false, message: "User identity already exists!" });
+      return res
+        .status(409)
+        .json({ success: false, message: "User identity already exists!" });
     }
     let newUser = await User.create({
       name: req.body.name,
@@ -150,51 +179,77 @@ module.exports.createUserApi = async function (req, res) {
       adminPermissionPerm: false,
       cart: []
     });
-    return res.status(201).json({ success: true, message: "User created successfully!", data: newUser });
+    return res.status(201).json({
+      success: true,
+      message: "User created successfully!",
+      data: newUser
+    });
   } catch (err) {
     console.log("Error in Creating User API!", err);
-    return res.status(500).json({ success: false, message: "Internal server error during user creation." });
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error during user creation."
+    });
   }
 };
 module.exports.updateUserApi = async function (req, res) {
   try {
     let user = await User.findById(req.body.id);
     if (!user) {
-      return res.status(404).json({ success: false, message: "Target user not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Target user not found." });
     }
     if (user.email !== req.body.email) {
       let temp = await User.find({ email: req.body.email });
       if (temp.length != 0) {
-        return res.status(409).json({ success: false, message: "Username/Email already explicitly in use!" });
+        return res.status(409).json({
+          success: false,
+          message: "Username/Email already explicitly in use!"
+        });
       }
     }
     user.name = req.body.name;
     user.email = req.body.email;
     await user.save();
-    return res.status(200).json({ success: true, message: "User details altered successfully!", data: user });
+    return res.status(200).json({
+      success: true,
+      message: "User details altered successfully!",
+      data: user
+    });
   } catch (err) {
     console.log("Error in updating core user values!", err);
-    return res.status(500).json({ success: false, message: "Failure updating core user profile data." });
+    return res.status(500).json({
+      success: false,
+      message: "Failure updating core user profile data."
+    });
   }
 };
 module.exports.deleteUserApi = async function (req, res) {
   try {
     let user = await User.findById(req.body.id);
     if (!user) {
-      return res.status(404).json({ success: false, message: "Target user entity not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Target user entity not found." });
     }
     await User.findByIdAndDelete(req.body.id);
-    return res.status(200).json({ success: true, message: "User removed successfully!" });
+    return res
+      .status(200)
+      .json({ success: true, message: "User removed successfully!" });
   } catch (err) {
     console.log("Error inside delete user route!", err);
-    return res.status(500).json({ success: false, message: "Internal failure dropping user item." });
+    return res.status(500).json({
+      success: false,
+      message: "Internal failure dropping user item."
+    });
   }
 };
 module.exports.permissionsPage = async function (req, res) {
   try {
     let user = await User.find({});
     user.sort(common_function.sortByProperty("name", 1));
-    return res.render("admin/admin_permission", {
+    return res.render("admin/permission", {
       title: "Staff Management",
       breadcrumbLabel: "Staff Management",
       userlist: user
@@ -209,7 +264,9 @@ module.exports.userPermissionsPage = async function (req, res) {
   try {
     let user = await User.findById(req.query.id);
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found!" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found!" });
     }
     let permission = await Permission.find({});
     for (let i = 0; i < permission.length; i++) {
@@ -220,25 +277,30 @@ module.exports.userPermissionsPage = async function (req, res) {
     for (let i = 0; i < permission.length; i++) {
       permission[i].isEnabled = permission[i].users.includes(req.query.id);
     }
-    return res.render("admin/admin_permission_user", {
+    return res.render("admin/user_permission", {
       title: "User Permission",
       user: user,
       permissionlist: permission,
       breadcrumbs: breadcrumb.trail([
-        { label: "Staff Management", href: "/admin/permission" },
+        { label: "Staff Management", href: "/admin/permissions" },
         { label: user.name }
       ])
     });
   } catch (err) {
     console.log("Error retrieving user permission manifest mapping!", err);
-    return res.status(500).json({ success: false, message: "Error processing contextual mapping rules safely." });
+    return res.status(500).json({
+      success: false,
+      message: "Error processing contextual mapping rules safely."
+    });
   }
 };
 module.exports.updateUserPermissionsApi = async function (req, res) {
   try {
     let user = await User.findById(req.query.id);
     if (!user) {
-      return res.status(404).json({ success: false, message: "User identity block not resolved." });
+      return res
+        .status(404)
+        .json({ success: false, message: "User identity block not resolved." });
     }
     let permission = await Permission.find({});
     user.name = req.body.name || user.name;
@@ -246,7 +308,8 @@ module.exports.updateUserPermissionsApi = async function (req, res) {
     user.adminPermissionTemp = req.body.adminPermissionTemp ? true : false;
     user.adminPermissionPerm = req.body.adminPermissionPerm ? true : false;
     await user.save();
-    const chosenPermissions = req.body.permission === undefined ? [] : [].concat(req.body.permission);
+    const chosenPermissions =
+      req.body.permission === undefined ? [] : [].concat(req.body.permission);
     for (let p of permission) {
       if (chosenPermissions.includes(p.id)) {
         if (!p.users.includes(user.id)) p.users.push(user.id);
@@ -255,17 +318,25 @@ module.exports.updateUserPermissionsApi = async function (req, res) {
       }
       await p.save();
     }
-    return res.status(200).json({ success: true, message: "User context and rules modified perfectly!" });
+    return res.status(200).json({
+      success: true,
+      message: "User context and rules modified perfectly!"
+    });
   } catch (err) {
     console.log("Error processing batch permission payload sync loops!", err);
-    return res.status(500).json({ success: false, message: "Error mapping updated access structures cleanly." });
+    return res.status(500).json({
+      success: false,
+      message: "Error mapping updated access structures cleanly."
+    });
   }
 };
 module.exports.toggleUserPermissionApi = async function (req, res) {
   try {
     let user = await User.findById(req.query.id);
     if (!user) {
-      return res.status(404).json({ success: false, message: "User entity context not resolved." });
+      return res
+        .status(404)
+        .json({ success: false, message: "User entity context not resolved." });
     }
     user.adminPermissionTemp = !user.adminPermissionTemp;
     await user.save();
@@ -276,6 +347,9 @@ module.exports.toggleUserPermissionApi = async function (req, res) {
     });
   } catch (err) {
     console.log("Error structural toggling permission variable flags!", err);
-    return res.status(500).json({ success: false, message: "Internal database switch flag assignment errors." });
+    return res.status(500).json({
+      success: false,
+      message: "Internal database switch flag assignment errors."
+    });
   }
 };

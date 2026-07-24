@@ -1,0 +1,113 @@
+<% activeNav = 'permission' %>
+<% const label = "block text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1.5"; %>
+<% const field = "w-full px-4 py-3 bg-surface-container-low border border-transparent rounded-lg text-sm text-on-surface placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors"; %>
+<% const profileParts = (user.name || 'U').trim().split(/\s+/).filter(Boolean); %>
+<% let profileInitials = 'U'; %>
+<% if (profileParts.length === 1) { profileInitials = profileParts[0].charAt(0).toUpperCase(); } else if (profileParts.length > 1) { profileInitials = (profileParts[0].charAt(0) + profileParts[profileParts.length - 1].charAt(0)).toUpperCase(); } %>
+<div class="w-full pb-10">
+  <form id="permissionUserForm" action="/admin/permissions/user/update?id=<%= user.id %>" method="post" class="space-y-6">
+    <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper overflow-hidden">
+      <div class="px-6 py-4 border-b border-surface-container flex items-center gap-4">
+        <span class="w-14 h-14 rounded-full bg-primary-fixed/50 text-primary text-lg font-bold flex items-center justify-center shrink-0"><%= profileInitials %></span>
+        <div>
+          <h3 id="permissionUserName" class="text-lg font-bold text-on-surface"><%= user.name %></h3>
+          <p id="permissionUserEmail" class="text-xs text-secondary"><%= user.email %></p>
+        </div>
+      </div>
+      <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div>
+          <label class="<%= label %>">Full Name</label>
+          <input type="text" name="name" required value="<%= user.name %>" class="<%= field %>">
+        </div>
+        <div>
+          <label class="<%= label %>">Email Address</label>
+          <input type="email" name="email" required value="<%= user.email %>" class="<%= field %>">
+        </div>
+      </div>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper p-6">
+      <h3 class="text-sm font-bold text-on-surface mb-4">Administrative Privileges</h3>
+      <div class="flex flex-wrap gap-6">
+        <label class="inline-flex items-center gap-2.5 cursor-pointer">
+          <input type="checkbox" name="adminPermissionPerm" <%= user.adminPermissionPerm ? 'checked' : '' %> class="w-4 h-4 rounded border-surface-container text-primary focus:ring-primary-container">
+          <span class="text-sm text-on-surface">Permanent Admin Access</span>
+        </label>
+        <label class="inline-flex items-center gap-2.5 cursor-pointer">
+          <input type="checkbox" name="adminPermissionTemp" <%= user.adminPermissionTemp ? 'checked' : '' %> class="w-4 h-4 rounded border-surface-container text-primary focus:ring-primary-container">
+          <span class="text-sm text-on-surface">Temporary Admin Access</span>
+        </label>
+      </div>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-whisper overflow-hidden">
+      <div class="px-6 py-4 border-b border-surface-container">
+        <h3 class="text-sm font-bold text-on-surface">System Permissions</h3>
+        <p class="text-xs text-secondary mt-1">Select and assign application access parameters for this user profile.</p>
+      </div>
+
+      <div class="p-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <% permissionlist.forEach(function(p) { %>
+          <label class="flex items-center gap-2.5 p-3 rounded-lg border border-surface-container hover:bg-surface-container-low/50 cursor-pointer transition-colors">
+            <input type="checkbox" name="permission[]" value="<%= p._id %>" <%= p.isEnabled ? 'checked' : '' %> class="w-4 h-4 rounded border-surface-container text-primary focus:ring-primary-container shrink-0">
+            <div class="flex flex-col min-w-0">
+              <span class="text-sm text-on-surface font-medium leading-tight truncate"><%= p.nickname %></span>
+              <span class="text-[10px] text-secondary tracking-wide uppercase mt-0.5"><%= p.listname %></span>
+            </div>
+          </label>
+          <% }); %>
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+      <button type="submit" class="px-6 py-3 bg-primary hover:brightness-110 text-on-primary text-sm font-bold uppercase tracking-wider rounded-lg transition-all">Save Changes</button>
+      <a href="/admin/permissions/user" class="px-6 py-3 bg-surface-container-low text-on-surface text-sm font-semibold rounded-lg hover:bg-surface-container transition-colors inline-flex items-center">Cancel</a>
+    </div>
+  </form>
+</div>
+<script>
+  function notify(text, type) {
+    if (typeof Noty !== 'undefined') {
+      new Noty({ theme: 'nest', text, type, layout: 'topCenter', timeout: 2000 }).show();
+    } else {
+      alert(text);
+    }
+  }
+
+  async function postForm(url, form) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(new FormData(form))
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Request failed');
+    return json;
+  }
+
+  async function postData(url, data) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(data)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Request failed');
+    return json;
+  }
+</script>
+
+<script>
+  document.getElementById('permissionUserForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nameInput = e.target.querySelector('[name="name"]');
+    const emailInput = e.target.querySelector('[name="email"]');
+    try {
+      const json = await postForm(e.target.action, e.target);
+      document.getElementById('permissionUserName').textContent = nameInput.value.trim();
+      document.getElementById('permissionUserEmail').textContent = emailInput.value.trim();
+      notify(json.message, 'success');
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  });
+</script>

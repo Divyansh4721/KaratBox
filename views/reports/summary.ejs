@@ -1,0 +1,84 @@
+<% activeNav = 'reports' %>
+<%- include('../partials/_tokens') %>
+<div class="pb-10 space-y-6">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
+    <div class="min-w-0">
+      <h2 class="text-lg font-bold text-on-surface dark:text-dark-text truncate">Updates List</h2>
+      <h2 class="text-display-lg-mobile md:text-headline-xl font-bold text-primary tracking-tight truncate PageDate"><%= date %></h2>
+    </div>
+    <div class="flex flex-wrap items-center gap-2 sm:shrink-0">
+      <button type="button" onclick="printTable('fullList')" class="inline-flex items-center justify-center gap-2 px-4 py-2 border border-outline-variant/50 dark:border-white/15 text-on-surface dark:text-dark-text text-[11px] uppercase font-semibold tracking-wider rounded-DEFAULT hover:bg-surface-container-low dark:hover:bg-dark-container transition-colors">
+        <i class="fas fa-print text-xs" aria-hidden="true"></i>
+        Print Full
+      </button>
+      <button type="button" onclick="printTable('shortFullList')" class="inline-flex items-center justify-center gap-2 px-4 py-2 border border-outline-variant/50 dark:border-white/15 text-on-surface dark:text-dark-text text-[11px] uppercase font-semibold tracking-wider rounded-DEFAULT hover:bg-surface-container-low dark:hover:bg-dark-container transition-colors">
+        <i class="fas fa-print text-xs" aria-hidden="true"></i>
+        Print Short
+      </button>
+      <button type="button" onclick="printTableDetail('printList')" class="inline-flex items-center justify-center gap-2 px-4 py-2 border border-outline-variant/50 dark:border-white/15 text-on-surface dark:text-dark-text text-[11px] uppercase font-semibold tracking-wider rounded-DEFAULT hover:bg-surface-container-low dark:hover:bg-dark-container transition-colors">
+        <i class="fas fa-file-lines text-xs" aria-hidden="true"></i>
+        Print Detail
+      </button>
+    </div>
+  </div>
+  <%- include('../partials/_daily_summary_table', { listRows: fullList, tableId: 'fullList', hidden: true, stoneMultiplier: 5 }) %>
+  <%- include('../partials/_daily_summary_table', { listRows: shortFullList, tableId: 'shortFullList', hidden: true, stoneMultiplier: 5 }) %>
+  <div id="detailList" class="space-y-2">
+    <%- include('../partials/_stock_detail_table', { title: 'Arrival Table', sectionId: 'arrival-table', stockTable: arrivalTable, paginate: true }) %>
+    <%- include('../partials/_stock_detail_table', { title: 'Sold Table', sectionId: 'sold-table', stockTable: soldTable, paginate: true }) %>
+    <%- include('../partials/_stock_detail_table', { title: 'Deleted Table', sectionId: 'deleted-table', stockTable: deletedTable, paginate: true }) %>
+    <%- include('../partials/_stock_detail_table', { title: 'Edit Table', sectionId: 'edit-table', stockTable: editTable, paginate: true }) %>
+    <%- include('../partials/_stock_detail_table', { title: 'Approval Given Table', sectionId: 'approval-given-table', stockTable: approvalGiveTable, paginate: true }) %>
+    <%- include('../partials/_stock_detail_table', { title: 'Approval Taken Table', sectionId: 'approval-taken-table', stockTable: approvalTakeTable, paginate: true }) %>
+  </div>
+  <div id="printList" class="hidden">
+    <%- include('../partials/_stock_detail_table', { title: 'Arrival Table', stockTable: arrivalTable, withActions: false }) %>
+    <%- include('../partials/_stock_detail_table', { title: 'Sold Table', stockTable: soldTable, withActions: false }) %>
+    <%- include('../partials/_stock_detail_table', { title: 'Deleted Table', stockTable: deletedTable, withActions: false }) %>
+    <%- include('../partials/_stock_detail_table', { title: 'Edit Table', stockTable: editTable, withActions: false }) %>
+    <%- include('../partials/_stock_detail_table', { title: 'Approval Given Table', stockTable: approvalGiveTable, withActions: false }) %>
+    <%- include('../partials/_stock_detail_table', { title: 'Approval Taken Table', stockTable: approvalTakeTable, withActions: false }) %>
+  </div>
+</div>
+<%- include('../partials/_table', { footer: false }) %>
+<script>
+  function paginateDomTable(opts) {
+    const tbody = document.getElementById(opts.bodyId);
+    if (!tbody) return null;
+
+    function getRows() {
+      return Array.from(tbody.querySelectorAll('tr')).filter(function(tr) {
+        return !tr.classList.contains('pager-skip');
+      });
+    }
+    const pager = new KbPagination({
+      perPage: opts.perPage || 10,
+      paginationId: opts.paginationId,
+      summaryId: opts.summaryId,
+      perPageSelectId: opts.perPageSelectId,
+      onPageChange: render,
+      formatSummary: function(page, rows) {
+        return rows.length ?
+          'Showing ' + page.length + ' of ' + rows.length + ' rows' :
+          'No rows';
+      }
+    });
+
+    function render() {
+      const allRows = getRows();
+      allRows.forEach(function(tr) {
+        tr.classList.add('hidden');
+      });
+      const result = pager.apply(allRows);
+      result.page.forEach(function(tr) {
+        tr.classList.remove('hidden');
+      });
+      tbody.querySelectorAll('tr.pager-skip').forEach(function(tr) {
+        tr.classList.remove('hidden');
+      });
+    }
+    render();
+    pager.refresh = render;
+    return pager;
+  }
+</script>

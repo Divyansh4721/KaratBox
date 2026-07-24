@@ -1,6 +1,6 @@
 <header class="w-full bg-surface-container-lowest dark:bg-dark-surface border-b border-surface-container-high dark:border-dark-container px-4 sm:px-6 lg:px-10 py-4 transition-colors duration-300">
   <% const profileAvatar = (typeof user !== 'undefined' && user && user.avatar)
-    ? (user.avatar.startsWith('http') || user.avatar.startsWith('/') ? user.avatar : '/uploads/' + user.avatar)
+    ? (user.avatar.startsWith('http') || user.avatar.startsWith('/') ? user.avatar : user.avatar)
     : ''; %>
   <% const profileName = (typeof user !== 'undefined' && user && user.name) ? user.name : 'User'; %>
   <% const profileParts = profileName.trim().split(/\s+/).filter(Boolean); %>
@@ -18,7 +18,7 @@
       </a>
       <h1 class="hidden sm:block text-base sm:text-lg font-semibold text-on-surface truncate"><%= title %></h1>
     </div>
-    <form action="/inventorySelection" method="get" class="hidden sm:block w-full sm:max-w-md sm:justify-self-center">
+    <form action="/inventory-search" method="get" class="hidden sm:block w-full sm:max-w-md sm:justify-self-center">
       <div class="relative ">
         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-secondary pointer-events-none">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -32,9 +32,9 @@
       <% if (typeof user !== 'undefined' && user) { %>
       <a href="/cart" class="relative p-2 rounded-lg text-secondary hover:text-primary hover:bg-surface-container-low dark:hover:bg-dark-container transition-colors" title="Cart" aria-label="Cart">
         <i class="fas fa-shopping-cart text-lg"></i>
-        <% if (typeof cartCount !== 'undefined' && cartCount > 0) { %>
-        <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary-container text-on-primary text-[10px] font-bold flex items-center justify-center leading-none"><%= cartCount %></span>
-        <% } %>
+
+        <span id="cart-count-badge" class="hidden absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary-container text-on-primary text-[10px] font-bold items-center justify-center leading-none">
+        </span>
       </a>
       <% } %>
       <div class="relative" id="profile-menu">
@@ -95,4 +95,31 @@
       this.remove();
     }
   });
+  async function loadCartCount() {
+    try {
+      const response = await fetch('/cart/info', {
+        headers: {
+          'Accept': 'application/json'
+        },
+        cache: 'no-store'
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (data.status !== 'success') return;
+      const badge = document.getElementById('cart-count-badge');
+      if (!badge) return;
+      const count = Number(data.cartCount) || 0;
+      if (count > 0) {
+        badge.textContent = count;
+        badge.classList.remove('hidden');
+        badge.classList.add('flex');
+      } else {
+        badge.classList.add('hidden');
+        badge.classList.remove('flex');
+      }
+    } catch (err) {
+      console.error('Failed to load cart count:', err);
+    }
+  }
+  loadCartCount();
 </script>

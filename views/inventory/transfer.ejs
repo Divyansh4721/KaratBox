@@ -1,0 +1,37 @@
+<% activeNav = 'inventory' %>
+<%- include('../partials/_tokens') %>
+<% const label = "block text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1.5"; %>
+<% const field = "w-full px-4 py-3 bg-surface-container-low dark:bg-dark-container border border-outline-variant/40 dark:border-white/10 rounded-lg text-sm text-on-surface dark:text-dark-text placeholder-secondary/60 focus:outline-none focus:border-primary-container transition-colors"; %>
+<% const select = field + " appearance-none cursor-pointer"; %>
+<% const btn = "inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary hover:brightness-110 text-on-primary text-sm font-semibold rounded-lg transition-all"; %>
+<% const pageSubtitle = stockTable.length + ' item' + (stockTable.length !== 1 ? 's' : '') + ' selected for bulk edit'; %>
+<div class="pb-10 space-y-6">
+  <% const backLink = typeof backHref !== 'undefined' ? backHref : '/cart'; %>
+  <% const subtitle = typeof pageSubtitle !== 'undefined' ? pageSubtitle : ''; %>
+  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+    <div>
+      <h2 class="text-display-lg-mobile md:text-headline-xl font-bold text-on-surface dark:text-dark-text tracking-tight mb-1"><%= title %></h2>
+      <% if (subtitle) { %><p class="text-sm text-secondary"><%= subtitle %></p><% } %>
+    </div>
+  </div>
+  <form action="/stock/transfer" method="post" class="space-y-6">
+    <div class="<%= formCard %>">
+      <h3 class="text-sm font-bold text-on-surface dark:text-dark-text mb-5">Update Stock Type</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-end">
+        <div class="space-y-2">
+          <label class="<%= label %>">Stock Type <span class="text-error">*</span></label>
+          <select id="stockType" name="stockType" required class="<%= select %>">
+            <option value="">Select Stock Type...</option>
+            <% for (let i of stockTypeTable) { %>
+            <option value="<%= i.id %>"><%= i.name %></option>
+            <% } %>
+          </select>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="submit" class="<%= btn %>">Apply to All Items</button>
+        </div>
+      </div>
+    </div>
+    <%- include('../partials/_stock_detail_table', { stockTable, title: 'Cart Items' }) %>
+  </form>
+</div>

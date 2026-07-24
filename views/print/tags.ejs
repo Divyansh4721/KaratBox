@@ -1,0 +1,70 @@
+<html>
+
+<head>
+  <title>Print Tags</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      font-size: 10px
+    }
+
+    .tag-print-row {
+      display: flex;
+      flex-direction: row;
+      font-weight: bold;
+      width: 100%;
+      height: 100vh;
+      page-break-after: always
+    }
+
+    .tag-left,
+    .tag-right {
+      display: flex;
+      flex-direction: column;
+      width: 27%;
+      height: 100%;
+      padding-left: 25px
+    }
+
+    .tag-right {
+      padding-left: 10px
+    }
+
+    .tag-extra {
+      width: 46%
+    }
+
+    span {
+      white-space: nowrap
+    }
+  </style>
+</head>
+
+<body>
+  <div id="printTagsArea" class="hidden">
+    <% for (let i of stockTable) { %>
+    <div class="tag-print-row">
+      <div class="tag-left">
+        <span><%= i.prefix.name %> <%= i.ornament.name %> # <%= i.tag %> (<%= i.stockType.name %>)</span>
+        <span>G. Wt. <%= (i.grossWt * 1).toFixed(3) %> gm</span>
+        <span>N. Wt. <%= (i.netWt * 1).toFixed(3) %> gm</span>
+        <span><%= i.purity.name %><% if (i.kaarigar) { %> | <%= i.kaarigar.name %><% } %></span>
+      </div>
+      <div class="tag-right">
+        <span><%= tag_name %> | <%= i.index %></span>
+        <% for (let j of i.stoneTable) { %>
+        <span><%= j.type.name %> - <%= (j.ctWeight * 1).toFixed(3) %> ct</span>
+        <% } %>
+        <span>₹&nbsp;<%= i.sellingPrice.toFixed(0) %>&nbsp;/-</span>
+      </div>
+      <div class="tag-extra"></div>
+    </div>
+    <% } %>
+  </div>
+</body>
+<script>
+  window.print();
+</script>
+
+</html>

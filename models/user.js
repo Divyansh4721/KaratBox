@@ -39,16 +39,8 @@ const UserSchema = new mongoose.Schema({
 const env = require("../config/environment");
 const multer = require("multer");
 const path = require("path");
-const imagePath = path.join(
-  "uploads",
-  "avatar"
-);
-const imageFullPath = path.join(
-  __dirname,
-  "..",
-  "uploads",
-  "avatar"
-);
+const imagePath = path.join("uploads", "avatar");
+const imageFullPath = path.join(__dirname, "..", "uploads", "avatar");
 UserSchema.statics.uploadImage = multer({
   storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
